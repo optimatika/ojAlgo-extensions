@@ -10,11 +10,6 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-    <modules>
-        <module>ojalgo-cplex</module>
-        <module>ojalgo-gurobi</module>
-        <module>ojalgo-mosek</module>
-    </modules>
     <dependencies>
         <dependency>
             <groupId>org.ojalgo</groupId>
@@ -64,4 +59,10 @@
             </plugin>
         </plugins>
     </build>
+    <modules>
+        <module>ojAlgo-cplex</module>
+        <module>ojAlgo-gurobi</module>
+        <module>ojAlgo-mosek</module>
+        <module>ojAlgo-unsafe</module>
+    </modules>
 </project>
