@@ -1,0 +1,61 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.ojalgo</groupId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>ojAlgo Extensions</name>
+    <description>Extensions to oj! Algorithms</description>
+    <artifactId>ojalgo-extensions</artifactId>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    <modules>
+        <module>ojalgo-cplex</module>
+        <module>ojalgo-gurobi</module>
+        <module>ojalgo-mosek</module>
+    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.ojalgo</groupId>
+            <artifactId>ojalgo</artifactId>
+            <version>42.0.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>cplex</groupId>
+                <artifactId>cplex</artifactId>
+                <version>12.6.2</version>
+                <scope>system</scope>
+                <systemPath>/Users/apete/Applications/IBM/ILOG/CPLEX_Studio_Community1262/cplex/lib/cplex.jar</systemPath>
+            </dependency>
+            <dependency>
+                <groupId>mosek</groupId>
+                <artifactId>mosek</artifactId>
+                <version>7.1</version>
+                <scope>system</scope>
+                <systemPath>/Users/apete/Applications/mosek/7/tools/platform/osx64x86/bin/mosek.jar</systemPath>
+            </dependency>
+            <dependency>
+                <groupId>gurobi</groupId>
+                <artifactId>gurobi</artifactId>
+                <version>1.2.3</version>
+                <scope>system</scope>
+                <systemPath>/Users/apete/Applications/Gurobi/lib/gurobi.jar</systemPath>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
