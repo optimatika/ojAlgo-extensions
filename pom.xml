@@ -52,6 +52,11 @@
                 <scope>system</scope>
                 <systemPath>/Users/apete/Applications/Gurobi/lib/gurobi.jar</systemPath>
             </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-math3</artifactId>
+                <version>3.6.1</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <build>
@@ -70,5 +75,6 @@
         <module>ojAlgo-gurobi</module>
         <module>ojAlgo-mosek</module>
         <module>ojAlgo-unsafe</module>
+        <module>ojAlgo-commons-math</module>
     </modules>
 </project>

@@ -44,6 +44,10 @@ public abstract class ArrayTests extends FunctionalityTest {
         suite.addTestSuite(ArrayStructureTest.class);
         suite.addTestSuite(Array1DTest.class);
         suite.addTestSuite(NumberListTest.class);
+        suite.addTestSuite(LongToNumberMapTest.class);
+        suite.addTestSuite(BufferArrayTest.class);
+        suite.addTestSuite(SegmentedArrayTest.class);
+        suite.addTestSuite(SetGetTest.class);
         //$JUnit-END$
         return suite;
     }
