@@ -54,8 +54,8 @@ public class RealMatrixWrapper implements Access2D<Double>, Stream2D<Double, Acc
     }
 
     public RealMatrixWrapper operateOnAll(final UnaryFunction<Double> operator) {
-        // TODO Auto-generated method stub
-        return null;
+        this.loopAll((r, c) -> myRealMatrix.setEntry((int) r, (int) c, operator.invoke(myRealMatrix.getEntry((int) r, (int) c))));
+        return this;
     }
 
     public RealMatrixWrapper operateOnMatching(final Access2D<Double> left, final BinaryFunction<Double> operator) {
