@@ -23,12 +23,9 @@ package org.ojalgo.commons;
 
 import org.apache.commons.math3.linear.RealMatrix;
 import org.ojalgo.access.Access2D;
-import org.ojalgo.access.Stream2D;
-import org.ojalgo.function.BinaryFunction;
-import org.ojalgo.function.UnaryFunction;
 import org.ojalgo.matrix.store.PhysicalStore;
 
-public class RealMatrixWrapper implements Access2D<Double>, Stream2D<Double, Access2D<Double>, PhysicalStore<Double>, RealMatrixWrapper> {
+public class RealMatrixWrapper implements Access2D<Double>, Access2D.Collectable<Double, PhysicalStore<Double>> {
 
     private final RealMatrix myRealMatrix;
 
@@ -53,24 +50,14 @@ public class RealMatrixWrapper implements Access2D<Double>, Stream2D<Double, Acc
         return myRealMatrix.getEntry((int) row, (int) col);
     }
 
-    public RealMatrixWrapper operateOnAll(final UnaryFunction<Double> operator) {
-        this.loopAll((r, c) -> myRealMatrix.setEntry((int) r, (int) c, operator.invoke(myRealMatrix.getEntry((int) r, (int) c))));
-        return this;
-    }
-
-    public RealMatrixWrapper operateOnMatching(final Access2D<Double> left, final BinaryFunction<Double> operator) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public RealMatrixWrapper operateOnMatching(final BinaryFunction<Double> operator, final Access2D<Double> right) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public void supplyTo(final PhysicalStore<Double> consumer) {
-        // TODO Auto-generated method stub
-
+    public void supplyTo(final PhysicalStore<Double> receiver) {
+        final int tmpLimRows = (int) Math.min(myRealMatrix.getRowDimension(), receiver.countRows());
+        final int tmpLimCols = (int) Math.min(myRealMatrix.getColumnDimension(), receiver.countColumns());
+        for (int i = 0; i < tmpLimRows; i++) {
+            for (int j = 0; j < tmpLimCols; j++) {
+                receiver.set(i, j, myRealMatrix.getEntry(i, j));
+            }
+        }
     }
 
 }
