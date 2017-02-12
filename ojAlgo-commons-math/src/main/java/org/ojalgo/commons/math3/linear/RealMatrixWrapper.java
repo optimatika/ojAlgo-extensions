@@ -1,4 +1,4 @@
-package org.ojalgo.commons;
+package org.ojalgo.commons.math3.linear;
 /*
  * Copyright 1997-2017 Optimatika (www.optimatika.se)
  *
