@@ -27,11 +27,15 @@ import org.ojalgo.matrix.store.PhysicalStore;
 
 public class RealMatrixWrapper implements Access2D<Double>, Access2D.Collectable<Double, PhysicalStore<Double>> {
 
+    public static RealMatrixWrapper of(RealMatrix delegate) {
+        return new RealMatrixWrapper(delegate);
+    }
+
     private final RealMatrix myRealMatrix;
 
-    public RealMatrixWrapper(final RealMatrix realMatrix) {
+    RealMatrixWrapper(final RealMatrix delegate) {
         super();
-        myRealMatrix = realMatrix;
+        myRealMatrix = delegate;
     }
 
     public long countColumns() {
