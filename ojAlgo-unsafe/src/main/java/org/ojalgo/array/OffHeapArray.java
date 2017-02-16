@@ -42,13 +42,13 @@ public abstract class OffHeapArray extends DenseArray<Double> {
     public static final Factory<Double> NATIVE32 = new Factory<Double>() {
 
         @Override
-        long getElementSize() {
-            return 4L;
+        long getCapacityLimit() {
+            return MAX_ARRAY_SIZE;
         }
 
         @Override
-        long getMaxCount() {
-            return Long.MAX_VALUE;
+        long getElementSize() {
+            return Native32Array.ELEMENT_SIZE;
         }
 
         @Override
@@ -66,13 +66,13 @@ public abstract class OffHeapArray extends DenseArray<Double> {
     public static final Factory<Double> NATIVE64 = new Factory<Double>() {
 
         @Override
-        long getElementSize() {
-            return 8L;
+        long getCapacityLimit() {
+            return MAX_ARRAY_SIZE;
         }
 
         @Override
-        long getMaxCount() {
-            return Long.MAX_VALUE;
+        long getElementSize() {
+            return Native64Array.ELEMENT_SIZE;
         }
 
         @Override
@@ -86,12 +86,6 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         }
 
     };
-
-    /**
-     * @deprecated v42 Use {@link #NATIVE64} instead
-     */
-    @Deprecated
-    public static final Factory<Double> FACTORY = NATIVE64;
 
     /**
      * @deprecated v42 Use {@link #makeNative64(long)} instead
@@ -110,8 +104,10 @@ public abstract class OffHeapArray extends DenseArray<Double> {
     }
 
     /**
-     * @deprecated v42 Use {@link SegmentedArray#makeDense(DenseArray.Factory, long)} or
-     *             {@link SegmentedArray#makeSparse(BasicArray.BasicFactory, long)} instead
+     * @deprecated v42 Use
+     *             {@link SegmentedArray#makeDense(DenseArray.Factory, long)} or
+     *             {@link SegmentedArray#makeSparse(BasicArray.BasicFactory, long)}
+     *             instead
      */
     @Deprecated
     public static final SegmentedArray<Double> makeSegmented(final long count) {
@@ -226,29 +222,16 @@ public abstract class OffHeapArray extends DenseArray<Double> {
     }
 
     @Override
-    void modify(final long extIndex, final int intIndex, final Access1D<Double> left, final BinaryFunction<Double> function) {
-        this.set(intIndex, function.invoke(left.doubleValue(extIndex), this.doubleValue(intIndex)));
-    }
-
-    @Override
-    void modify(final long extIndex, final int intIndex, final BinaryFunction<Double> function, final Access1D<Double> right) {
-        this.set(intIndex, function.invoke(this.doubleValue(intIndex), right.doubleValue(extIndex)));
-    }
-
-    @Override
-    void modify(final long extIndex, final int intIndex, final UnaryFunction<Double> function) {
-        this.set(intIndex, function.invoke(this.doubleValue(intIndex)));
-    }
-
-    @Override
-    protected void modify(final long first, final long limit, final long step, final Access1D<Double> left, final BinaryFunction<Double> function) {
+    protected void modify(final long first, final long limit, final long step, final Access1D<Double> left,
+            final BinaryFunction<Double> function) {
         for (long i = first; i < limit; i += step) {
             this.set(i, function.invoke(left.doubleValue(i), this.doubleValue(i)));
         }
     }
 
     @Override
-    protected void modify(final long first, final long limit, final long step, final BinaryFunction<Double> function, final Access1D<Double> right) {
+    protected void modify(final long first, final long limit, final long step, final BinaryFunction<Double> function,
+            final Access1D<Double> right) {
         for (long i = first; i < limit; i += step) {
             this.set(i, function.invoke(this.doubleValue(i), right.doubleValue(i)));
         }
@@ -271,6 +254,23 @@ public abstract class OffHeapArray extends DenseArray<Double> {
     @Override
     boolean isPrimitive() {
         return true;
+    }
+
+    @Override
+    void modify(final long extIndex, final int intIndex, final Access1D<Double> left,
+            final BinaryFunction<Double> function) {
+        this.set(intIndex, function.invoke(left.doubleValue(extIndex), this.doubleValue(intIndex)));
+    }
+
+    @Override
+    void modify(final long extIndex, final int intIndex, final BinaryFunction<Double> function,
+            final Access1D<Double> right) {
+        this.set(intIndex, function.invoke(this.doubleValue(intIndex), right.doubleValue(extIndex)));
+    }
+
+    @Override
+    void modify(final long extIndex, final int intIndex, final UnaryFunction<Double> function) {
+        this.set(intIndex, function.invoke(this.doubleValue(intIndex)));
     }
 
     @Override

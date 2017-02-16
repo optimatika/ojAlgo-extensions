@@ -46,12 +46,7 @@ final class OffHeapArray2 extends BasicArray<Double> {
     public static final ArrayFactory<Double, OffHeapArray2> FACTORY = new ArrayFactory<Double, OffHeapArray2>() {
 
         @Override
-        long getElementSize() {
-            return 8L;
-        }
-
-        @Override
-        long getMaxCount() {
+        long getCapacityLimit() {
             return Long.MAX_VALUE;
         }
 
@@ -89,7 +84,7 @@ final class OffHeapArray2 extends BasicArray<Double> {
     }
 
     public static final SegmentedArray<Double> makeSegmented(final long count) {
-        //return SegmentedArray.make(FACTORY, count);
+        // return SegmentedArray.make(FACTORY, count);
         return FACTORY.makeSegmented(count);
     }
 
@@ -234,7 +229,8 @@ final class OffHeapArray2 extends BasicArray<Double> {
     }
 
     @Override
-    protected void modify(final long first, final long limit, final long step, final Access1D<Double> left, final BinaryFunction<Double> function) {
+    protected void modify(final long first, final long limit, final long step, final Access1D<Double> left,
+            final BinaryFunction<Double> function) {
         long tmpAddress;
         for (long i = first; i < limit; i += step) {
             tmpAddress = this.address(i);
@@ -243,7 +239,8 @@ final class OffHeapArray2 extends BasicArray<Double> {
     }
 
     @Override
-    protected void modify(final long first, final long limit, final long step, final BinaryFunction<Double> function, final Access1D<Double> right) {
+    protected void modify(final long first, final long limit, final long step, final BinaryFunction<Double> function,
+            final Access1D<Double> right) {
         long tmpAddress;
         for (long i = first; i < limit; i += step) {
             tmpAddress = this.address(i);

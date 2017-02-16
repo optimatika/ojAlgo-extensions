@@ -22,9 +22,12 @@
 package org.ojalgo.array;
 
 import org.ojalgo.constant.PrimitiveMath;
+import org.ojalgo.machine.JavaType;
 import org.ojalgo.type.NativeMemory;
 
 final class Native32Array extends OffHeapArray {
+
+    static final long ELEMENT_SIZE = JavaType.FLOAT.memory();
 
     private final long myPointer;
 
