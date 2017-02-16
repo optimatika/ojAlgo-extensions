@@ -21,14 +21,90 @@ package org.ojalgo.commons.math3.linear;
  * SOFTWARE.
  */
 
+import static org.ojalgo.constant.PrimitiveMath.*;
+
+import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.DiagonalMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.ojalgo.access.Access2D;
 import org.ojalgo.matrix.store.PhysicalStore;
 
-public class RealMatrixWrapper implements Access2D<Double>, Access2D.Collectable<Double, PhysicalStore<Double>> {
+public abstract class RealMatrixWrapper implements Access2D<Double>, Access2D.Collectable<Double, PhysicalStore<Double>> {
 
-    public static RealMatrixWrapper of(RealMatrix delegate) {
-        return new RealMatrixWrapper(delegate);
+    static final class Array2DRowWrapper extends RealMatrixWrapper {
+
+        private final Array2DRowRealMatrix myArray2DRow;
+
+        Array2DRowWrapper(final Array2DRowRealMatrix delegate) {
+            super(delegate);
+            myArray2DRow = delegate;
+        }
+
+        @Override
+        public void supplyTo(final PhysicalStore<Double> receiver) {
+
+            final int tmpLimRows = (int) Math.min(myArray2DRow.getRowDimension(), receiver.countRows());
+            final int tmpLimCols = (int) Math.min(myArray2DRow.getColumnDimension(), receiver.countColumns());
+
+            for (int i = 0; i < tmpLimRows; i++) {
+                for (int j = 0; j < tmpLimCols; j++) {
+                    receiver.set(i, j, myArray2DRow.getEntry(i, j));
+                }
+            }
+        }
+
+    }
+
+    static final class DefaultWrapper extends RealMatrixWrapper {
+
+        DefaultWrapper(final RealMatrix delegate) {
+            super(delegate);
+        }
+
+        public void supplyTo(final PhysicalStore<Double> receiver) {
+
+            final long tmpLimRows = Math.min(this.countRows(), receiver.countRows());
+            final long tmpLimCols = Math.min(this.countColumns(), receiver.countColumns());
+
+            for (long j = 0L; j < tmpLimCols; j++) {
+                for (long i = 0L; i < tmpLimRows; i++) {
+                    receiver.set(i, j, this.doubleValue(i, j));
+                }
+            }
+        }
+
+    }
+
+    static final class DiagonalWrapper extends RealMatrixWrapper {
+
+        private final DiagonalMatrix myDiagonal;
+
+        DiagonalWrapper(final DiagonalMatrix delegate) {
+            super(delegate);
+            myDiagonal = delegate;
+        }
+
+        @Override
+        public void supplyTo(final PhysicalStore<Double> receiver) {
+
+            receiver.fillAll(ZERO);
+
+            final double[] diagonal = myDiagonal.getDataRef();
+            for (int ij = 0; ij < diagonal.length; ij++) {
+                receiver.set(ij, ij, diagonal[ij]);
+            }
+        }
+
+    }
+
+    public static RealMatrixWrapper of(final RealMatrix delegate) {
+        if (delegate instanceof Array2DRowRealMatrix) {
+            return new Array2DRowWrapper((Array2DRowRealMatrix) delegate);
+        } else if (delegate instanceof DiagonalMatrix) {
+            return new DiagonalWrapper((DiagonalMatrix) delegate);
+        } else {
+            return new DefaultWrapper(delegate);
+        }
     }
 
     private final RealMatrix myRealMatrix;
@@ -52,16 +128,6 @@ public class RealMatrixWrapper implements Access2D<Double>, Access2D.Collectable
 
     public Double get(final long row, final long col) {
         return myRealMatrix.getEntry((int) row, (int) col);
-    }
-
-    public void supplyTo(final PhysicalStore<Double> receiver) {
-        final int tmpLimRows = (int) Math.min(myRealMatrix.getRowDimension(), receiver.countRows());
-        final int tmpLimCols = (int) Math.min(myRealMatrix.getColumnDimension(), receiver.countColumns());
-        for (int i = 0; i < tmpLimRows; i++) {
-            for (int j = 0; j < tmpLimCols; j++) {
-                receiver.set(i, j, myRealMatrix.getEntry(i, j));
-            }
-        }
     }
 
 }
