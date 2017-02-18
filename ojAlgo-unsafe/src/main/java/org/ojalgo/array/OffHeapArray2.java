@@ -51,12 +51,12 @@ final class OffHeapArray2 extends BasicArray<Double> {
         }
 
         @Override
-        OffHeapArray2 makeStructuredZero(final long segmentationLimit, final long... structure) {
+        OffHeapArray2 makeStructuredZero(final long... structure) {
             return new OffHeapArray2(AccessUtils.count(structure));
         }
 
         @Override
-        OffHeapArray2 makeToBeFilled(final long segmentationLimit, final long... structure) {
+        OffHeapArray2 makeToBeFilled(final long... structure) {
             return new OffHeapArray2(AccessUtils.count(structure));
         }
 

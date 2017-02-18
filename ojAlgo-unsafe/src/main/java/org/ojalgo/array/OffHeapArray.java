@@ -111,7 +111,7 @@ public abstract class OffHeapArray extends DenseArray<Double> {
      */
     @Deprecated
     public static final SegmentedArray<Double> makeSegmented(final long count) {
-        return SegmentedArray.makeDense(NATIVE64, count);
+        return NATIVE64.makeSegmented(count);
     }
 
     private final long myCount;
