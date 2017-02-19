@@ -77,11 +77,12 @@ public abstract class BasicArrayTest extends ArrayTests {
     }
 
     public void testSparse() {
-        this.doTest(SparseArray.makePrimitive(COUNT));
+        final long count = (long) COUNT;
+        this.doTest(SparseArray.factory(Primitive64Array.FACTORY, count).initial(DenseStrategy.capacity(count)).make());
     }
 
     public void testHugeSparse() {
-        this.doTest(SparseArray.makePrimitive(Long.MAX_VALUE, COUNT));
+        this.doTest(SparseArray.factory(Primitive64Array.FACTORY, Long.MAX_VALUE).initial(COUNT).make());
     }
 
     abstract void doTest(final BasicArray<Double> array);
