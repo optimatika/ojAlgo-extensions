@@ -57,6 +57,16 @@
                 <artifactId>commons-math3</artifactId>
                 <version>3.6.1</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-core_2.11</artifactId>
+                <version>2.1.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.nd4j</groupId>
+                <artifactId>nd4j-api</artifactId>
+                <version>0.7.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <build>
@@ -76,5 +86,7 @@
         <module>ojAlgo-mosek</module>
         <module>ojAlgo-unsafe</module>
         <module>ojAlgo-commons-math</module>
+        <module>ojAlgo-spark</module>
+        <module>ojAlgo-nd4j</module>
     </modules>
 </project>
