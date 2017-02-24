@@ -61,11 +61,6 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         }
 
         @Override
-        Scalar<Double> zero() {
-            return PrimitiveScalar.ZERO;
-        }
-
-        @Override
         public FunctionSet<Double> function() {
             return PrimitiveFunction.getSet();
         }
@@ -97,11 +92,6 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         @Override
         DenseArray<Double> make(final long size) {
             return new Native64Array(size);
-        }
-
-        @Override
-        Scalar<Double> zero() {
-            return PrimitiveScalar.ZERO;
         }
 
         @Override
