@@ -27,9 +27,11 @@ import org.ojalgo.access.Access1D;
 import org.ojalgo.access.AccessUtils;
 import org.ojalgo.constant.PrimitiveMath;
 import org.ojalgo.function.BinaryFunction;
+import org.ojalgo.function.FunctionSet;
 import org.ojalgo.function.NullaryFunction;
 import org.ojalgo.function.UnaryFunction;
 import org.ojalgo.function.VoidFunction;
+import org.ojalgo.function.aggregator.AggregatorSet;
 import org.ojalgo.scalar.PrimitiveScalar;
 
 import sun.misc.Unsafe;
@@ -58,6 +60,24 @@ final class OffHeapArray2 extends BasicArray<Double> {
         @Override
         OffHeapArray2 makeToBeFilled(final long... structure) {
             return new OffHeapArray2(AccessUtils.count(structure));
+        }
+
+        @Override
+        public FunctionSet<Double> function() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public AggregatorSet<Double> aggregator() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public org.ojalgo.scalar.Scalar.Factory<Double> scalar() {
+            // TODO Auto-generated method stub
+            return null;
         }
 
     };
@@ -229,8 +249,7 @@ final class OffHeapArray2 extends BasicArray<Double> {
     }
 
     @Override
-    protected void modify(final long first, final long limit, final long step, final Access1D<Double> left,
-            final BinaryFunction<Double> function) {
+    protected void modify(final long first, final long limit, final long step, final Access1D<Double> left, final BinaryFunction<Double> function) {
         long tmpAddress;
         for (long i = first; i < limit; i += step) {
             tmpAddress = this.address(i);
@@ -239,8 +258,7 @@ final class OffHeapArray2 extends BasicArray<Double> {
     }
 
     @Override
-    protected void modify(final long first, final long limit, final long step, final BinaryFunction<Double> function,
-            final Access1D<Double> right) {
+    protected void modify(final long first, final long limit, final long step, final BinaryFunction<Double> function, final Access1D<Double> right) {
         long tmpAddress;
         for (long i = first; i < limit; i += step) {
             tmpAddress = this.address(i);

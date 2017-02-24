@@ -24,9 +24,13 @@ package org.ojalgo.array;
 import org.ojalgo.access.Access1D;
 import org.ojalgo.constant.PrimitiveMath;
 import org.ojalgo.function.BinaryFunction;
+import org.ojalgo.function.FunctionSet;
 import org.ojalgo.function.NullaryFunction;
+import org.ojalgo.function.PrimitiveFunction;
 import org.ojalgo.function.UnaryFunction;
 import org.ojalgo.function.VoidFunction;
+import org.ojalgo.function.aggregator.AggregatorSet;
+import org.ojalgo.function.aggregator.PrimitiveAggregator;
 import org.ojalgo.scalar.PrimitiveScalar;
 import org.ojalgo.scalar.Scalar;
 
@@ -61,6 +65,21 @@ public abstract class OffHeapArray extends DenseArray<Double> {
             return PrimitiveScalar.ZERO;
         }
 
+        @Override
+        public FunctionSet<Double> function() {
+            return PrimitiveFunction.getSet();
+        }
+
+        @Override
+        public AggregatorSet<Double> aggregator() {
+            return PrimitiveAggregator.getSet();
+        }
+
+        @Override
+        public Scalar.Factory<Double> scalar() {
+            return PrimitiveScalar.FACTORY;
+        }
+
     };
 
     public static final Factory<Double> NATIVE64 = new Factory<Double>() {
@@ -85,6 +104,21 @@ public abstract class OffHeapArray extends DenseArray<Double> {
             return PrimitiveScalar.ZERO;
         }
 
+        @Override
+        public FunctionSet<Double> function() {
+            return PrimitiveFunction.getSet();
+        }
+
+        @Override
+        public AggregatorSet<Double> aggregator() {
+            return PrimitiveAggregator.getSet();
+        }
+
+        @Override
+        public Scalar.Factory<Double> scalar() {
+            return PrimitiveScalar.FACTORY;
+        }
+
     };
 
     /**
@@ -104,10 +138,8 @@ public abstract class OffHeapArray extends DenseArray<Double> {
     }
 
     /**
-     * @deprecated v42 Use
-     *             {@link SegmentedArray#makeDense(DenseArray.Factory, long)} or
-     *             {@link SegmentedArray#makeSparse(BasicArray.BasicFactory, long)}
-     *             instead
+     * @deprecated v42 Use {@link SegmentedArray#makeDense(DenseArray.Factory, long)} or
+     *             {@link SegmentedArray#makeSparse(BasicArray.BasicFactory, long)} instead
      */
     @Deprecated
     public static final SegmentedArray<Double> makeSegmented(final long count) {
@@ -222,16 +254,14 @@ public abstract class OffHeapArray extends DenseArray<Double> {
     }
 
     @Override
-    protected void modify(final long first, final long limit, final long step, final Access1D<Double> left,
-            final BinaryFunction<Double> function) {
+    protected void modify(final long first, final long limit, final long step, final Access1D<Double> left, final BinaryFunction<Double> function) {
         for (long i = first; i < limit; i += step) {
             this.set(i, function.invoke(left.doubleValue(i), this.doubleValue(i)));
         }
     }
 
     @Override
-    protected void modify(final long first, final long limit, final long step, final BinaryFunction<Double> function,
-            final Access1D<Double> right) {
+    protected void modify(final long first, final long limit, final long step, final BinaryFunction<Double> function, final Access1D<Double> right) {
         for (long i = first; i < limit; i += step) {
             this.set(i, function.invoke(this.doubleValue(i), right.doubleValue(i)));
         }
@@ -257,14 +287,12 @@ public abstract class OffHeapArray extends DenseArray<Double> {
     }
 
     @Override
-    void modify(final long extIndex, final int intIndex, final Access1D<Double> left,
-            final BinaryFunction<Double> function) {
+    void modify(final long extIndex, final int intIndex, final Access1D<Double> left, final BinaryFunction<Double> function) {
         this.set(intIndex, function.invoke(left.doubleValue(extIndex), this.doubleValue(intIndex)));
     }
 
     @Override
-    void modify(final long extIndex, final int intIndex, final BinaryFunction<Double> function,
-            final Access1D<Double> right) {
+    void modify(final long extIndex, final int intIndex, final BinaryFunction<Double> function, final Access1D<Double> right) {
         this.set(intIndex, function.invoke(this.doubleValue(intIndex), right.doubleValue(extIndex)));
     }
 
