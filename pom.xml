@@ -67,6 +67,11 @@
                 <artifactId>nd4j-api</artifactId>
                 <version>0.7.2</version>
             </dependency>
+            <dependency>
+                <groupId>org.deeplearning4j</groupId>
+                <artifactId>deeplearning4j-core</artifactId>
+                <version>0.7.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <build>
@@ -88,5 +93,6 @@
         <module>ojAlgo-commons-math</module>
         <module>ojAlgo-spark</module>
         <module>ojAlgo-nd4j</module>
+        <module>ojAlgo-deeplearning4j</module>
     </modules>
 </project>
