@@ -5,7 +5,6 @@ import org.ojalgo.matrix.store.BigDenseStore;
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation.Result;
-import org.ojalgo.optimisation.convex.P20150720;
 
 public class OJAlgoTest3 {
 

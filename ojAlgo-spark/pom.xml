@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.ojalgo</groupId>
         <artifactId>ojalgo-extensions</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>1-SNAPSHOT</version>
     </parent>
     <artifactId>ojAlgo-spark</artifactId>
     <name>ojAlgo-spark</name>
