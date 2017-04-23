@@ -18,4 +18,5 @@
             <artifactId>strata-pricer</artifactId>
         </dependency>
     </dependencies>
+    <url>http://ojalgo.org/</url>
 </project>

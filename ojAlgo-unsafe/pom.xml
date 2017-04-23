@@ -6,4 +6,6 @@
     <version>1-SNAPSHOT</version>
   </parent>
   <artifactId>ojalgo-unsafe</artifactId>
+  <url>http://ojalgo.org/</url>
+  <name>ojAlgo-mosek</name>
 </project>

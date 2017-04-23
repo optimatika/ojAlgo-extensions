@@ -14,4 +14,6 @@
             <artifactId>mosek</artifactId>
         </dependency>
     </dependencies>
+    <url>http://ojalgo.org/</url>
+    <name>ojAlgo-mosek</name>
 </project>

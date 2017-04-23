@@ -15,4 +15,5 @@
             <artifactId>spark-core_2.11</artifactId>
         </dependency>
     </dependencies>
+    <url>http://ojalgo.org/</url>
 </project>
