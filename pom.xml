@@ -2,11 +2,37 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.ojalgo</groupId>
-    <version>1.0</version>
-    <packaging>pom</packaging>
+    <artifactId>ojalgo-extensions</artifactId>
     <name>oj! Extensions</name>
     <description>Extensions to oj! Algorithms</description>
-    <artifactId>ojalgo-extensions</artifactId>
+    <version>1.0</version>
+    <packaging>pom</packaging>
+    <url>http://ojalgo.org</url>
+    <modules>
+        <module>ojAlgo-commons-math3</module>
+        <module>ojAlgo-cplex</module>
+        <module>ojAlgo-deeplearning4j</module>
+        <module>ojAlgo-gurobi</module>
+        <module>ojAlgo-jfreechart</module>
+        <module>ojAlgo-jxl</module>
+        <module>ojAlgo-mail</module>
+        <module>ojAlgo-mosek</module>
+        <module>ojAlgo-nd4j</module>
+        <module>ojAlgo-persistence</module>
+        <module>ojAlgo-spark</module>
+        <module>ojAlgo-strata</module>
+        <module>ojAlgo-unsafe</module>
+    </modules>
+    <organization>
+        <name>Optimatika</name>
+        <url>http://optimatika.se</url>
+    </organization>
+    <scm>
+        <url>https://github.com/optimatika/ojAlgo-extensions</url>
+    </scm>
+    <issueManagement>
+        <url>https://github.com/optimatika/ojAlgo-extensions/issues</url>
+    </issueManagement>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <path.lib.cplex>/Users/apete/Applications/IBM/ILOG/CPLEX_Studio_Community1262/cplex/lib/cplex.jar</path.lib.cplex>
@@ -153,20 +179,4 @@
             </plugin>
         </plugins>
     </build>
-    <modules>
-        <module>ojAlgo-cplex</module>
-        <module>ojAlgo-gurobi</module>
-        <module>ojAlgo-mosek</module>
-        <module>ojAlgo-unsafe</module>
-        <module>ojAlgo-commons-math3</module>
-        <module>ojAlgo-spark</module>
-        <module>ojAlgo-nd4j</module>
-        <module>ojAlgo-deeplearning4j</module>
-        <module>ojAlgo-strata</module>
-        <module>ojAlgo-mail</module>
-        <module>ojAlgo-jxl</module>
-        <module>ojAlgo-jfreechart</module>
-        <module>ojAlgo-persistence</module>
-    </modules>
-    <url>http://ojalgo.org/</url>
 </project>

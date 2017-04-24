@@ -8,11 +8,11 @@
     </parent>
     <artifactId>ojalgo-commons-math3</artifactId>
     <name>ojAlgo-commons-math3</name>
+    <description>ojAlgo and Apache Commons Math integration</description>
     <dependencies>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
         </dependency>
     </dependencies>
-    <url>http://ojalgo.org/</url>
 </project>

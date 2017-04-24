@@ -7,12 +7,12 @@
         <version>1.0</version>
     </parent>
     <artifactId>ojalgo-gurobi</artifactId>
+    <name>ojAlgo-gurobi</name>
+    <description>ojAlgo and GUROBI integration</description>
     <dependencies>
         <dependency>
             <groupId>gurobi</groupId>
             <artifactId>gurobi</artifactId>
         </dependency>
     </dependencies>
-    <url>http://ojalgo.org/</url>
-    <name>ojAlgo-cplex</name>
 </project>
