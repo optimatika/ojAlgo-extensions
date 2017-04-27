@@ -14,5 +14,4 @@
             <artifactId>javax.persistence</artifactId>
         </dependency>
     </dependencies>
-    <url>http://ojalgo.org/</url>
 </project>

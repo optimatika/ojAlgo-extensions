@@ -6,6 +6,5 @@
     <version>1.0</version>
   </parent>
   <artifactId>ojalgo-unsafe</artifactId>
-  <url>http://ojalgo.org/</url>
   <name>ojAlgo-mosek</name>
 </project>

@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.ojalgo</groupId>
     <artifactId>ojalgo-extensions</artifactId>
-    <name>oj! Extensions</name>
-    <description>Extensions to oj! Algorithms</description>
     <version>1.0</version>
     <packaging>pom</packaging>
+    <name>ojAlgo-extensions</name>
     <url>http://ojalgo.org</url>
+    <description>Extensions to oj! Algorithms with 3:d party dependencies</description>
     <modules>
         <module>ojAlgo-commons-math3</module>
         <module>ojAlgo-cplex</module>
@@ -27,11 +27,26 @@
         <name>Optimatika</name>
         <url>http://optimatika.se</url>
     </organization>
+    <developers>
+        <developer>
+            <name>Anders Peterson</name>
+            <email>apete@optimatika.se</email>
+            <organization>Optimatika</organization>
+            <organizationUrl>http://optimatika.se</organizationUrl>
+        </developer>
+    </developers>
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>http://ojalgo.org/license.txt</url>
+        </license>
+    </licenses>
     <scm>
         <url>https://github.com/optimatika/ojAlgo-extensions</url>
     </scm>
     <issueManagement>
         <url>https://github.com/optimatika/ojAlgo-extensions/issues</url>
+        <system>GitHub</system>
     </issueManagement>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -165,6 +180,18 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>

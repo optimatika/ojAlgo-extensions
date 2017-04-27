@@ -13,5 +13,4 @@
             <artifactId>deeplearning4j-core</artifactId>
         </dependency>
     </dependencies>
-    <url>http://ojalgo.org/</url>
 </project>

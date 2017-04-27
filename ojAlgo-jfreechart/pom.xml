@@ -14,5 +14,4 @@
             <artifactId>jfreechart</artifactId>
         </dependency>
     </dependencies>
-    <url>http://ojalgo.org/</url>
 </project>
