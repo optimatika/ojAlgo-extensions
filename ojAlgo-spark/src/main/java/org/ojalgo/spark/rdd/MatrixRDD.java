@@ -47,6 +47,8 @@ public final class MatrixRDD<N extends Number> extends RDD<N> implements Stream2
 
     public MatrixRDD(final RDD<?> oneParent, final ClassTag<N> evidence$2) {
         super(oneParent, evidence$2);
+
+        final N[] array = (N[]) evidence$2.newArray(47);
     }
 
     public MatrixRDD(final SparkContext _sc, final Seq<Dependency<?>> deps, final ClassTag<N> evidence$1) {
