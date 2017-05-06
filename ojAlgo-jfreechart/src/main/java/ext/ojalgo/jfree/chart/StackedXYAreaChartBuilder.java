@@ -31,6 +31,7 @@ import org.jfree.chart.annotations.XYPointerAnnotation;
 import org.jfree.chart.axis.AxisLocation;
 import org.jfree.chart.axis.LogarithmicAxis;
 import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.labels.StandardXYToolTipGenerator;
 import org.jfree.chart.labels.XYToolTipGenerator;
 import org.jfree.chart.plot.Plot;
@@ -105,11 +106,20 @@ public class StackedXYAreaChartBuilder extends NumberSeriesCollection {
         final XYPlot retVal = new XYPlot(tmpDataset, tmpDomainAxis, tmpRangeAxis, tmpRenderer);
         retVal.setOrientation(parameters.getOrientation());
 
-        retVal.setRangeAxis(1, retVal.getRangeAxis(0));
-        retVal.setRangeAxisLocation(1, AxisLocation.BOTTOM_OR_RIGHT);
-
         final double tmpLowerRangeBound = tmpRangeAxis.getRange().getLowerBound();
         final double tmpUpperRangeBound = tmpRangeAxis.getRange().getUpperBound();
+        retVal.setRangeAxisLocation(0, AxisLocation.TOP_OR_LEFT);
+
+        ValueAxis tmpRangeAxis2;
+        try {
+            tmpRangeAxis2 = (ValueAxis) retVal.getRangeAxis(0).clone();
+            retVal.setRangeAxis(1, tmpRangeAxis2);
+            retVal.setRangeAxisLocation(1, AxisLocation.BOTTOM_OR_RIGHT);
+        } catch (final CloneNotSupportedException exception) {
+            // TODO Auto-generated catch block
+            exception.printStackTrace();
+        }
+
         final BasicStroke tmpAnnotationStroke = new BasicStroke(1F);
         final Paint tmpAnnotationPaint = new Color(Color.BLACK.getRed(), Color.BLACK.getGreen(), Color.BLACK.getBlue(), 0.5F);
         for (final StringToDouble tmpAnnotationData : domain.getAnnotations()) {
