@@ -24,7 +24,7 @@ package org.ojalgo.array;
 import java.lang.reflect.Field;
 
 import org.ojalgo.access.Access1D;
-import org.ojalgo.access.AccessUtils;
+import org.ojalgo.access.StructureAnyD;
 import org.ojalgo.constant.PrimitiveMath;
 import org.ojalgo.function.BinaryFunction;
 import org.ojalgo.function.FunctionSet;
@@ -54,12 +54,12 @@ final class OffHeapArray2 extends BasicArray<Double> {
 
         @Override
         OffHeapArray2 makeStructuredZero(final long... structure) {
-            return new OffHeapArray2(AccessUtils.count(structure));
+            return new OffHeapArray2(StructureAnyD.count(structure));
         }
 
         @Override
         OffHeapArray2 makeToBeFilled(final long... structure) {
-            return new OffHeapArray2(AccessUtils.count(structure));
+            return new OffHeapArray2(StructureAnyD.count(structure));
         }
 
         @Override
