@@ -34,7 +34,6 @@ import org.ojalgo.random.LogNormal;
 import org.ojalgo.random.SampleSet;
 import org.ojalgo.random.process.GeometricBrownianMotion;
 import org.ojalgo.random.process.RandomProcess;
-import org.ojalgo.series.BasicSeries.NaturallySequenced;
 import org.ojalgo.series.CalendarDateSeries;
 import org.ojalgo.type.CalendarDate;
 import org.ojalgo.type.CalendarDateDuration;
@@ -123,10 +122,10 @@ public class MonteCarloBuilder extends HistoryAndForecastBuilder {
 
         CalendarDate tmpDate = CalendarDate.make(myResolution);
 
-        final NaturallySequenced<CalendarDate, N> tmpDistributionConfidenceSeries = new CalendarDateSeries<NumberWithRange>(myResolution)
+        final CalendarDateSeries<NumberWithRange> tmpDistributionConfidenceSeries = new CalendarDateSeries<NumberWithRange>(myResolution)
                 .name("Distribution Confidence").colour(new ColourData(Color.LIGHT_GRAY.getRGB()));
         tmpDistributionConfidenceSeries.put(tmpDate, new NumberWithRange(tmpInitialValue));
-        final NaturallySequenced<CalendarDate, N>[] tmpMonteCarloScenarioSeries = (NaturallySequenced<CalendarDate, N>[]) new NaturallySequenced<CalendarDate, N>[myRealisations];
+        final CalendarDateSeries<Double>[] tmpMonteCarloScenarioSeries = (CalendarDateSeries<Double>[]) new CalendarDateSeries<?>[myRealisations];
         for (int r = 0; r < myRealisations; r++) {
             tmpMonteCarloScenarioSeries[r] = new CalendarDateSeries<Double>(myResolution).name("Scenario-" + r).colour(ColourData.random());
             tmpMonteCarloScenarioSeries[r].put(tmpDate, tmpInitialValue);

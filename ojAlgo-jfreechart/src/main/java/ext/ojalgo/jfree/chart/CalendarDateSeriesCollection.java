@@ -37,7 +37,7 @@ import org.ojalgo.constant.PrimitiveMath;
 import org.ojalgo.random.ContinuousDistribution;
 import org.ojalgo.random.LogNormal;
 import org.ojalgo.random.RandomNumber;
-import org.ojalgo.series.BasicSeries.NaturallySequenced;
+import org.ojalgo.series.CalendarDateSeries;
 import org.ojalgo.series.CoordinationSet;
 import org.ojalgo.type.CalendarDate;
 import org.ojalgo.type.ColourData;
@@ -119,7 +119,7 @@ public abstract class CalendarDateSeriesCollection extends AbstractSeriesData<Ca
         domain.time(true);
     }
 
-    public void add(final NaturallySequenced<CalendarDate, N> aSeries) {
+    public void add(final CalendarDateSeries<?> aSeries) {
 
         final String tmpName = aSeries.getName();
 
@@ -145,7 +145,7 @@ public abstract class CalendarDateSeriesCollection extends AbstractSeriesData<Ca
     }
 
     public void add(final CoordinationSet<?> aSet) {
-        for (final NaturallySequenced<CalendarDate, N> tmpSeries : aSet.values()) {
+        for (final CalendarDateSeries<?> tmpSeries : aSet.values()) {
             this.add(tmpSeries);
         }
     }
