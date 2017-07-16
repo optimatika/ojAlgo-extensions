@@ -292,7 +292,7 @@ final class OffHeapArray2 extends BasicArray<Double> {
     }
 
     @Override
-    final void reset() {
+    public final void reset() {
         this.fillAll(PrimitiveMath.ZERO);
     }
 
