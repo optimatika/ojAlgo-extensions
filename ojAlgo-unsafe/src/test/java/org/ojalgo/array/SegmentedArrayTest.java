@@ -39,7 +39,7 @@ public class SegmentedArrayTest extends ArrayTests {
         super(aName);
     }
 
-    public void testRandomGetSePrimitiveDenset() {
+    public void testRandomSetAndGetBackPrimitiveDense() {
 
         final long tmpCount = 5000L;
 
@@ -49,7 +49,7 @@ public class SegmentedArrayTest extends ArrayTests {
 
     }
 
-    public void testRandomGetSetLargeBasicArray() {
+    public void testRandomSetAndGetBackBasic() {
 
         final long tmpCount = Long.MAX_VALUE;
 

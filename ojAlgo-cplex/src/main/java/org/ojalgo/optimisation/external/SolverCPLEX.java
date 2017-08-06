@@ -66,8 +66,6 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
     }
 
-    static final Environment ENVIRONMENT = new Environment();
-
     public static final ExpressionsBasedModel.Integration<SolverCPLEX> INTEGRATION = new ExpressionsBasedModel.Integration<SolverCPLEX>() {
 
         public SolverCPLEX build(final ExpressionsBasedModel model) {
@@ -129,6 +127,8 @@ public final class SolverCPLEX implements Optimisation.Solver {
         }
 
     };
+
+    static final Environment ENVIRONMENT = new Environment();
 
     static void addLinear(final Expression source, final IloLinearNumExpr destination, final ExpressionsBasedModel model, final List<IloNumVar> variables)
             throws IloException {
