@@ -7,11 +7,11 @@ Each of the modules below depend on ojAlgo and (typically) one 3:d party library
 * ojAlgo-deeplearning4j https://deeplearning4j.org
 * ojAlgo-gurobi http://www.gurobi.com
 * ojAlgo-jfreechart http://www.jfree.org/jfreechart/
-* ojAlgo-jxl
-* ojAlgo-mail
-* ojAlgo-mosek
+* ojAlgo-jxl http://jexcelapi.sourceforge.net
+* ojAlgo-mail http://www.oracle.com/technetwork/java/javamail/index.html
+* ojAlgo-mosek https://www.mosek.com
 * ojAlgo-nd4j http://nd4j.org
-* ojAlgo-persistence
-* ojAlgo-spark
-* ojAlgo-strata
-* ojAlgo-unsafe
+* ojAlgo-persistence http://www.oracle.com/technetwork/java/javaee/tech/persistence-jsp-140049.html
+* ojAlgo-spark https://spark.apache.org
+* ojAlgo-strata http://strata.opengamma.io
+* ojAlgo-unsafe java.lang.Unsafe
