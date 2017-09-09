@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.ojalgo</groupId>
     <artifactId>ojalgo-extensions</artifactId>
-    <version>1.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>ojAlgo-extensions</name>
     <url>http://ojalgo.org</url>
@@ -35,6 +35,8 @@
     </licenses>
     <scm>
         <url>https://github.com/optimatika/ojAlgo-extensions</url>
+        <connection>https://github.com/optimatika/ojAlgo-extensions.git</connection>
+        <developerConnection>https://github.com/optimatika/ojAlgo-extensions.git</developerConnection>
     </scm>
     <issueManagement>
         <url>https://github.com/optimatika/ojAlgo-extensions/issues</url>
@@ -50,7 +52,7 @@
         <dependency>
             <groupId>org.ojalgo</groupId>
             <artifactId>ojalgo</artifactId>
-            <version>43.1-SNAPSHOT</version>
+            <version>44.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -61,7 +63,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>2.7.0</version>
+            <version>2.9.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -118,13 +120,11 @@
                 <artifactId>strata-pricer</artifactId>
                 <version>1.2.0</version>
             </dependency>
-<dependency>
-    <groupId>com.sun.mail</groupId>
-    <artifactId>javax.mail</artifactId>
-    <version>1.5.6</version>
-</dependency>
-
-
+            <dependency>
+                <groupId>com.sun.mail</groupId>
+                <artifactId>javax.mail</artifactId>
+                <version>1.5.6</version>
+            </dependency>
             <dependency>
                 <groupId>net.sourceforge.jexcelapi</groupId>
                 <artifactId>jxl</artifactId>
