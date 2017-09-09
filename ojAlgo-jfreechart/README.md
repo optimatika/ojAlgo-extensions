@@ -1,2 +1,3 @@
-# ojAlgo-Extensions
-oj! Algorithms (ojAlgo) Extensions
+# ojAlgo JFree Chart integration
+
+Draw chart directly using ojAlgo data structures
