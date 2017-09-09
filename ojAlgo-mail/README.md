@@ -1,2 +1,3 @@
-# ojAlgo-Extensions
-oj! Algorithms (ojAlgo) Extensions
+# ojAlgo mail intergation
+
+Simple mail/message builders
