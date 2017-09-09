@@ -1,3 +1,3 @@
 # ojAlgo JPA integration
 
-Just some JP related tools
+Just some JPA related tools
