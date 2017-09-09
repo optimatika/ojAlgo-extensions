@@ -1,2 +1,3 @@
-# ojAlgo-Extensions
-oj! Algorithms (ojAlgo) Extensions
+# ojAlgo JPA integration
+
+Just some JP related tools
