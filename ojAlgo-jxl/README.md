@@ -1,2 +1,3 @@
-# ojAlgo-Extensions
-oj! Algorithms (ojAlgo) Extensions
+# ojAlgo JXL integration
+
+Read/write data from/to Excel spreadsheets.
