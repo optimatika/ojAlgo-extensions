@@ -11,3 +11,5 @@ Each of the modules below depend on ojAlgo and (typically) one 3:d party library
 * ojAlgo-mosek https://www.mosek.com
 * ojAlgo-persistence http://www.oracle.com/technetwork/java/javaee/tech/persistence-jsp-140049.html
 * ojAlgo-unsafe sun.misc.Unsafe
+
+Read the individual README files in the respective modules / project directories for more info.
