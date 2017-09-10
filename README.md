@@ -1,6 +1,6 @@
 # ojAlgo-extensions
 
-Each of the modules below depend on ojAlgo and (typically) one 3:d party library.
+Each of the modules below depend on ojAlgo (possibly ojAlgo-finance) and typically one 3:d party library.
 
 * ojAlgo-commons-math3 http://commons.apache.org/proper/commons-math/
 * ojAlgo-cplex https://www.ibm.com/us-en/marketplace/ibm-ilog-cplex
