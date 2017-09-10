@@ -10,6 +10,10 @@
     <name>ojAlgo-jxl</name>
     <dependencies>
         <dependency>
+            <groupId>org.ojalgo</groupId>
+            <artifactId>ojalgo-finance</artifactId>
+        </dependency>
+        <dependency>
             <groupId>net.sourceforge.jexcelapi</groupId>
             <artifactId>jxl</artifactId>
         </dependency>
