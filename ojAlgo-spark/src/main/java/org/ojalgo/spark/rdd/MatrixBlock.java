@@ -22,11 +22,64 @@
 package org.ojalgo.spark.rdd;
 
 import org.apache.spark.Partition;
+import org.ojalgo.access.Structure2D;
+import org.ojalgo.matrix.store.ElementsConsumer;
+import org.ojalgo.matrix.store.PhysicalStore;
 
-public class MatrixBlock implements Partition {
+public class MatrixBlock implements Partition, Structure2D {
+
+    static final int BLOCK_SIZE = 1 << 8;
+
+    private final int myColumnsCount;
+    private final int myIndex;
+    private final int myRowsCount;
+    private final int myStructure;
+
+    public MatrixBlock(final int blockIndex, final int blockStructure) {
+        this(blockIndex, blockStructure, BLOCK_SIZE, BLOCK_SIZE);
+    }
+
+    public MatrixBlock(final int blockIndex, final int blockStructure, final int rowsCount, final int columnsCount) {
+        super();
+        myIndex = blockIndex;
+        myStructure = blockStructure;
+        myRowsCount = rowsCount;
+        myColumnsCount = columnsCount;
+    }
+
+    public int column() {
+        return Structure2D.column(myIndex, myStructure);
+    }
+
+    public long countColumns() {
+        return myColumnsCount;
+    }
+
+    public long countRows() {
+        return myRowsCount;
+    }
 
     public int index() {
-        return 0;
+        return myIndex;
+    }
+
+    public int row() {
+        return Structure2D.row(myIndex, myStructure);
+    }
+
+    <N extends Number> ElementsConsumer<N> makeConsumerRegion(final PhysicalStore.Factory<N, PhysicalStore<N>> factory) {
+        return factory.makeZero(myRowsCount, myColumnsCount);
+    }
+
+    <N extends Number> ElementsConsumer<N> makeConsumerRegion(final ElementsConsumer<N> wholeRegion) {
+        ElementsConsumer<N> retVal = wholeRegion;
+        if (this.index() != 0) {
+            retVal = retVal.regionByOffsets(this.row() * BLOCK_SIZE, this.column() * BLOCK_SIZE);
+        }
+        if ((myRowsCount != BLOCK_SIZE) || ((myColumnsCount != BLOCK_SIZE))) {
+            retVal = retVal.regionByLimits(myRowsCount, myColumnsCount);
+        }
+        return retVal;
     }
 
 }

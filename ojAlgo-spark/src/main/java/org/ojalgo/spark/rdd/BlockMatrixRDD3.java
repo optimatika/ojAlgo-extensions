@@ -33,11 +33,11 @@ import scala.collection.Seq;
 import scala.reflect.ClassManifestFactory$;
 import scala.reflect.ClassTag;
 
-public final class BlockMatrixRDD2<N extends Number> extends RDD<MatrixStore<N>> {
+public final class BlockMatrixRDD3<N extends Number> extends RDD<MatrixStore<N>> {
 
     private static final ClassTag<MatrixStore> CLASS_TAG = ClassManifestFactory$.MODULE$.fromClass(MatrixStore.class);
 
-    public BlockMatrixRDD2(final RDD<?> oneParent, final ClassTag<MatrixStore<N>> evidence$2) {
+    public BlockMatrixRDD3(final RDD<?> oneParent, final ClassTag<MatrixStore<N>> evidence$2) {
 
         super(oneParent, evidence$2);
 
@@ -46,14 +46,9 @@ public final class BlockMatrixRDD2<N extends Number> extends RDD<MatrixStore<N>>
         final Class<? extends MatrixStore> clazz = mtrx.getClass();
     }
 
-    public BlockMatrixRDD2(final SparkContext _sc, final Seq<Dependency<?>> deps, final ClassTag<MatrixStore<N>> evidence$1) {
+    public BlockMatrixRDD3(final SparkContext _sc, final Seq<Dependency<?>> deps, final ClassTag<MatrixStore<N>> evidence$1) {
         super(_sc, deps, evidence$1);
     }
-
-    private final MatrixStore<N> myBlock00 = null;
-    private final MatrixStore<N> myBlock01 = null;
-    private final MatrixStore<N> myBlock10 = null;
-    private final MatrixStore<N> myBlock11 = null;
 
     private final int myBlockStructure = 2;
     private final MatrixBlock[] myBlocks = null;
@@ -64,7 +59,7 @@ public final class BlockMatrixRDD2<N extends Number> extends RDD<MatrixStore<N>>
     }
 
     @Override
-    public Iterator<MatrixStore<N>> compute(final Partition partition, final TaskContext taskContext) {
+    public Iterator<MatrixStore<N>> compute(final Partition arg0, final TaskContext arg1) {
         // TODO Auto-generated method stub
         return null;
     }
