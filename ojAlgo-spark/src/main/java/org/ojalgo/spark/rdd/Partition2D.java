@@ -26,7 +26,7 @@ import org.ojalgo.access.Structure2D;
 import org.ojalgo.matrix.store.ElementsConsumer;
 import org.ojalgo.matrix.store.PhysicalStore;
 
-public class MatrixBlock implements Partition, Structure2D {
+public class Partition2D implements Partition, Structure2D {
 
     static final int BLOCK_SIZE = 1 << 8;
 
@@ -35,11 +35,11 @@ public class MatrixBlock implements Partition, Structure2D {
     private final int myRowsCount;
     private final int myStructure;
 
-    public MatrixBlock(final int blockIndex, final int blockStructure) {
+    public Partition2D(final int blockIndex, final int blockStructure) {
         this(blockIndex, blockStructure, BLOCK_SIZE, BLOCK_SIZE);
     }
 
-    public MatrixBlock(final int blockIndex, final int blockStructure, final int rowsCount, final int columnsCount) {
+    public Partition2D(final int blockIndex, final int blockStructure, final int rowsCount, final int columnsCount) {
         super();
         myIndex = blockIndex;
         myStructure = blockStructure;

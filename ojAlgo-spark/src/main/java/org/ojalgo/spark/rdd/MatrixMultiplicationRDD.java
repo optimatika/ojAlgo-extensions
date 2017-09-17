@@ -21,12 +21,34 @@
  */
 package org.ojalgo.spark.rdd;
 
-import org.apache.spark.Partition;
+import org.apache.spark.Dependency;
+import org.apache.spark.SparkContext;
+import org.apache.spark.TaskContext;
+import org.apache.spark.rdd.RDD;
+import org.ojalgo.matrix.store.MatrixStore;
 
-public class MatrixBlock2 implements Partition {
+import scala.collection.Iterator;
+import scala.collection.Seq;
+import scala.reflect.ClassTag;
 
-    public int index() {
-        return 0;
+public final class MatrixMultiplicationRDD<N extends Number> extends OtherBlockMatrixRDD<N> {
+
+    public MatrixMultiplicationRDD(final RDD<?> oneParent, final ClassTag<MatrixStore<N>> evidence$2) {
+        super(oneParent, evidence$2);
+    }
+
+    public MatrixMultiplicationRDD(final SparkContext _sc, final Seq<Dependency<?>> deps, final ClassTag<MatrixStore<N>> evidence$1) {
+        super(_sc, deps, evidence$1);
+    }
+
+    public MatrixMultiplicationRDD(final OtherBlockMatrixRDD<N> left, final OtherBlockMatrixRDD<N> right) {
+        super(left, null);
+    }
+
+    @Override
+    protected Iterator<MatrixStore<N>> compute(final Partition2D partition, final TaskContext context) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
 }

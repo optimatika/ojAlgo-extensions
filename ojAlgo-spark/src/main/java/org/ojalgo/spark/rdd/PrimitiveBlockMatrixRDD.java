@@ -26,42 +26,43 @@ import org.apache.spark.Partition;
 import org.apache.spark.SparkContext;
 import org.apache.spark.TaskContext;
 import org.apache.spark.rdd.RDD;
-import org.ojalgo.matrix.store.MatrixStore;
+import org.ojalgo.ProgrammingError;
 
 import scala.collection.Iterator;
-import scala.collection.Seq;
+import scala.collection.mutable.ArrayBuffer;
 import scala.reflect.ClassManifestFactory$;
 import scala.reflect.ClassTag;
 
-public final class BlockMatrixRDD3<N extends Number> extends RDD<MatrixStore<N>> {
+public abstract class PrimitiveBlockMatrixRDD extends RDD<double[]> {
 
-    private static final ClassTag<MatrixStore> CLASS_TAG = ClassManifestFactory$.MODULE$.fromClass(MatrixStore.class);
+    private static final ClassTag<double[]> CLASS_TAG = ClassManifestFactory$.MODULE$.fromClass(double[].class);
 
-    public BlockMatrixRDD3(final RDD<?> oneParent, final ClassTag<MatrixStore<N>> evidence$2) {
-
-        super(oneParent, evidence$2);
-
-        final MatrixStore<Double> mtrx = MatrixStore.PRIMITIVE.makeZero(3, 3).get();
-
-        final Class<? extends MatrixStore> clazz = mtrx.getClass();
+    protected PrimitiveBlockMatrixRDD(final RDD<?> parent) {
+        super(parent, CLASS_TAG);
     }
 
-    public BlockMatrixRDD3(final SparkContext _sc, final Seq<Dependency<?>> deps, final ClassTag<MatrixStore<N>> evidence$1) {
-        super(_sc, deps, evidence$1);
-    }
-
-    private final int myBlockStructure = 2;
-    private final MatrixBlock[] myBlocks = null;
-
-    @Override
-    public MatrixBlock[] getPartitions() {
-        return myBlocks;
+    protected PrimitiveBlockMatrixRDD(final SparkContext context) {
+        super(context, new ArrayBuffer<Dependency<?>>(), CLASS_TAG);
     }
 
     @Override
-    public Iterator<MatrixStore<N>> compute(final Partition arg0, final TaskContext arg1) {
-        // TODO Auto-generated method stub
-        return null;
+    public abstract Partition2D[] getPartitions();
+
+    @Override
+    public Iterator<double[]> compute(final Partition partition, final TaskContext context) {
+        ProgrammingError.throwIfNull(partition, context);
+        if (partition instanceof Partition2D) {
+            return this.compute((Partition2D) partition, context);
+        } else {
+            throw new IllegalArgumentException();
+        }
     }
+
+    public PrimitiveBlockMatrixRDD sliceColumn() {
+
+        return new ColumnsPrimitiveMatrixMultiplicationRDD(this, null);
+    }
+
+    protected abstract Iterator<double[]> compute(Partition2D partition, TaskContext context);
 
 }

@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.linalg.jvm;
+package org.ojalgo.nd4j.linalg.jvm;
 
 import java.nio.IntBuffer;
 import java.util.List;
@@ -41,25 +41,25 @@ public class ArrayND<N extends Number> implements INDArray {
     private final ArrayAnyD<N> myDelegate;
     private final ArrayAnyD.Factory<N> myFactory;
 
-    public ArrayND(DenseArray.Factory<N> factory, long count) {
+    public ArrayND(final DenseArray.Factory<N> factory, final long count) {
         super();
         myFactory = ArrayAnyD.factory(factory);
         myDelegate = myFactory.makeZero(count);
     }
 
-    public ArrayND(DenseArray.Factory<N> factory, long rows, long columns) {
+    public ArrayND(final DenseArray.Factory<N> factory, final long rows, final long columns) {
         super();
         myFactory = ArrayAnyD.factory(factory);
         myDelegate = myFactory.makeZero(rows, columns);
     }
 
-    public ArrayND(DenseArray.Factory<N> factory, long[] structure) {
+    public ArrayND(final DenseArray.Factory<N> factory, final long[] structure) {
         super();
         myFactory = ArrayAnyD.factory(factory);
         myDelegate = myFactory.makeZero(structure);
     }
 
-    ArrayND(Factory<N> factory, ArrayAnyD<N> delegate) {
+    ArrayND(final Factory<N> factory, final ArrayAnyD<N> delegate) {
         super();
         myFactory = factory;
         myDelegate = delegate;
@@ -86,7 +86,7 @@ public class ArrayND<N extends Number> implements INDArray {
     }
 
     public INDArray add(final Number n) {
-        ArrayAnyD<N> newDelegate = this.copy();
+        final ArrayAnyD<N> newDelegate = this.copy();
         final N val = myFactory.scalar().cast(n);
         final UnaryFunction<N> modifier = myFactory.function().add().second(val);
         newDelegate.modifyAll(modifier);
@@ -154,8 +154,7 @@ public class ArrayND<N extends Number> implements INDArray {
     }
 
     public INDArray assign(final Number value) {
-        // TODO Auto-generated method stub
-        myDelegate.fillAll((N) value);
+        myDelegate.fillAll(myFactory.scalar().cast(value));
         return this;
     }
 

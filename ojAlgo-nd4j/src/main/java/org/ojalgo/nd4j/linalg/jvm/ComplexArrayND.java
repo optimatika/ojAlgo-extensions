@@ -1,4 +1,4 @@
-package org.ojalgo.linalg.jvm;
+package org.ojalgo.nd4j.linalg.jvm;
 
 import java.nio.IntBuffer;
 import java.util.List;

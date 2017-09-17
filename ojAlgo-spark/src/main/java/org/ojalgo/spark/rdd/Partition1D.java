@@ -22,38 +22,25 @@
 package org.ojalgo.spark.rdd;
 
 import org.apache.spark.Partition;
-import org.apache.spark.SparkContext;
-import org.apache.spark.TaskContext;
-import org.apache.spark.rdd.RDD;
+import org.ojalgo.access.Structure1D;
 
-import scala.collection.Iterator;
-import scala.collection.mutable.ArrayBuffer;
-import scala.reflect.ClassManifestFactory$;
-import scala.reflect.ClassTag;
+public class Partition1D implements Partition, Structure1D {
 
-public final class BlockMatrixRDD extends RDD<Double> {
+    private final long myCount;
+    private final int myIndex;
 
-    private static final ClassTag<Double> CLASS_TAG = ClassManifestFactory$.MODULE$.fromClass(double.class);
-
-    public BlockMatrixRDD(final BlockMatrixRDD oneParent) {
-        super(oneParent, CLASS_TAG);
+    public Partition1D(final int index, final long count) {
+        super();
+        myIndex = index;
+        myCount = count;
     }
 
-    public BlockMatrixRDD(final SparkContext context) {
-        super(context, new ArrayBuffer<>(), CLASS_TAG);
+    public long count() {
+        return myCount;
     }
 
-    private final int myBlockStructure = 2;
-    private final MatrixBlock[] myBlocks = null;
-
-    @Override
-    public Iterator<Double> compute(final Partition partition, final TaskContext context) {
-        // TODO Auto-generated method stub
-        return null;
+    public int index() {
+        return myIndex;
     }
 
-    @Override
-    public MatrixBlock[] getPartitions() {
-        return myBlocks;
-    }
 }
