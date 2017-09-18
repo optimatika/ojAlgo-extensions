@@ -52,17 +52,17 @@ public class DistributedPrimitiveElementsSupplier implements ElementsSupplier<Do
 
     private final long myRowsCount;
 
-    public DistributedPrimitiveElementsSupplier(final SparkContext context, final Access2D<?> supplier) {
+    public DistributedPrimitiveElementsSupplier(final SparkContext context, final Access2D<?> elements) {
 
         super();
 
-        long numbRowBlocks = supplier.countRows() / BLOCK_SIZE;
-        if ((supplier.countRows() % BLOCK_SIZE) != 0L) {
+        long numbRowBlocks = elements.countRows() / BLOCK_SIZE;
+        if ((elements.countRows() % BLOCK_SIZE) != 0L) {
             numbRowBlocks++;
         }
 
-        long numbColBlocks = supplier.countColumns() / BLOCK_SIZE;
-        if ((supplier.countColumns() % BLOCK_SIZE) != 0L) {
+        long numbColBlocks = elements.countColumns() / BLOCK_SIZE;
+        if ((elements.countColumns() % BLOCK_SIZE) != 0L) {
             numbColBlocks++;
         }
 
@@ -70,19 +70,19 @@ public class DistributedPrimitiveElementsSupplier implements ElementsSupplier<Do
 
         for (long bj = 0L; bj < numbColBlocks; bj++) {
             final long firstCol = bj * BLOCK_SIZE;
-            final long limitCol = Math.min((bj + 1l) * BLOCK_SIZE, supplier.countColumns());
+            final long limitCol = Math.min((bj + 1l) * BLOCK_SIZE, elements.countColumns());
             final int countCols = (int) (limitCol - firstCol);
 
             for (long bi = 0L; bi < numbRowBlocks; bi++) {
                 final long firstRow = bi * BLOCK_SIZE;
-                final long limitRow = Math.min((bi + 1l) * BLOCK_SIZE, supplier.countRows());
+                final long limitRow = Math.min((bi + 1l) * BLOCK_SIZE, elements.countRows());
                 final int countRows = (int) (limitRow - firstRow);
 
                 final double[] block = new double[countRows * countCols];
 
                 for (int j = 0; j < countCols; j++) {
                     for (int i = 0; i < countRows; i++) {
-                        block[i + (j * countRows)] = supplier.doubleValue(firstRow + i, firstCol + j);
+                        block[i + (j * countRows)] = elements.doubleValue(firstRow + i, firstCol + j);
                     }
                 }
 
@@ -92,8 +92,8 @@ public class DistributedPrimitiveElementsSupplier implements ElementsSupplier<Do
 
         myDelegate = JavaSparkContext.fromSparkContext(context).parallelize(blocks);
 
-        myRowsCount = supplier.countRows();
-        myColumnsCount = supplier.countColumns();
+        myRowsCount = elements.countRows();
+        myColumnsCount = elements.countColumns();
     }
 
     DistributedPrimitiveElementsSupplier(final JavaRDD<double[]> delegate, final long rowsCount, final long columnsCount) {
@@ -115,7 +115,8 @@ public class DistributedPrimitiveElementsSupplier implements ElementsSupplier<Do
     }
 
     public ElementsSupplier<Double> operateOnAll(final UnaryFunction<Double> operator) {
-        return new DistributedPrimitiveElementsSupplier(myDelegate.map(new Function<double[], double[]>() {
+
+        final Function<double[], double[]> mapper = new Function<double[], double[]>() {
 
             public double[] call(final double[] input) throws Exception {
                 final double[] retVal = new double[input.length];
@@ -124,7 +125,9 @@ public class DistributedPrimitiveElementsSupplier implements ElementsSupplier<Do
                 }
                 return retVal;
             }
-        }), myRowsCount, myColumnsCount);
+        };
+
+        return new DistributedPrimitiveElementsSupplier(myDelegate.map(mapper), myRowsCount, myColumnsCount);
     }
 
     public ElementsSupplier<Double> operateOnMatching(final BinaryFunction<Double> operator, final MatrixStore<Double> right) {
