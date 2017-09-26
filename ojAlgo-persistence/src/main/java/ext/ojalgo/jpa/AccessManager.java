@@ -54,7 +54,8 @@ public abstract class AccessManager<EB extends Object, BO extends AbstractBO<EB>
     @SuppressWarnings("unchecked")
     public final List<BO> fetchAll(final EditingContext editingContext) {
 
-        final Query tmpQuery = editingContext.createQuery("SELECT t FROM " + this.getEntityBeanClass().getSimpleName() + " t");
+        final Query tmpQuery = editingContext
+                .createQuery("SELECT t FROM " + this.getEntityBeanClass().getSimpleName() + " t");
         List<EB> tmpResults = null;
 
         try {
@@ -84,8 +85,9 @@ public abstract class AccessManager<EB extends Object, BO extends AbstractBO<EB>
         }
 
         if ((retVal == null) && (key != null) && (value != null)) {
-            final List<EB> tmpResults = this.queryUsingParameters(editingContext, new StringToObject<Object>(key, value));
-            if ((tmpResults != null) && (tmpResults.size() >= 0)) {
+            final List<EB> tmpResults = this.queryUsingParameters(editingContext,
+                    new StringToObject<Object>(key, value));
+            if ((tmpResults != null) && (tmpResults.size() >= 1)) {
                 if (tmpResults.size() > 1) {
                     throw new IllegalArgumentException();
                 } else {
@@ -205,7 +207,8 @@ public abstract class AccessManager<EB extends Object, BO extends AbstractBO<EB>
     protected abstract Class<EB> getEntityBeanClass();
 
     @SuppressWarnings("unchecked")
-    protected final List<EB> queryUsingParameters(final EditingContext editingContext, final StringToObject<?>... parameters) {
+    protected final List<EB> queryUsingParameters(final EditingContext editingContext,
+            final StringToObject<?>... parameters) {
 
         final StringBuilder tmpQueryString = new StringBuilder("SELECT t FROM ");
         tmpQueryString.append(this.getEntityBeanClass().getSimpleName());
