@@ -26,10 +26,13 @@ import static org.ojalgo.constant.PrimitiveMath.*;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.DiagonalMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
-import org.ojalgo.access.Access2D;
+import org.ojalgo.matrix.store.ElementsConsumer;
+import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.PhysicalStore;
+import org.ojalgo.matrix.store.PrimitiveDenseStore;
+import org.ojalgo.matrix.store.RawStore;
 
-public abstract class RealMatrixWrapper implements Access2D<Double>, Access2D.Collectable<Double, PhysicalStore<Double>> {
+public abstract class RealMatrixWrapper implements MatrixStore<Double> {
 
     static final class Array2DRowWrapper extends RealMatrixWrapper {
 
@@ -41,7 +44,11 @@ public abstract class RealMatrixWrapper implements Access2D<Double>, Access2D.Co
         }
 
         @Override
-        public void supplyTo(final PhysicalStore<Double> receiver) {
+        public PhysicalStore.Factory<Double, ?> physical() {
+            return RawStore.FACTORY;
+        }
+
+        public void supplyTo(final ElementsConsumer<Double> receiver) {
 
             final int tmpLimRows = (int) Math.min(myArray2DRow.getRowDimension(), receiver.countRows());
             final int tmpLimCols = (int) Math.min(myArray2DRow.getColumnDimension(), receiver.countColumns());
@@ -61,7 +68,7 @@ public abstract class RealMatrixWrapper implements Access2D<Double>, Access2D.Co
             super(delegate);
         }
 
-        public void supplyTo(final PhysicalStore<Double> receiver) {
+        public void supplyTo(final ElementsConsumer<Double> receiver) {
 
             final long tmpLimRows = Math.min(this.countRows(), receiver.countRows());
             final long tmpLimCols = Math.min(this.countColumns(), receiver.countColumns());
@@ -84,8 +91,23 @@ public abstract class RealMatrixWrapper implements Access2D<Double>, Access2D.Co
             myDiagonal = delegate;
         }
 
-        @Override
-        public void supplyTo(final PhysicalStore<Double> receiver) {
+        public int firstInColumn(final int col) {
+            return col;
+        }
+
+        public int firstInRow(final int row) {
+            return row;
+        }
+
+        public int limitOfColumn(final int col) {
+            return col + 1;
+        }
+
+        public int limitOfRow(final int row) {
+            return row + 1;
+        }
+
+        public void supplyTo(final ElementsConsumer<Double> receiver) {
 
             receiver.fillAll(ZERO);
 
@@ -128,6 +150,10 @@ public abstract class RealMatrixWrapper implements Access2D<Double>, Access2D.Co
 
     public Double get(final long row, final long col) {
         return myRealMatrix.getEntry((int) row, (int) col);
+    }
+
+    public PhysicalStore.Factory<Double, ?> physical() {
+        return PrimitiveDenseStore.FACTORY;
     }
 
 }

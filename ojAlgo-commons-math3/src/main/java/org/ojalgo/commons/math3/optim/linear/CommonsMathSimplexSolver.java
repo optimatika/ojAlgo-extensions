@@ -25,7 +25,7 @@ import org.apache.commons.math3.optim.linear.SimplexSolver;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 
-public final class CommonsMathSimplexSolver implements Optimisation.Solver {
+final class CommonsMathSimplexSolver implements Optimisation.Solver {
 
     public static final ExpressionsBasedModel.Integration<CommonsMathSimplexSolver> INTEGRATION = new ExpressionsBasedModel.Integration<CommonsMathSimplexSolver>() {
 
