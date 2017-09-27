@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,35 +24,37 @@ package ext.ojalgo.jpa;
 /**
  * <p>
  * BusinessObject
- * </p><p>
- * The BusinessObject represents the data client. It is the object that requires
- * access to the data source to obtain and store data. A BusinessObject may be
- * implemented as a session bean, entity bean, or some other Java object, in
- * addition to a servlet or helper bean that accesses the data source.
- * </p><p>
- * DataAccessObject
- * </p><p>
- * The DataAccessObject is the primary object of this pattern.
- * The DataAccessObject abstracts the underlying data access implementation for
- * the BusinessObject to enable transparent access to the data source.
- * The BusinessObject also delegates data load and store operations to the
- * DataAccessObject.
- * </p><p>
- * DataSource
- * </p><p>
- * This represents a data source implementation. A data source could be a
- * database such as an RDBMS, OODBMS, XML repository, flat file system, and so
- * forth. A data source can also be another system (legacy/mainframe), service
- * (B2B service or credit card bureau), or some kind of repository (LDAP).
- * </p><p>
- * TransferObject
- * </p><p>
- * This represents a Transfer Object used as a data carrier. The DataAccessObject
- * may use a Transfer Object to return data to the client. The DataAccessObject
- * may also receive the data from the client in a Transfer Object to update the
- * data in the data source.
  * </p>
- * 
+ * <p>
+ * The BusinessObject represents the data client. It is the object that requires access to the data source to
+ * obtain and store data. A BusinessObject may be implemented as a session bean, entity bean, or some other
+ * Java object, in addition to a servlet or helper bean that accesses the data source.
+ * </p>
+ * <p>
+ * DataAccessObject
+ * </p>
+ * <p>
+ * The DataAccessObject is the primary object of this pattern. The DataAccessObject abstracts the underlying
+ * data access implementation for the BusinessObject to enable transparent access to the data source. The
+ * BusinessObject also delegates data load and store operations to the DataAccessObject.
+ * </p>
+ * <p>
+ * DataSource
+ * </p>
+ * <p>
+ * This represents a data source implementation. A data source could be a database such as an RDBMS, OODBMS,
+ * XML repository, flat file system, and so forth. A data source can also be another system
+ * (legacy/mainframe), service (B2B service or credit card bureau), or some kind of repository (LDAP).
+ * </p>
+ * <p>
+ * TransferObject
+ * </p>
+ * <p>
+ * This represents a Transfer Object used as a data carrier. The DataAccessObject may use a Transfer Object to
+ * return data to the client. The DataAccessObject may also receive the data from the client in a Transfer
+ * Object to update the data in the data source.
+ * </p>
+ *
  * @author apete
  */
 public abstract class AbstractBO<EB> extends Object implements Comparable<AbstractBO<EB>> {
@@ -138,10 +140,10 @@ public abstract class AbstractBO<EB> extends Object implements Comparable<Abstra
 
     /**
      * <ul>
-     * <li>Do not flush (FK) to-one relationsships. Load them lazily and set them
-     * explicitly, but never flush them.</li>
-     * <li>Flush to-many relationships by clearing the collection. Load lazily
-     * when/if the collection is empty.</li>
+     * <li>Do not flush (FK) to-one relationsships. Load them lazily and set them explicitly, but never flush
+     * them.</li>
+     * <li>Flush to-many relationships by clearing the collection. Load lazily when/if the collection is
+     * empty.</li>
      * <li>Store everything else in transient attributes and flush always/often.</li>
      * </ul>
      */

@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2016 Optimatika (www.optimatika.se)
+ * Copyright 1997-2016 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,6 @@ public abstract class ArrayTests extends FunctionalityTest {
         suite.addTestSuite(AggregatorSum.class);
         suite.addTestSuite(ArrayStructureTest.class);
         suite.addTestSuite(Array1DTest.class);
-        suite.addTestSuite(NumberListTest.class);
         suite.addTestSuite(LongToNumberMapTest.class);
         suite.addTestSuite(BufferArrayTest.class);
         suite.addTestSuite(SegmentedArrayTest.class);

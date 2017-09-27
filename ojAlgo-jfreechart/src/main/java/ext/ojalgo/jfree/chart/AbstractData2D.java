@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -49,8 +49,7 @@ public abstract class AbstractData2D extends JFreeChartBuilder<AbstractData2D> {
     }
 
     /**
-     * It seems JFreeChart assumes row=series and column=category, and the paint
-     * is associated with a series
+     * It seems JFreeChart assumes row=series and column=category, and the paint is associated with a series
      */
     public AbstractData2D value(final Comparable<?> aRowKey, final Comparable<?> aColumnKey, final Number aValue, final Paint aPaint) {
         myDataset.setValue(aValue, aRowKey, aColumnKey);

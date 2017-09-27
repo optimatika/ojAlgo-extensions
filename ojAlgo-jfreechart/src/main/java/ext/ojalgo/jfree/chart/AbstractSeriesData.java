@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -106,7 +106,7 @@ public abstract class AbstractSeriesData<K, V, B extends AbstractSeriesData<K, V
 
     }
 
-    private final HashMap<Comparable<?>, Shape> myShapes = new HashMap<Comparable<?>, Shape>();
+    private final HashMap<Comparable<?>, Shape> myShapes = new HashMap<>();
 
     protected AbstractSeriesData() {
         super();

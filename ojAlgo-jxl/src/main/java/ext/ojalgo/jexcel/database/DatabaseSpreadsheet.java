@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ import ext.ojalgo.jexcel.Spreadsheet;
 
 public class DatabaseSpreadsheet extends AdaptingSpreadsheet<Database> {
 
-    public DatabaseSpreadsheet(Spreadsheet aSpreadsheet) {
+    public DatabaseSpreadsheet(final Spreadsheet aSpreadsheet) {
         super(aSpreadsheet);
     }
 
@@ -37,8 +37,8 @@ public class DatabaseSpreadsheet extends AdaptingSpreadsheet<Database> {
     }
 
     @Override
-    public void setAdaptedObject(Database aDatabase) {
-        for (String tmpName : aDatabase.getTableNames()) {
+    public void setAdaptedObject(final Database aDatabase) {
+        for (final String tmpName : aDatabase.getTableNames()) {
             this.activateSheet(tmpName);
             this.setTableSheetValue(aDatabase.get(tmpName));
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,18 +25,19 @@ import org.ojalgo.type.context.TypeContext;
 
 import ext.ojalgo.jexcel.Spreadsheet;
 
-
 public final class NumberColumn extends Column<Number> {
 
-    public NumberColumn(String aName, TypeContext<Number> aContext) {
+    public NumberColumn(final String aName, final TypeContext<Number> aContext) {
         super(aName, aContext);
     }
 
-    public Number getCellValue(Spreadsheet aSheet) {
+    @Override
+    public Number getCellValue(final Spreadsheet aSheet) {
         return aSheet.getNumberCellValue();
     }
 
-    public void setCellValue(Spreadsheet aSheet, Number aCellValue) {
+    @Override
+    public void setCellValue(final Spreadsheet aSheet, final Number aCellValue) {
         aSheet.setNumberCellValue(aCellValue);
     }
 

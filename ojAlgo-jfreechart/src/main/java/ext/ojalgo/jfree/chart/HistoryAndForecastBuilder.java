@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -59,7 +59,7 @@ public class HistoryAndForecastBuilder extends CalendarDateSeriesCollection {
         } else {
             tmpTimeAxis.setAutoRange(true);
         }
-        tmpTimeAxis.setLowerMargin(0.02); // reduce the default margins 
+        tmpTimeAxis.setLowerMargin(0.02); // reduce the default margins
         tmpTimeAxis.setUpperMargin(0.02);
 
         ValueAxis tmpValueAxis = null;

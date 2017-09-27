@@ -21,12 +21,38 @@ import scala.reflect.ClassTag;
  */
 public class AlphaTest {
 
-    private static final ClassTag<String> STRING_TAG = ClassManifestFactory$.MODULE$.fromClass(String.class);
+    /**
+     * A partition representing letters of the Alphabet between a range
+     */
+    public static class AlphabetRangePartition implements Partition {
 
-    public static void main(final String[] args) {
-        final SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("Learn ABCs");
-        try (JavaSparkContext sc = new JavaSparkContext(conf)) {
-            System.out.println(new AlphabetRDD(sc.sc()).toJavaRDD().collect());
+        private static final long serialVersionUID = 1L;
+        private final int index;
+        private final char from;
+        private final char to;
+
+        public AlphabetRangePartition(final int index, final char c, final char d) {
+            this.index = index;
+            from = c;
+            to = d;
+        }
+
+        @Override
+        public boolean equals(final Object obj) {
+            if (!(obj instanceof AlphabetRangePartition)) {
+                return false;
+            }
+            return ((AlphabetRangePartition) obj).index != index;
+        }
+
+        @Override
+        public int hashCode() {
+            return this.index();
+        }
+
+        @Override
+        public int index() {
+            return index;
         }
     }
 
@@ -52,41 +78,6 @@ public class AlphaTest {
     }
 
     /**
-     * A partition representing letters of the Alphabet between a range
-     */
-    public static class AlphabetRangePartition implements Partition {
-
-        private static final long serialVersionUID = 1L;
-        private final int index;
-        private final char from;
-        private final char to;
-
-        public AlphabetRangePartition(final int index, final char c, final char d) {
-            this.index = index;
-            from = c;
-            to = d;
-        }
-
-        @Override
-        public int index() {
-            return index;
-        }
-
-        @Override
-        public boolean equals(final Object obj) {
-            if (!(obj instanceof AlphabetRangePartition)) {
-                return false;
-            }
-            return ((AlphabetRangePartition) obj).index != index;
-        }
-
-        @Override
-        public int hashCode() {
-            return this.index();
-        }
-    }
-
-    /**
      * Iterators over all characters between two characters
      */
     public static class CharacterIterator extends AbstractIterator<String> {
@@ -108,6 +99,15 @@ public class AlphaTest {
         public String next() {
             // Post increments next after returning it
             return Character.toString(next++);
+        }
+    }
+
+    private static final ClassTag<String> STRING_TAG = ClassManifestFactory$.MODULE$.fromClass(String.class);
+
+    public static void main(final String[] args) {
+        final SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("Learn ABCs");
+        try (JavaSparkContext sc = new JavaSparkContext(conf)) {
+            System.out.println(new AlphabetRDD(sc.sc()).toJavaRDD().collect());
         }
     }
 }

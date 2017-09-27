@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2017 Optimatika (www.optimatika.se)
+ * Copyright 1997-2017 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,16 +33,16 @@ import scala.reflect.ClassTag;
 
 public final class MatrixMultiplicationRDD<N extends Number> extends OtherBlockMatrixRDD<N> {
 
+    public MatrixMultiplicationRDD(final OtherBlockMatrixRDD<N> left, final OtherBlockMatrixRDD<N> right) {
+        super(left, null);
+    }
+
     public MatrixMultiplicationRDD(final RDD<?> oneParent, final ClassTag<MatrixStore<N>> evidence$2) {
         super(oneParent, evidence$2);
     }
 
     public MatrixMultiplicationRDD(final SparkContext _sc, final Seq<Dependency<?>> deps, final ClassTag<MatrixStore<N>> evidence$1) {
         super(_sc, deps, evidence$1);
-    }
-
-    public MatrixMultiplicationRDD(final OtherBlockMatrixRDD<N> left, final OtherBlockMatrixRDD<N> right) {
-        super(left, null);
     }
 
     @Override

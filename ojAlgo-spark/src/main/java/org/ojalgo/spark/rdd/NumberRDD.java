@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2017 Optimatika (www.optimatika.se)
+ * Copyright 1997-2017 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,10 @@ public abstract class NumberRDD<N extends Number> extends RDD<N> {
 
     private static final ClassTag<? extends Number> CLASS_TAG = ClassManifestFactory$.MODULE$.fromClass(Number.class);
 
+    private final int myBlockStructure = 2;
+
+    private final Partition2D[] myBlocks = null;
+
     public NumberRDD(final RDD<?> oneParent, final ClassTag<N> evidence$2) {
         super(oneParent, evidence$2);
     }
@@ -44,18 +48,15 @@ public abstract class NumberRDD<N extends Number> extends RDD<N> {
         super(_sc, deps, evidence$1);
     }
 
-    private final int myBlockStructure = 2;
-    private final Partition2D[] myBlocks = null;
-
-    @Override
-    public Partition2D[] getPartitions() {
-        return myBlocks;
-    }
-
     @Override
     public Iterator<N> compute(final Partition arg0, final TaskContext arg1) {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    @Override
+    public Partition2D[] getPartitions() {
+        return myBlocks;
     }
 
     @Override

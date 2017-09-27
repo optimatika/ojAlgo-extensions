@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,6 @@ import java.util.List;
 import org.ojalgo.matrix.BasicMatrix;
 
 import ext.ojalgo.jexcel.database.Table;
-
 
 public abstract class AdaptingSpreadsheet<T> implements Spreadsheet {
 

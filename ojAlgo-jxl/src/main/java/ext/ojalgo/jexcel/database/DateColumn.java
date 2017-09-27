@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,18 +27,19 @@ import org.ojalgo.type.context.TypeContext;
 
 import ext.ojalgo.jexcel.Spreadsheet;
 
-
 public final class DateColumn extends Column<Date> {
 
-    public DateColumn(String aName, TypeContext<Date> aContext) {
+    public DateColumn(final String aName, final TypeContext<Date> aContext) {
         super(aName, aContext);
     }
 
-    public Date getCellValue(Spreadsheet aSheet) {
+    @Override
+    public Date getCellValue(final Spreadsheet aSheet) {
         return aSheet.getDateCellValue();
     }
 
-    public void setCellValue(Spreadsheet aSheet, Date aCellValue) {
+    @Override
+    public void setCellValue(final Spreadsheet aSheet, final Date aCellValue) {
         aSheet.setDateCellValue(aCellValue);
     }
 

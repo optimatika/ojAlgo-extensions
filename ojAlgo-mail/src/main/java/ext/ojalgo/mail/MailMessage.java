@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -108,11 +108,11 @@ public class MailMessage {
     public static final String MAIL_SMTP_SSL_ENABLE = "mail.smtp.ssl.enable";
     public static final String MAIL_SMTP_USER = "mail.smtp.user";
 
-    private final ArrayList<String> myBccList = new ArrayList<String>();
-    private final ArrayList<String> myCcList = new ArrayList<String>();
+    private final ArrayList<String> myBccList = new ArrayList<>();
+    private final ArrayList<String> myCcList = new ArrayList<>();
     private final Template myTemplate;
     private Object[] myTextArgs = null;
-    private final ArrayList<String> myToList = new ArrayList<String>();
+    private final ArrayList<String> myToList = new ArrayList<>();
 
     public MailMessage(final String subject, final String from) {
 

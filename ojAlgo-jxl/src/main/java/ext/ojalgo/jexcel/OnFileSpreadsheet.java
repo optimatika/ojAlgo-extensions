@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,14 +26,12 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
-import jxl.Workbook;
-import jxl.WorkbookSettings;
-import jxl.read.biff.BiffException;
-
 import org.ojalgo.matrix.BasicMatrix;
 
 import ext.ojalgo.jexcel.database.Table;
-
+import jxl.Workbook;
+import jxl.WorkbookSettings;
+import jxl.read.biff.BiffException;
 
 public class OnFileSpreadsheet implements Spreadsheet {
 

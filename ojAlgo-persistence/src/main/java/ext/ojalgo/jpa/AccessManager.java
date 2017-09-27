@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -54,8 +54,7 @@ public abstract class AccessManager<EB extends Object, BO extends AbstractBO<EB>
     @SuppressWarnings("unchecked")
     public final List<BO> fetchAll(final EditingContext editingContext) {
 
-        final Query tmpQuery = editingContext
-                .createQuery("SELECT t FROM " + this.getEntityBeanClass().getSimpleName() + " t");
+        final Query tmpQuery = editingContext.createQuery("SELECT t FROM " + this.getEntityBeanClass().getSimpleName() + " t");
         List<EB> tmpResults = null;
 
         try {
@@ -64,7 +63,7 @@ public abstract class AccessManager<EB extends Object, BO extends AbstractBO<EB>
 
         }
 
-        final ArrayList<BO> retVal = new ArrayList<BO>();
+        final ArrayList<BO> retVal = new ArrayList<>();
 
         editingContext.wrap(tmpResults, retVal, this);
 
@@ -85,8 +84,7 @@ public abstract class AccessManager<EB extends Object, BO extends AbstractBO<EB>
         }
 
         if ((retVal == null) && (key != null) && (value != null)) {
-            final List<EB> tmpResults = this.queryUsingParameters(editingContext,
-                    new StringToObject<Object>(key, value));
+            final List<EB> tmpResults = this.queryUsingParameters(editingContext, new StringToObject<>(key, value));
             if ((tmpResults != null) && (tmpResults.size() >= 1)) {
                 if (tmpResults.size() > 1) {
                     throw new IllegalArgumentException();
@@ -158,7 +156,7 @@ public abstract class AccessManager<EB extends Object, BO extends AbstractBO<EB>
 
         if (tmpVal != null) {
 
-            final ArrayList<BO> retVal = new ArrayList<BO>();
+            final ArrayList<BO> retVal = new ArrayList<>();
 
             editingContext.wrap(tmpVal, retVal, this);
 
@@ -207,8 +205,7 @@ public abstract class AccessManager<EB extends Object, BO extends AbstractBO<EB>
     protected abstract Class<EB> getEntityBeanClass();
 
     @SuppressWarnings("unchecked")
-    protected final List<EB> queryUsingParameters(final EditingContext editingContext,
-            final StringToObject<?>... parameters) {
+    protected final List<EB> queryUsingParameters(final EditingContext editingContext, final StringToObject<?>... parameters) {
 
         final StringBuilder tmpQueryString = new StringBuilder("SELECT t FROM ");
         tmpQueryString.append(this.getEntityBeanClass().getSimpleName());

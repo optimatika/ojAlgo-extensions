@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2016 Optimatika (www.optimatika.se)
+ * Copyright 1997-2016 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +39,13 @@ public class LongToNumberMapTest extends ArrayTests {
 
     public LongToNumberMapTest(final String aName) {
         super(aName);
+    }
+
+    public void testAlignCapacity() {
+        TestUtils.assertEquals(1, 1L << PrimitiveMath.powerOf2Larger(-1L));
+        TestUtils.assertEquals(16, 1L << PrimitiveMath.powerOf2Larger(16L));
+        TestUtils.assertEquals(512, 1L << PrimitiveMath.powerOf2Larger(365L));
+        TestUtils.assertEquals(16_384, 1L << PrimitiveMath.powerOf2Larger(16_384L));
     }
 
     public void testSubmap() {
@@ -99,13 +106,6 @@ public class LongToNumberMapTest extends ArrayTests {
         }
         TestUtils.assertEquals(17.0, tmpValSum);
 
-    }
-
-    public void testAlignCapacity() {
-        TestUtils.assertEquals(1, 1L << PrimitiveMath.powerOf2Larger(-1L));
-        TestUtils.assertEquals(16, 1L << PrimitiveMath.powerOf2Larger(16L));
-        TestUtils.assertEquals(512, 1L << PrimitiveMath.powerOf2Larger(365L));
-        TestUtils.assertEquals(16_384, 1L << PrimitiveMath.powerOf2Larger(16_384L));
     }
 
 }

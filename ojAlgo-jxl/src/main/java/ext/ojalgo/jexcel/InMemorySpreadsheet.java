@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,12 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
 
+import org.ojalgo.matrix.BasicMatrix;
+import org.ojalgo.matrix.PrimitiveMatrix;
+import org.ojalgo.type.TypeUtils;
+
+import ext.ojalgo.jexcel.database.Column;
+import ext.ojalgo.jexcel.database.Table;
 import jxl.BooleanCell;
 import jxl.Cell;
 import jxl.CellType;
@@ -47,13 +53,6 @@ import jxl.write.WritableSheet;
 import jxl.write.WritableWorkbook;
 import jxl.write.WriteException;
 import jxl.write.biff.RowsExceededException;
-
-import org.ojalgo.matrix.BasicMatrix;
-import org.ojalgo.matrix.PrimitiveMatrix;
-import org.ojalgo.type.TypeUtils;
-
-import ext.ojalgo.jexcel.database.Column;
-import ext.ojalgo.jexcel.database.Table;
 
 public class InMemorySpreadsheet implements Spreadsheet {
 

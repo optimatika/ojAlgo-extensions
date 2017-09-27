@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,10 +29,8 @@ import org.ojalgo.matrix.BasicMatrix;
 
 import ext.ojalgo.jexcel.database.Table;
 
-
 /**
- * A <code>Spreadsheet</code> actually refers to a collection of (spread)sheets.
- * Just like a Workbook...
+ * A <code>Spreadsheet</code> actually refers to a collection of (spread)sheets. Just like a Workbook...
  *
  * @author apete
  */

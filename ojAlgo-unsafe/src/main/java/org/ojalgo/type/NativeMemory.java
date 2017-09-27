@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2016 Optimatika (www.optimatika.se)
+ * Copyright 1997-2016 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -146,12 +146,7 @@ public abstract class NativeMemory {
 
         final long tmpPointer = UNSAFE.allocateMemory(bytes);
 
-        Cleaner.create(owner, new Runnable() {
-
-            public void run() {
-                UNSAFE.freeMemory(tmpPointer);
-            }
-        });
+        Cleaner.create(owner, () -> UNSAFE.freeMemory(tmpPointer));
 
         return tmpPointer;
     }

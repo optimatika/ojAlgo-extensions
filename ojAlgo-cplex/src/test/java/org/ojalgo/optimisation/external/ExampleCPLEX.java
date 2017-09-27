@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2015 Optimatika (www.optimatika.se)
+ * Copyright 1997-2015 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,10 +31,6 @@ public class ExampleCPLEX {
 
     static final String PATH_TO_FILE = "./test/org/ojalgo/optimisation/external/share2b.mps";
 
-    ExampleCPLEX() {
-        super();
-    }
-
     public static void main(final String[] args) {
 
         final File tmpFile = new File(PATH_TO_FILE);
@@ -55,6 +51,10 @@ public class ExampleCPLEX {
         BasicLogger.debug(tmpModel.minimise());
         BasicLogger.debug();
         BasicLogger.debug(tmpModel);
+    }
+
+    ExampleCPLEX() {
+        super();
     }
 
 }

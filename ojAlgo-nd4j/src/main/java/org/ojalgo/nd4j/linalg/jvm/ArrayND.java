@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2017 Optimatika (www.optimatika.se)
+ * Copyright 1997-2017 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -304,7 +304,7 @@ public class ArrayND<N extends Number> implements INDArray {
     }
 
     public INDArray dup() {
-        return new ArrayND<N>(myFactory, myDelegate);
+        return new ArrayND<>(myFactory, myDelegate);
     }
 
     public INDArray dup(final char order) {

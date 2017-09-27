@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2016 Optimatika (www.optimatika.se)
+ * Copyright 1997-2016 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,9 +41,9 @@ public class NativeCleanupTest {
 
             final OffHeapArray tmpCopy = OffHeapArray.makeNative64(SIZE);
 
-            long start = System.nanoTime();
+            final long start = System.nanoTime();
             tmpCopy.fillMatching(tmpOrg);
-            long stop = System.nanoTime();
+            final long stop = System.nanoTime();
 
             tmpOrg = tmpCopy;
 
@@ -52,7 +52,7 @@ public class NativeCleanupTest {
             try {
                 TimeUnit.SECONDS.sleep(1);
                 System.gc();
-            } catch (InterruptedException exception) {
+            } catch (final InterruptedException exception) {
                 exception.printStackTrace();
             }
         }

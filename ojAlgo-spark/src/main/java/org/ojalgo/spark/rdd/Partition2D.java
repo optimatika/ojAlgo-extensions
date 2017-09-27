@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2017 Optimatika (www.optimatika.se)
+ * Copyright 1997-2017 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -67,10 +67,6 @@ public class Partition2D implements Partition, Structure2D {
         return Structure2D.row(myIndex, myStructure);
     }
 
-    <N extends Number> ElementsConsumer<N> makeConsumerRegion(final PhysicalStore.Factory<N, PhysicalStore<N>> factory) {
-        return factory.makeZero(myRowsCount, myColumnsCount);
-    }
-
     <N extends Number> ElementsConsumer<N> makeConsumerRegion(final ElementsConsumer<N> wholeRegion) {
         ElementsConsumer<N> retVal = wholeRegion;
         if (this.index() != 0) {
@@ -80,6 +76,10 @@ public class Partition2D implements Partition, Structure2D {
             retVal = retVal.regionByLimits(myRowsCount, myColumnsCount);
         }
         return retVal;
+    }
+
+    <N extends Number> ElementsConsumer<N> makeConsumerRegion(final PhysicalStore.Factory<N, PhysicalStore<N>> factory) {
+        return factory.makeZero(myRowsCount, myColumnsCount);
     }
 
 }

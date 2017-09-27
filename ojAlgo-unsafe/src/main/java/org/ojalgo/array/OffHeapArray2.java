@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2015 Optimatika (www.optimatika.se)
+ * Copyright 1997-2015 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -48,6 +48,24 @@ final class OffHeapArray2 extends BasicArray<Double> {
     public static final ArrayFactory<Double, OffHeapArray2> FACTORY = new ArrayFactory<Double, OffHeapArray2>() {
 
         @Override
+        public AggregatorSet<Double> aggregator() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public FunctionSet<Double> function() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public org.ojalgo.scalar.Scalar.Factory<Double> scalar() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
         long getCapacityLimit() {
             return Long.MAX_VALUE;
         }
@@ -60,24 +78,6 @@ final class OffHeapArray2 extends BasicArray<Double> {
         @Override
         OffHeapArray2 makeToBeFilled(final long... structure) {
             return new OffHeapArray2(StructureAnyD.count(structure));
-        }
-
-        @Override
-        public FunctionSet<Double> function() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public AggregatorSet<Double> aggregator() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public org.ojalgo.scalar.Scalar.Factory<Double> scalar() {
-            // TODO Auto-generated method stub
-            return null;
         }
 
     };
@@ -169,6 +169,11 @@ final class OffHeapArray2 extends BasicArray<Double> {
         final long tmpAddress = this.address(index);
         final double tmpCurrentValue = UNSAFE.getDouble(tmpAddress);
         UNSAFE.putDouble(tmpAddress, modifier.invoke(tmpCurrentValue));
+    }
+
+    @Override
+    public final void reset() {
+        this.fillAll(PrimitiveMath.ZERO);
     }
 
     public void set(final long index, final double value) {
@@ -289,11 +294,6 @@ final class OffHeapArray2 extends BasicArray<Double> {
     @Override
     boolean isPrimitive() {
         return true;
-    }
-
-    @Override
-    public final void reset() {
-        this.fillAll(PrimitiveMath.ZERO);
     }
 
 }

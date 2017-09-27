@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2017 Optimatika (www.optimatika.se)
+ * Copyright 1997-2017 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,9 +46,6 @@ public abstract class PrimitiveBlockMatrixRDD extends RDD<double[]> {
     }
 
     @Override
-    public abstract Partition2D[] getPartitions();
-
-    @Override
     public Iterator<double[]> compute(final Partition partition, final TaskContext context) {
         ProgrammingError.throwIfNull(partition, context);
         if (partition instanceof Partition2D) {
@@ -57,6 +54,9 @@ public abstract class PrimitiveBlockMatrixRDD extends RDD<double[]> {
             throw new IllegalArgumentException();
         }
     }
+
+    @Override
+    public abstract Partition2D[] getPartitions();
 
     public PrimitiveBlockMatrixRDD sliceColumn() {
 

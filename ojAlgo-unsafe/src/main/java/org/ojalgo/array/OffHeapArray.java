@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2015 Optimatika (www.optimatika.se)
+ * Copyright 1997-2015 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,6 +46,21 @@ public abstract class OffHeapArray extends DenseArray<Double> {
     public static final Factory<Double> NATIVE32 = new Factory<Double>() {
 
         @Override
+        public AggregatorSet<Double> aggregator() {
+            return PrimitiveAggregator.getSet();
+        }
+
+        @Override
+        public FunctionSet<Double> function() {
+            return PrimitiveFunction.getSet();
+        }
+
+        @Override
+        public Scalar.Factory<Double> scalar() {
+            return PrimitiveScalar.FACTORY;
+        }
+
+        @Override
         long getCapacityLimit() {
             return MAX_ARRAY_SIZE;
         }
@@ -60,10 +75,9 @@ public abstract class OffHeapArray extends DenseArray<Double> {
             return new Native32Array(size);
         }
 
-        @Override
-        public FunctionSet<Double> function() {
-            return PrimitiveFunction.getSet();
-        }
+    };
+
+    public static final Factory<Double> NATIVE64 = new Factory<Double>() {
 
         @Override
         public AggregatorSet<Double> aggregator() {
@@ -71,13 +85,14 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         }
 
         @Override
+        public FunctionSet<Double> function() {
+            return PrimitiveFunction.getSet();
+        }
+
+        @Override
         public Scalar.Factory<Double> scalar() {
             return PrimitiveScalar.FACTORY;
         }
-
-    };
-
-    public static final Factory<Double> NATIVE64 = new Factory<Double>() {
 
         @Override
         long getCapacityLimit() {
@@ -92,21 +107,6 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         @Override
         DenseArray<Double> make(final long size) {
             return new Native64Array(size);
-        }
-
-        @Override
-        public FunctionSet<Double> function() {
-            return PrimitiveFunction.getSet();
-        }
-
-        @Override
-        public AggregatorSet<Double> aggregator() {
-            return PrimitiveAggregator.getSet();
-        }
-
-        @Override
-        public Scalar.Factory<Double> scalar() {
-            return PrimitiveScalar.FACTORY;
         }
 
     };
@@ -187,6 +187,11 @@ public abstract class OffHeapArray extends DenseArray<Double> {
 
     public void modifyOne(final long index, final UnaryFunction<Double> modifier) {
         this.set(index, modifier.invoke(this.doubleValue(index)));
+    }
+
+    @Override
+    public final void reset() {
+        this.fillAll(PrimitiveMath.ZERO);
     }
 
     public void set(final long index, final Number value) {
@@ -289,11 +294,6 @@ public abstract class OffHeapArray extends DenseArray<Double> {
     @Override
     void modify(final long extIndex, final int intIndex, final UnaryFunction<Double> function) {
         this.set(intIndex, function.invoke(this.doubleValue(intIndex)));
-    }
-
-    @Override
-    public final void reset() {
-        this.fillAll(PrimitiveMath.ZERO);
     }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,7 +50,7 @@ public abstract class JFreeChartBuilder<B extends JFreeChartBuilder<B>> extends 
 
     public static final class AxisParameters {
 
-        private final ArrayList<StringToDouble> myAnnotations = new ArrayList<StringToDouble>();
+        private final ArrayList<StringToDouble> myAnnotations = new ArrayList<>();
         private Double myBase = null;
         private boolean myCategory = false;
         private NumberFormat myFormat = null;
@@ -225,7 +225,7 @@ public abstract class JFreeChartBuilder<B extends JFreeChartBuilder<B>> extends 
 
     private Paint myBackground = new Color(ColourData.WHITE.getRGB());
     private boolean myBorder = false;
-    private final HashMap<Comparable<?>, Paint> myColours = new HashMap<Comparable<?>, Paint>();
+    private final HashMap<Comparable<?>, Paint> myColours = new HashMap<>();
 
     private boolean myLegend = false;
     private String myTitle = null;

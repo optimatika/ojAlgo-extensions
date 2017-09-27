@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,13 +28,13 @@ import java.util.Set;
 
 public final class Database {
 
-    private final Map<String, Table> myTables = new HashMap<String, Table>();
+    private final Map<String, Table> myTables = new HashMap<>();
 
     public Database() {
         super();
     }
 
-    public Table get(String aName) {
+    public Table get(final String aName) {
         return myTables.get(aName);
     }
 
@@ -46,11 +46,11 @@ public final class Database {
         return myTables.values();
     }
 
-    public Table put(String aName, Table aTable) {
+    public Table put(final String aName, final Table aTable) {
         return myTables.put(aName, aTable);
     }
 
-    public Table remove(String aName) {
+    public Table remove(final String aName) {
         return myTables.remove(aName);
     }
 

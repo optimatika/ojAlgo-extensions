@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,14 +28,13 @@ import org.ojalgo.type.context.TypeContext;
 
 import ext.ojalgo.jexcel.Spreadsheet;
 
-
 public abstract class Column<T> {
 
     private final String myName;
-    private final List<T> myData = new ArrayList<T>();
+    private final List<T> myData = new ArrayList<>();
     private final TypeContext<T> myTypeContext;
 
-    public Column(String aName, TypeContext<T> aContext) {
+    public Column(final String aName, final TypeContext<T> aContext) {
 
         super();
 
@@ -48,15 +47,15 @@ public abstract class Column<T> {
         this(null, null);
     }
 
-    public void add(int index, T anObject) {
+    public void add(final int index, final T anObject) {
         myData.add(index, anObject);
     }
 
-    public boolean add(T anObject) {
+    public boolean add(final T anObject) {
         return myData.add(anObject);
     }
 
-    public T get(int index) {
+    public T get(final int index) {
         return myData.get(index);
     }
 
@@ -74,15 +73,15 @@ public abstract class Column<T> {
         return myTypeContext;
     }
 
-    public int indexOf(T anObject) {
+    public int indexOf(final T anObject) {
         return myData.indexOf(anObject);
     }
 
-    public T remove(int index) {
+    public T remove(final int index) {
         return myData.remove(index);
     }
 
-    public T set(int index, T anObject) {
+    public T set(final int index, final T anObject) {
         return myData.set(index, anObject);
     }
 

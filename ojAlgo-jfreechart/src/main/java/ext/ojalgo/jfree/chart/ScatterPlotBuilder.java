@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,8 +40,8 @@ import org.jfree.data.xy.XYDataset;
 
 /**
  * XYSeriesData
- * 
  * {@linkplain ChartFactory#createScatterPlot(String, String, String, org.jfree.data.xy.XYDataset, org.jfree.chart.plot.PlotOrientation, boolean, boolean, boolean)}
+ * 
  * @author apete
  */
 public class ScatterPlotBuilder extends NumberSeriesCollection {

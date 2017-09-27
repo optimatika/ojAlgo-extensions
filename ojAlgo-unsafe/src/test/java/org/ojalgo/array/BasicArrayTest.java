@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2016 Optimatika (www.optimatika.se)
+ * Copyright 1997-2016 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,20 +50,24 @@ public abstract class BasicArrayTest extends ArrayTests {
         super(aName);
     }
 
-    public void testPrimitive64() {
-        this.doTest(Primitive64Array.make(COUNT));
+    public void testHugeSparse() {
+        this.doTest(SparseArray.factory(Primitive64Array.FACTORY, Long.MAX_VALUE).initial(COUNT).make());
     }
 
-    public void testPrimitive32() {
-        this.doTest(Primitive32Array.make(COUNT));
+    public void testNative32() {
+        this.doTest(OffHeapArray.makeNative32(COUNT));
     }
 
     public void testNative64() {
         this.doTest(OffHeapArray.makeNative64(COUNT));
     }
 
-    public void testNative32() {
-        this.doTest(OffHeapArray.makeNative32(COUNT));
+    public void testPrimitive32() {
+        this.doTest(Primitive32Array.make(COUNT));
+    }
+
+    public void testPrimitive64() {
+        this.doTest(Primitive64Array.make(COUNT));
     }
 
     public void testSegmentedPrimitive() {
@@ -77,10 +81,6 @@ public abstract class BasicArrayTest extends ArrayTests {
     public void testSparse() {
         final long count = COUNT;
         this.doTest(SparseArray.factory(Primitive64Array.FACTORY, count).initial(DenseCapacityStrategy.capacity(count)).make());
-    }
-
-    public void testHugeSparse() {
-        this.doTest(SparseArray.factory(Primitive64Array.FACTORY, Long.MAX_VALUE).initial(COUNT).make());
     }
 
     abstract void doTest(final BasicArray<Double> array);

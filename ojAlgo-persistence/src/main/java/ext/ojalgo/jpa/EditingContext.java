@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika (www.optimatika.se)
+ * Copyright 1997-2014 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,12 +43,12 @@ public class EditingContext extends Object implements Serializable {
 
     private static final EntityManagerFactory EMF = Persistence.createEntityManagerFactory("TacticsData");
 
-    private final HashMap<Object, AbstractBO<?>> myAllObjects = new HashMap<Object, AbstractBO<?>>();
-    private final LinkedList<AbstractBO<?>> myDeletes = new LinkedList<AbstractBO<?>>();
+    private final HashMap<Object, AbstractBO<?>> myAllObjects = new HashMap<>();
+    private final LinkedList<AbstractBO<?>> myDeletes = new LinkedList<>();
     private final UUID myIdentifier = UUID.randomUUID();
-    private final LinkedList<AbstractBO<?>> myInserts = new LinkedList<AbstractBO<?>>();
-    private final Set<AbstractBO<?>> myRefreshs = new HashSet<AbstractBO<?>>();
-    private final Set<AbstractBO<?>> myUpdates = new HashSet<AbstractBO<?>>();
+    private final LinkedList<AbstractBO<?>> myInserts = new LinkedList<>();
+    private final Set<AbstractBO<?>> myRefreshs = new HashSet<>();
+    private final Set<AbstractBO<?>> myUpdates = new HashSet<>();
 
     private final EntityManager myEntityManager = EMF.createEntityManager();
 
@@ -334,10 +334,9 @@ public class EditingContext extends Object implements Serializable {
     }
 
     /**
-     * Will perform a rollback, invalidate all contained DAOs and clear
-     * all references to any DAO. When this is done the EC is ready to
-     * be either disposed or re-used. The DAOs that where previously used
-     * with this EC are invalid, and can not be used for anything.
+     * Will perform a rollback, invalidate all contained DAOs and clear all references to any DAO. When this
+     * is done the EC is ready to be either disposed or re-used. The DAOs that where previously used with this
+     * EC are invalid, and can not be used for anything.
      */
     public void reset() {
 
