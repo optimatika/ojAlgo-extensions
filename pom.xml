@@ -31,6 +31,7 @@
     </organization>
     <developers>
         <developer>
+            <id>apete</id>
             <name>Anders Peterson</name>
             <email>apete@optimatika.se</email>
             <organization>Optimatika</organization>
@@ -62,7 +63,7 @@
         <dependency>
             <groupId>org.ojalgo</groupId>
             <artifactId>ojalgo</artifactId>
-            <version>44.0.0</version>
+            <version>44.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
