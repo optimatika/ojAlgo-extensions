@@ -21,16 +21,22 @@
  */
 package org.ojalgo.commons.math3.optim.linear;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-import org.apache.commons.math3.optim.InitialGuess;
 import org.apache.commons.math3.optim.OptimizationData;
 import org.apache.commons.math3.optim.PointValuePair;
 import org.apache.commons.math3.optim.SimpleBounds;
+import org.apache.commons.math3.optim.linear.LinearConstraint;
+import org.apache.commons.math3.optim.linear.LinearConstraintSet;
 import org.apache.commons.math3.optim.linear.LinearObjectiveFunction;
+import org.apache.commons.math3.optim.linear.Relationship;
 import org.apache.commons.math3.optim.linear.SimplexSolver;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
+import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
 import org.ojalgo.access.Access1D;
+import org.ojalgo.access.Structure1D.IntIndex;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
@@ -41,28 +47,55 @@ final class CommonsMathSimplexSolver implements Optimisation.Solver {
 
         public CommonsMathSimplexSolver build(final ExpressionsBasedModel model) {
 
-            Access1D<Double> linearFactors = model.objective().toFunction().getLinearFactors();
+            final Set<OptimizationData> data = new HashSet<>();
 
-            LinearObjectiveFunction obj = new LinearObjectiveFunction(linearFactors.toRawCopy1D(), 0.0);
+            final Access1D<Double> linearFactors = model.objective().toFunction().getLinearFactors();
+
+            final LinearObjectiveFunction obj = new LinearObjectiveFunction(linearFactors.toRawCopy1D(), 0.0);
 
             Variable tmpVariable;
-            List<Variable> variables = model.getVariables();
+            final List<Variable> variables = model.getVariables();
+            final Set<IntIndex> fixed = model.getFixedVariables();
 
-            double[] lowerBounds = new double[variables.size()];
-            double[] upperBounds = new double[variables.size()];
+            final double[] lowerBounds = new double[variables.size()];
+            final double[] upperBounds = new double[variables.size()];
             for (int v = 0; v < variables.size(); v++) {
                 tmpVariable = variables.get(v);
-                lowerBounds[v] = tmpVariable.getAdjustedLowerLimit();
-                upperBounds[v] = variables.get(v).getAdjustedUpperLimit();
+                lowerBounds[v] = tmpVariable.getAdjustedLowerLimit() / tmpVariable.getAdjustmentFactor();
+                upperBounds[v] = tmpVariable.getAdjustedUpperLimit() / tmpVariable.getAdjustmentFactor();
             }
-            SimpleBounds simpleBounds = new SimpleBounds(lowerBounds, upperBounds);
+            final SimpleBounds simpleBounds = new SimpleBounds(lowerBounds, upperBounds);
 
-            GoalType goalType = model.isMaximisation() ? GoalType.MAXIMIZE : GoalType.MINIMIZE;
+            final GoalType goalType = model.isMaximisation() ? GoalType.MAXIMIZE : GoalType.MINIMIZE;
 
-            OptimizationData[] data = new OptimizationData[] { goalType, obj, simpleBounds };
+            data.add(goalType);
+            data.add(obj);
+            data.add(new ObjectiveFunction(obj));
+            data.add(simpleBounds);
 
-            // TODO Auto-generated method stub
-            return null;
+            final Set<LinearConstraint> constraints = new HashSet<>();
+            model.constraints().forEach(expr -> {
+
+                final double[] coeffs = new double[variables.size()];
+
+                final Set<IntIndex> keySet = expr.getLinearKeySet();
+                for (final IntIndex tmpIntIndex : keySet) {
+                    coeffs[tmpIntIndex.index] = expr.getAdjustedLinearFactor(tmpIntIndex);
+                }
+
+                if (expr.isEqualityConstraint()) {
+                    constraints.add(new LinearConstraint(coeffs, Relationship.EQ, expr.getAdjustedUpperLimit()));
+                } else {
+                    if (expr.isLowerConstraint()) {
+                        constraints.add(new LinearConstraint(coeffs, Relationship.GEQ, expr.getAdjustedLowerLimit()));
+                    } else if (expr.isUpperConstraint()) {
+                        constraints.add(new LinearConstraint(coeffs, Relationship.LEQ, expr.getAdjustedUpperLimit()));
+                    }
+                }
+            });
+            data.add(new LinearConstraintSet(constraints));
+
+            return new CommonsMathSimplexSolver(data, model.options);
         }
 
         public boolean isCapable(final ExpressionsBasedModel model) {
@@ -71,27 +104,29 @@ final class CommonsMathSimplexSolver implements Optimisation.Solver {
 
     };
 
-    private final OptimizationData[] myModelData;
+    private final Set<OptimizationData> myModelData;
     private final Optimisation.Options myOptions;
 
     public Optimisation.Result solve(final Result kickStarter) {
 
-        InitialGuess guess = new InitialGuess(kickStarter.toRawCopy1D());
+        //        final InitialGuess guess = new InitialGuess(kickStarter.toRawCopy1D());
+        //
+        //        myModelData.add(guess);
 
-        SimplexSolver solver = new SimplexSolver();
+        final SimplexSolver solver = new SimplexSolver();
 
-        PointValuePair solutionAndValue = solver.optimize(myModelData);
+        final PointValuePair solutionAndValue = solver.optimize(myModelData.toArray(new OptimizationData[myModelData.size()]));
 
-        Optimisation.State state = Optimisation.State.OPTIMAL;
-        double value = solutionAndValue.getValue();
-        Access1D<Double> solution = Access1D.wrap(solutionAndValue.getPoint());
+        final Optimisation.State state = Optimisation.State.OPTIMAL;
+        final double value = solutionAndValue.getValue();
+        final Access1D<Double> solution = Access1D.wrap(solutionAndValue.getPoint());
 
-        Optimisation.Result result = new Optimisation.Result(state, value, solution);
+        final Optimisation.Result result = new Optimisation.Result(state, value, solution);
 
         return result;
     }
 
-    CommonsMathSimplexSolver(OptimizationData[] modelData, Optimisation.Options options) {
+    CommonsMathSimplexSolver(final Set<OptimizationData> modelData, final Optimisation.Options options) {
         super();
         myModelData = modelData;
         myOptions = options;

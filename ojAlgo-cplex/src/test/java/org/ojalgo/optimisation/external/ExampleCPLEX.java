@@ -29,7 +29,7 @@ import org.ojalgo.optimisation.MathProgSysModel;
 
 public class ExampleCPLEX {
 
-    static final String PATH_TO_FILE = "./test/org/ojalgo/optimisation/external/share2b.mps";
+    static final String PATH_TO_FILE = "./src/test/java/org/ojalgo/optimisation/external/share2b.mps";
 
     public static void main(final String[] args) {
 
