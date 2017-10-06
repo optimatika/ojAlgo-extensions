@@ -71,51 +71,43 @@ public final class SolverCPLEX implements Optimisation.Solver {
         public SolverCPLEX build(final ExpressionsBasedModel model) {
 
             final SolverCPLEX retVal = new SolverCPLEX();
-            final IloCplex tmpDelegateSolver = retVal.getIloCplex();
+            final IloCplex delegateSolver = retVal.getIloCplex();
 
             try {
 
-                final List<Variable> tmpFreeModVars = model.getVariables();
-                for (final Variable tmpModVar : tmpFreeModVars) {
+                final List<Variable> freeModVars = model.getFreeVariables();
+                final Set<IntIndex> fixedModVars = model.getFixedVariables();
 
-                    final String tmpName = tmpModVar.getName();
+                for (final Variable var : freeModVars) {
 
-                    final double tmpLower = tmpModVar.getAdjustedLowerLimit();
-                    final double tmpUpper = tmpModVar.getAdjustedUpperLimit();
-
-                    IloNumVarType tmpType = IloNumVarType.Float;
-                    if (tmpModVar.isBinary()) {
-                        tmpType = IloNumVarType.Bool;
-                    } else if (tmpModVar.isInteger()) {
-                        tmpType = IloNumVarType.Int;
+                    IloNumVarType type = IloNumVarType.Float;
+                    if (var.isBinary()) {
+                        type = IloNumVarType.Bool;
+                    } else if (var.isInteger()) {
+                        type = IloNumVarType.Int;
                     }
 
-                    final IloNumVar tmpSolVar = tmpDelegateSolver.numVar(tmpLower, tmpUpper, tmpType, tmpName);
+                    final IloNumVar tmpSolVar = delegateSolver.numVar(var.getAdjustedLowerLimit(), var.getAdjustedUpperLimit(), type, var.getName());
                     retVal.getVariables().add(tmpSolVar);
                 }
 
-                final Set<IntIndex> tmpFixedVariables = model.getFixedVariables();
+                for (final Expression expr : model.constraints().peek(e -> e.compensate(fixedModVars)).collect(Collectors.toList())) {
 
-                for (final Expression tmpModExpr : model.constraints().collect(Collectors.toList())) {
-                    final Expression tmpCompensated = tmpModExpr.compensate(tmpFixedVariables);
+                    final IloNumExpr solExpr = SolverCPLEX.buildExpression(model, expr, delegateSolver, retVal.getVariables());
 
-                    final IloNumExpr tmpSolExpr = SolverCPLEX.buildExpression(model, tmpCompensated, tmpDelegateSolver, retVal.getVariables());
-
-                    SolverCPLEX.setBounds(tmpSolExpr, tmpCompensated, tmpDelegateSolver);
+                    SolverCPLEX.setBounds(solExpr, expr, delegateSolver);
                 }
 
-                final Expression tmpModObj = model.objective().compensate(tmpFixedVariables);
-
-                final IloNumExpr tmpSolObj = SolverCPLEX.buildExpression(model, tmpModObj, tmpDelegateSolver, retVal.getVariables());
+                final Expression modObj = model.objective().compensate(fixedModVars);
+                final IloNumExpr solObj = SolverCPLEX.buildExpression(model, modObj, delegateSolver, retVal.getVariables());
 
                 if (model.isMaximisation()) {
-                    tmpDelegateSolver.addMaximize(tmpSolObj);
+                    delegateSolver.addMaximize(solObj);
                 } else {
-                    tmpDelegateSolver.addMinimize(tmpSolObj);
+                    delegateSolver.addMinimize(solObj);
                 }
 
             } catch (final IloException exception) {
-                // TODO Auto-generated catch block
                 exception.printStackTrace();
             }
 
@@ -135,7 +127,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
         for (final IntIndex tmpKey : source.getLinearKeySet()) {
 
-            final int tmpFreeInd = tmpKey.index;
+            final int tmpFreeInd = model.indexOfFreeVariable(tmpKey.index);
 
             if (tmpFreeInd >= 0) {
                 destination.addTerm(source.getAdjustedLinearFactor(tmpKey), variables.get(tmpFreeInd));
@@ -149,8 +141,8 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
         for (final IntRowColumn tmpKey : source.getQuadraticKeySet()) {
 
-            final int tmpFreeRow = tmpKey.row;
-            final int tmpFreeCol = tmpKey.column;
+            final int tmpFreeRow = model.indexOfFreeVariable(tmpKey.row);
+            final int tmpFreeCol = model.indexOfFreeVariable(tmpKey.column);
 
             if ((tmpFreeRow >= 0) && (tmpFreeCol >= 0)) {
                 destination.addTerm(source.getAdjustedQuadraticFactor(tmpKey), variables.get(tmpFreeRow), variables.get(tmpFreeCol));

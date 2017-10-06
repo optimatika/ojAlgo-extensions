@@ -21,13 +21,34 @@
  */
 package org.ojalgo.optimisation.external;
 
+import org.junit.Assert;
 import org.junit.Test;
+import org.ojalgo.constant.PrimitiveMath;
+import org.ojalgo.optimisation.Expression;
+import org.ojalgo.optimisation.ExpressionsBasedModel;
+import org.ojalgo.optimisation.Optimisation;
+import org.ojalgo.optimisation.Variable;
 
-public class DummyJunit {
+public class ProblemCPLEX {
 
     @Test
-    public void testIt() {
+    public void testFixedVariables() {
 
+        ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION);
+
+        final ExpressionsBasedModel test = new ExpressionsBasedModel();
+        test.addVariable(Variable.make("1").level(0.5));
+        test.addVariable(Variable.make("2").lower(0).upper(5).weight(2));
+        test.addVariable(Variable.make("3").lower(0).upper(1).weight(1));
+        final Expression expressions = test.addExpression("1").lower(0).upper(2);
+        expressions.set(1, 1).set(2, 1);
+
+        final Optimisation.Result result = test.minimise();
+
+        Assert.assertEquals(Optimisation.State.OPTIMAL, result.getState());
+        Assert.assertEquals(0.0, result.getValue(), PrimitiveMath.MACHINE_EPSILON);
+
+        // BasicLogger.debug(result);
     }
 
 }
