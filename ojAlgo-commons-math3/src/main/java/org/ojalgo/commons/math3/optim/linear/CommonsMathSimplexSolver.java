@@ -93,6 +93,19 @@ final class CommonsMathSimplexSolver implements Optimisation.Solver {
                     }
                 }
             });
+            for (int i = 0; i < upperBounds.length; i++) {
+                if (Double.isFinite(lowerBounds[i])) {
+                    final double[] coeffs = new double[variables.size()];
+                    coeffs[i] = 1.0;
+                    constraints.add(new LinearConstraint(coeffs, Relationship.GEQ, lowerBounds[i]));
+                }
+                if (Double.isFinite(upperBounds[i])) {
+                    final double[] coeffs = new double[variables.size()];
+                    coeffs[i] = 1.0;
+                    constraints.add(new LinearConstraint(coeffs, Relationship.LEQ, upperBounds[i]));
+                }
+            }
+
             data.add(new LinearConstraintSet(constraints));
 
             return new CommonsMathSimplexSolver(data, model.options);

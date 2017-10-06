@@ -219,20 +219,26 @@ public class BurkardtDatasetsMps extends TestCase {
 
         if (expMinVal != null) {
 
-            TestUtils.assertEquals(expMinVal.doubleValue(), model.minimise().getValue(), PRECISION);
+            final double tmpValue = model.minimise().getValue();
 
             if (!model.validate(PRECISION)) {
                 TestUtils.fail(SOLUTION_NOT_VALID);
             }
+
+            TestUtils.assertEquals(expMinVal.doubleValue(), tmpValue, PRECISION);
+
         }
 
         if (expMaxVal != null) {
 
-            TestUtils.assertEquals(expMaxVal.doubleValue(), model.maximise().getValue(), PRECISION);
+            final double tmpValue = model.maximise().getValue();
 
             if (!model.validate(PRECISION)) {
                 TestUtils.fail(SOLUTION_NOT_VALID);
             }
+
+            TestUtils.assertEquals(expMaxVal.doubleValue(), tmpValue, PRECISION);
+
         }
     }
 }
