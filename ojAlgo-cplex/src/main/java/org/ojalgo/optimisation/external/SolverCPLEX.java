@@ -21,6 +21,8 @@
  */
 package org.ojalgo.optimisation.external;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -71,7 +73,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
         public SolverCPLEX build(final ExpressionsBasedModel model) {
 
             final SolverCPLEX retVal = new SolverCPLEX();
-            final IloCplex delegateSolver = retVal.getIloCplex();
+            final IloCplex delegateSolver = retVal.getDelegateSolver();
 
             try {
 
@@ -88,18 +90,18 @@ public final class SolverCPLEX implements Optimisation.Solver {
                     }
 
                     final IloNumVar tmpSolVar = delegateSolver.numVar(var.getAdjustedLowerLimit(), var.getAdjustedUpperLimit(), type, var.getName());
-                    retVal.getVariables().add(tmpSolVar);
+                    retVal.getDelegateVariables().add(tmpSolVar);
                 }
 
                 for (final Expression expr : model.constraints().peek(e -> e.compensate(fixedModVars)).collect(Collectors.toList())) {
 
-                    final IloNumExpr solExpr = SolverCPLEX.buildExpression(model, expr, delegateSolver, retVal.getVariables());
+                    final IloNumExpr solExpr = SolverCPLEX.buildExpression(model, expr, delegateSolver, retVal.getDelegateVariables());
 
                     SolverCPLEX.setBounds(solExpr, expr, delegateSolver);
                 }
 
                 final Expression modObj = model.objective().compensate(fixedModVars);
-                final IloNumExpr solObj = SolverCPLEX.buildExpression(model, modObj, delegateSolver, retVal.getVariables());
+                final IloNumExpr solObj = SolverCPLEX.buildExpression(model, modObj, delegateSolver, retVal.getDelegateVariables());
 
                 if (model.isMaximisation()) {
                     delegateSolver.addMaximize(solObj);
@@ -125,27 +127,26 @@ public final class SolverCPLEX implements Optimisation.Solver {
     static void addLinear(final Expression source, final IloLinearNumExpr destination, final ExpressionsBasedModel model, final List<IloNumVar> variables)
             throws IloException {
 
-        for (final IntIndex tmpKey : source.getLinearKeySet()) {
+        for (final IntIndex key : source.getLinearKeySet()) {
 
-            final int tmpFreeInd = model.indexOfFreeVariable(tmpKey.index);
+            final int freeInd = model.indexOfFreeVariable(key.index);
 
-            if (tmpFreeInd >= 0) {
-                destination.addTerm(source.getAdjustedLinearFactor(tmpKey), variables.get(tmpFreeInd));
+            if (freeInd >= 0) {
+                destination.addTerm(source.getAdjustedLinearFactor(key), variables.get(freeInd));
             }
-
         }
     }
 
     static void addQuadratic(final Expression source, final IloQuadNumExpr destination, final ExpressionsBasedModel model, final List<IloNumVar> variables)
             throws IloException {
 
-        for (final IntRowColumn tmpKey : source.getQuadraticKeySet()) {
+        for (final IntRowColumn key : source.getQuadraticKeySet()) {
 
-            final int tmpFreeRow = model.indexOfFreeVariable(tmpKey.row);
-            final int tmpFreeCol = model.indexOfFreeVariable(tmpKey.column);
+            final int freeRow = model.indexOfFreeVariable(key.row);
+            final int freeCol = model.indexOfFreeVariable(key.column);
 
-            if ((tmpFreeRow >= 0) && (tmpFreeCol >= 0)) {
-                destination.addTerm(source.getAdjustedQuadraticFactor(tmpKey), variables.get(tmpFreeRow), variables.get(tmpFreeCol));
+            if ((freeRow >= 0) && (freeCol >= 0)) {
+                destination.addTerm(source.getAdjustedQuadraticFactor(key), variables.get(freeRow), variables.get(freeCol));
             }
 
         }
@@ -156,28 +157,28 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
         if (expression.isFunctionCompound()) {
 
-            final IloLQNumExpr tmpSolExpr = solver.lqNumExpr();
+            final IloLQNumExpr tmpIloLQNumExpr = solver.lqNumExpr();
 
-            SolverCPLEX.addQuadratic(expression, tmpSolExpr, model, variables);
-            SolverCPLEX.addLinear(expression, tmpSolExpr, model, variables);
+            SolverCPLEX.addQuadratic(expression, tmpIloLQNumExpr, model, variables);
+            SolverCPLEX.addLinear(expression, tmpIloLQNumExpr, model, variables);
 
-            return tmpSolExpr;
+            return tmpIloLQNumExpr;
 
         } else if (expression.isFunctionQuadratic()) {
 
-            final IloQuadNumExpr tmpSolExpr = solver.quadNumExpr();
+            final IloQuadNumExpr tmpIloQuadNumExpr = solver.quadNumExpr();
 
-            SolverCPLEX.addQuadratic(expression, tmpSolExpr, model, variables);
+            SolverCPLEX.addQuadratic(expression, tmpIloQuadNumExpr, model, variables);
 
-            return tmpSolExpr;
+            return tmpIloQuadNumExpr;
 
         } else if (expression.isFunctionLinear()) {
 
-            final IloLinearNumExpr tmpSolExpr = solver.linearNumExpr();
+            final IloLinearNumExpr tmpIloLinearNumExpr = solver.linearNumExpr();
 
-            SolverCPLEX.addLinear(expression, tmpSolExpr, model, variables);
+            SolverCPLEX.addLinear(expression, tmpIloLinearNumExpr, model, variables);
 
-            return tmpSolExpr;
+            return tmpIloLinearNumExpr;
         }
 
         return null;
@@ -197,8 +198,8 @@ public final class SolverCPLEX implements Optimisation.Solver {
         }
     }
 
-    private final IloCplex myIloCplex;
-    private final List<IloNumVar> myVariables;
+    private final IloCplex myDelegateSolver;
+    private final List<IloNumVar> myDelegateVariables;
 
     SolverCPLEX() {
 
@@ -213,16 +214,23 @@ public final class SolverCPLEX implements Optimisation.Solver {
             tmpDelegate = null;
         }
 
-        myIloCplex = tmpDelegate;
-        myVariables = new ArrayList<>();
+        myDelegateSolver = tmpDelegate;
+        myDelegateVariables = new ArrayList<>();
+
+        myDelegateSolver.setOut(new OutputStream() {
+
+            @Override
+            public void write(final int b) throws IOException {
+            }
+        });
     }
 
     public void dispose() {
 
         Solver.super.dispose();
 
-        if (myIloCplex != null) {
-            myIloCplex.end();
+        if (myDelegateSolver != null) {
+            myDelegateSolver.end();
         }
     }
 
@@ -230,29 +238,23 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
         try {
 
-            final List<IloNumVar> tmpVariables = this.getVariables();
+            final List<IloNumVar> solVariables = this.getDelegateVariables();
 
             Optimisation.State retState = Optimisation.State.UNEXPLORED;
             double retValue = Double.NaN;
-            final Primitive64Array retSolution = Primitive64Array.make(tmpVariables.size());
+            final Primitive64Array retSolution = Primitive64Array.make(solVariables.size());
 
-            if (myIloCplex.solve()) {
+            if (myDelegateSolver.solve()) {
                 // Feasible or Optimal
 
-                for (int i = 0; i < tmpVariables.size(); i++) {
-                    retSolution.set(i, myIloCplex.getValue(tmpVariables.get(i)));
+                for (int i = 0; i < solVariables.size(); i++) {
+                    retSolution.set(i, myDelegateSolver.getValue(solVariables.get(i)));
                 }
 
-                retValue = myIloCplex.getObjValue();
-
-                retState = this.translate(myIloCplex.getStatus());
-
-            } else {
-                // Not feasible
-
-                retState = this.translate(myIloCplex.getStatus());
-
+                retValue = myDelegateSolver.getObjValue();
             }
+
+            retState = this.translate(myDelegateSolver.getStatus());
 
             return new Result(retState, retValue, retSolution);
 
@@ -272,15 +274,15 @@ public final class SolverCPLEX implements Optimisation.Solver {
         super.finalize();
     }
 
-    IloCplex getIloCplex() {
-        return myIloCplex;
+    IloCplex getDelegateSolver() {
+        return myDelegateSolver;
     }
 
-    List<IloNumVar> getVariables() {
-        return myVariables;
+    List<IloNumVar> getDelegateVariables() {
+        return myDelegateVariables;
     }
 
-    State translate(final Status status) {
+    Optimisation.State translate(final IloCplex.Status status) {
         if (status.equals(Status.Bounded)) {
             return State.VALID;
         } else if (status.equals(Status.Error)) {

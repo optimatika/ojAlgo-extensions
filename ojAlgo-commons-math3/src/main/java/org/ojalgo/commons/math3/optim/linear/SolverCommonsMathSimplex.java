@@ -31,8 +31,10 @@ import org.apache.commons.math3.optim.SimpleBounds;
 import org.apache.commons.math3.optim.linear.LinearConstraint;
 import org.apache.commons.math3.optim.linear.LinearConstraintSet;
 import org.apache.commons.math3.optim.linear.LinearObjectiveFunction;
+import org.apache.commons.math3.optim.linear.NoFeasibleSolutionException;
 import org.apache.commons.math3.optim.linear.Relationship;
 import org.apache.commons.math3.optim.linear.SimplexSolver;
+import org.apache.commons.math3.optim.linear.UnboundedSolutionException;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
 import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
 import org.ojalgo.access.Access1D;
@@ -41,11 +43,11 @@ import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 
-final class CommonsMathSimplexSolver implements Optimisation.Solver {
+public final class SolverCommonsMathSimplex implements Optimisation.Solver {
 
-    public static final ExpressionsBasedModel.Integration<CommonsMathSimplexSolver> INTEGRATION = new ExpressionsBasedModel.Integration<CommonsMathSimplexSolver>() {
+    public static final ExpressionsBasedModel.Integration<SolverCommonsMathSimplex> INTEGRATION = new ExpressionsBasedModel.Integration<SolverCommonsMathSimplex>() {
 
-        public CommonsMathSimplexSolver build(final ExpressionsBasedModel model) {
+        public SolverCommonsMathSimplex build(final ExpressionsBasedModel model) {
 
             final Set<OptimizationData> data = new HashSet<>();
 
@@ -108,7 +110,7 @@ final class CommonsMathSimplexSolver implements Optimisation.Solver {
 
             data.add(new LinearConstraintSet(constraints));
 
-            return new CommonsMathSimplexSolver(data, model.options);
+            return new SolverCommonsMathSimplex(data, model.options);
         }
 
         public boolean isCapable(final ExpressionsBasedModel model) {
@@ -120,29 +122,44 @@ final class CommonsMathSimplexSolver implements Optimisation.Solver {
     private final Set<OptimizationData> myModelData;
     private final Optimisation.Options myOptions;
 
+    SolverCommonsMathSimplex(final Set<OptimizationData> modelData, final Optimisation.Options options) {
+        super();
+        myModelData = modelData;
+        myOptions = options;
+    }
+
     public Optimisation.Result solve(final Result kickStarter) {
 
         //        final InitialGuess guess = new InitialGuess(kickStarter.toRawCopy1D());
         //
         //        myModelData.add(guess);
 
-        final SimplexSolver solver = new SimplexSolver();
+        Optimisation.State state = Optimisation.State.FAILED;
+        double value = Double.NaN;
+        Access1D<?> solution = kickStarter;
 
-        final PointValuePair solutionAndValue = solver.optimize(myModelData.toArray(new OptimizationData[myModelData.size()]));
+        try {
 
-        final Optimisation.State state = Optimisation.State.OPTIMAL;
-        final double value = solutionAndValue.getValue();
-        final Access1D<Double> solution = Access1D.wrap(solutionAndValue.getPoint());
+            final SimplexSolver solver = new SimplexSolver();
+
+            final PointValuePair solutionAndValue = solver.optimize(myModelData.toArray(new OptimizationData[myModelData.size()]));
+
+            state = Optimisation.State.OPTIMAL;
+            value = solutionAndValue.getValue();
+            solution = Access1D.wrap(solutionAndValue.getPoint());
+
+        } catch (final NoFeasibleSolutionException infeasible) {
+
+            state = Optimisation.State.INFEASIBLE;
+
+        } catch (final UnboundedSolutionException unbounded) {
+
+            state = Optimisation.State.UNBOUNDED;
+        }
 
         final Optimisation.Result result = new Optimisation.Result(state, value, solution);
 
         return result;
-    }
-
-    CommonsMathSimplexSolver(final Set<OptimizationData> modelData, final Optimisation.Options options) {
-        super();
-        myModelData = modelData;
-        myOptions = options;
     }
 
 }
