@@ -89,7 +89,8 @@ public final class SolverCPLEX implements Optimisation.Solver {
                         type = IloNumVarType.Int;
                     }
 
-                    final IloNumVar tmpSolVar = delegateSolver.numVar(var.getAdjustedLowerLimit(), var.getAdjustedUpperLimit(), type, var.getName());
+                    final IloNumVar tmpSolVar = delegateSolver.numVar(var.getAdjustedLowerLimit() / var.getAdjustmentFactor(),
+                            var.getAdjustedUpperLimit() / var.getAdjustmentFactor(), type, var.getName());
                     retVal.getDelegateVariables().add(tmpSolVar);
                 }
 
