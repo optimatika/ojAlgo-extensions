@@ -24,6 +24,8 @@ package org.ojalgo.optimisation.external;
 import static gurobi.GRB.*;
 import static org.ojalgo.constant.PrimitiveMath.*;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -91,52 +93,47 @@ public final class SolverGurobi implements Optimisation.Solver {
 
             try {
 
-                final GRBModel tmpModel = new GRBModel(ENVIRONMENT.getGRBEnv());
+                final GRBModel delegateSolver = new GRBModel(ENVIRONMENT.getGRBEnv());
+                final SolverGurobi retVal = new SolverGurobi(delegateSolver);
 
-                for (final Variable tmpVariable : model.getVariables()) {
+                final List<Variable> freeModVars = model.getFreeVariables();
+                final Set<IntIndex> fixedModVars = model.getFixedVariables();
 
-                    final double tmpLB = tmpVariable.getAdjustedLowerLimit();
-                    final double tmpUB = tmpVariable.getAdjustedUpperLimit();
-                    final String tmpName = tmpVariable.getName();
-                    char tmpType = CONTINUOUS;
-                    if (tmpVariable.isBinary()) {
-                        tmpType = BINARY;
-                    } else if (tmpVariable.isInteger()) {
-                        tmpType = INTEGER;
+                final Expression modObj = model.objective().compensate(fixedModVars);
+
+                for (final Variable var : freeModVars) {
+
+                    char type = CONTINUOUS;
+                    if (var.isBinary()) {
+                        type = BINARY;
+                    } else if (var.isInteger()) {
+                        type = INTEGER;
                     }
 
-                    tmpModel.addVar(tmpLB, tmpUB, ZERO, tmpType, tmpName);
+                    final BigDecimal weight = var.getContributionWeight();
+                    delegateSolver.addVar(var.getUnadjustedLowerLimit(), var.getUnadjustedUpperLimit(), weight != null ? weight.doubleValue() : ZERO, type,
+                            var.getName());
                 }
-                tmpModel.update();
-                final GRBVar[] tmpVars = tmpModel.getVars();
+                delegateSolver.update();
 
-                final Set<IntIndex> tmpFixedVariables = model.getFixedVariables();
-                for (final Expression tmpExpression : model.constraints().collect(Collectors.toList())) {
-                    final Expression tmpCompensated = tmpExpression.compensate(tmpFixedVariables);
+                final GRBVar[] delegateVariables = delegateSolver.getVars();
 
-                    final GRBExpr tmpExpr = this.buildExpression(tmpCompensated, model, tmpVars);
+                for (final Expression expr : model.constraints().peek(e -> e.compensate(fixedModVars)).collect(Collectors.toList())) {
 
-                    if (tmpExpression.isEqualityConstraint()) {
-                        this.addConstraint(tmpModel, tmpExpr, EQUAL, tmpCompensated.getAdjustedLowerLimit(), tmpCompensated.getName());
-                    } else {
-                        if (tmpExpression.isLowerConstraint()) {
-                            this.addConstraint(tmpModel, tmpExpr, LESS_EQUAL, tmpCompensated.getAdjustedLowerLimit(), tmpCompensated.getName());
-                        }
-                        if (tmpExpression.isUpperConstraint()) {
-                            this.addConstraint(tmpModel, tmpExpr, GREATER_EQUAL, tmpCompensated.getAdjustedUpperLimit(), tmpCompensated.getName());
-                        }
-                    }
+                    final GRBExpr solExpr = SolverGurobi.buildExpression(expr, model, delegateVariables);
+
+                    SolverGurobi.setBounds(solExpr, expr, delegateSolver);
                 }
 
-                final Expression tmpObjective = model.objective().compensate(tmpFixedVariables);
-                final GRBExpr tmpExpr = this.buildExpression(tmpObjective, model, tmpVars);
+                final GRBExpr solObj = SolverGurobi.buildExpression(modObj, model, delegateVariables);
+
                 if (model.isMaximisation()) {
-                    tmpModel.setObjective(tmpExpr, MAXIMIZE);
+                    delegateSolver.setObjective(solObj, MAXIMIZE);
                 } else {
-                    tmpModel.setObjective(tmpExpr, MINIMIZE);
+                    delegateSolver.setObjective(solObj, MINIMIZE);
                 }
 
-                return new SolverGurobi(tmpModel);
+                return retVal;
 
             } catch (final GRBException exception) {
                 exception.printStackTrace();
@@ -149,77 +146,90 @@ public final class SolverGurobi implements Optimisation.Solver {
             return true;
         }
 
-        void addConstraint(final GRBModel model, final GRBExpr expr, final char sense, final double rhs, final String name) {
-            try {
-                if (expr instanceof GRBQuadExpr) {
-                    model.addQConstr((GRBQuadExpr) expr, sense, rhs, name);
-                } else if (expr instanceof GRBLinExpr) {
-                    model.addConstr((GRBLinExpr) expr, sense, rhs, name);
-                }
-            } catch (final GRBException exception) {
-                // TODO Auto-generated catch block
-                exception.printStackTrace();
-            }
-        }
-
-        GRBExpr buildExpression(final Expression expression, final ExpressionsBasedModel model, final GRBVar[] vars) throws GRBException {
-
-            GRBExpr retVal = null;
-
-            if (expression.isAnyLinearFactorNonZero()) {
-
-                final GRBLinExpr tmpLinExpr = new GRBLinExpr();
-                retVal = tmpLinExpr;
-
-                for (final IntIndex tmpKey : expression.getLinearKeySet()) {
-
-                    final int tmpFreeIndex = tmpKey.index;
-                    if (tmpFreeIndex >= 0) {
-                        tmpLinExpr.addTerm(expression.getAdjustedLinearFactor(tmpKey), vars[tmpFreeIndex]);
-                    }
-                }
-            }
-
-            if (expression.isAnyQuadraticFactorNonZero()) {
-
-                final GRBQuadExpr tmpQuadExpr = new GRBQuadExpr();
-                if (retVal != null) {
-                    tmpQuadExpr.add((GRBLinExpr) retVal);
-                }
-                retVal = tmpQuadExpr;
-
-                for (final IntRowColumn tmpKey : expression.getQuadraticKeySet()) {
-
-                    final int tmpFreeRow = tmpKey.row;
-                    final int tmpFreeColumn = tmpKey.column;
-                    if ((tmpFreeRow >= 0) && (tmpFreeColumn >= 0)) {
-                        tmpQuadExpr.addTerm(expression.getAdjustedQuadraticFactor(tmpKey), vars[tmpFreeRow], vars[tmpFreeColumn]);
-                    }
-                }
-            }
-
-            return retVal;
-        }
-
     };
 
     static final Environment ENVIRONMENT = new Environment();
 
-    private final GRBModel myGRBModel;
+    static void addConstraint(final GRBModel model, final GRBExpr expr, final char sense, final double rhs, final String name) {
+        try {
+            if (expr instanceof GRBQuadExpr) {
+                model.addQConstr((GRBQuadExpr) expr, sense, rhs, name);
+            } else if (expr instanceof GRBLinExpr) {
+                model.addConstr((GRBLinExpr) expr, sense, rhs, name);
+            }
+        } catch (final GRBException exception) {
+            exception.printStackTrace();
+        }
+    }
+
+    static GRBExpr buildExpression(final Expression expression, final ExpressionsBasedModel model, final GRBVar[] vars) throws GRBException {
+
+        GRBLinExpr linExpr = null;
+        GRBQuadExpr quadExpr = null;
+        GRBExpr retVal = null;
+
+        if (expression.isAnyLinearFactorNonZero()) {
+
+            retVal = linExpr = new GRBLinExpr();
+
+            for (final IntIndex key : expression.getLinearKeySet()) {
+
+                final int freeInd = model.indexOfFreeVariable(key.index);
+                if (freeInd >= 0) {
+                    linExpr.addTerm(expression.getAdjustedLinearFactor(key), vars[freeInd]);
+                }
+            }
+        }
+
+        if (expression.isAnyQuadraticFactorNonZero()) {
+
+            quadExpr = new GRBQuadExpr();
+            if (linExpr != null) {
+                quadExpr.add(linExpr);
+            }
+            retVal = quadExpr;
+
+            for (final IntRowColumn key : expression.getQuadraticKeySet()) {
+
+                final int freeRow = model.indexOfFreeVariable(key.row);
+                final int freeCol = model.indexOfFreeVariable(key.column);
+                if ((freeRow >= 0) && (freeCol >= 0)) {
+                    quadExpr.addTerm(expression.getAdjustedQuadraticFactor(key), vars[freeRow], vars[freeCol]);
+                }
+            }
+        }
+
+        return retVal;
+    }
+
+    static void setBounds(final GRBExpr solExpr, final Expression modExpr, final GRBModel delegateSolver) {
+        if (modExpr.isEqualityConstraint()) {
+            SolverGurobi.addConstraint(delegateSolver, solExpr, EQUAL, modExpr.getAdjustedLowerLimit(), modExpr.getName());
+        } else {
+            if (modExpr.isLowerConstraint()) {
+                SolverGurobi.addConstraint(delegateSolver, solExpr, LESS_EQUAL, modExpr.getAdjustedLowerLimit(), modExpr.getName());
+            }
+            if (modExpr.isUpperConstraint()) {
+                SolverGurobi.addConstraint(delegateSolver, solExpr, GREATER_EQUAL, modExpr.getAdjustedUpperLimit(), modExpr.getName());
+            }
+        }
+    }
+
+    private final GRBModel myDelegateSolver;
 
     SolverGurobi(final GRBModel model) {
 
         super();
 
-        myGRBModel = model;
+        myDelegateSolver = model;
     }
 
     public void dispose() {
 
         Solver.super.dispose();
 
-        if (myGRBModel != null) {
-            myGRBModel.dispose();
+        if (myDelegateSolver != null) {
+            myDelegateSolver.dispose();
         }
     }
 
@@ -231,15 +241,15 @@ public final class SolverGurobi implements Optimisation.Solver {
 
         try {
 
-            myGRBModel.optimize();
+            myDelegateSolver.optimize();
 
-            final int tmpStatus = myGRBModel.get(IntAttr.Status);
+            final int tmpStatus = myDelegateSolver.get(IntAttr.Status);
 
             retState = this.translate(tmpStatus);
 
-            retValue = myGRBModel.get(DoubleAttr.ObjVal);
+            retValue = myDelegateSolver.get(DoubleAttr.ObjVal);
 
-            final GRBVar[] tmpVars = myGRBModel.getVars();
+            final GRBVar[] tmpVars = myDelegateSolver.getVars();
             retSolution = Primitive64Array.make(tmpVars.length);
             for (int i = 0; i < tmpVars.length; i++) {
                 retSolution.set(i, tmpVars[i].get(DoubleAttr.X));
@@ -297,8 +307,8 @@ public final class SolverGurobi implements Optimisation.Solver {
         super.finalize();
     }
 
-    GRBModel getGRBModel() {
-        return myGRBModel;
+    GRBModel getDelegateSolver() {
+        return myDelegateSolver;
     }
 
 }

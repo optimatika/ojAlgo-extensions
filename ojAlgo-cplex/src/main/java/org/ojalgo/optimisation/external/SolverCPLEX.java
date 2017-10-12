@@ -80,6 +80,8 @@ public final class SolverCPLEX implements Optimisation.Solver {
                 final List<Variable> freeModVars = model.getFreeVariables();
                 final Set<IntIndex> fixedModVars = model.getFixedVariables();
 
+                final Expression modObj = model.objective().compensate(fixedModVars);
+
                 for (final Variable var : freeModVars) {
 
                     IloNumVarType type = IloNumVarType.Float;
@@ -101,7 +103,6 @@ public final class SolverCPLEX implements Optimisation.Solver {
                     SolverCPLEX.setBounds(solExpr, expr, delegateSolver);
                 }
 
-                final Expression modObj = model.objective().compensate(fixedModVars);
                 final IloNumExpr solObj = SolverCPLEX.buildExpression(model, modObj, delegateSolver, retVal.getDelegateVariables());
 
                 if (model.isMaximisation()) {
@@ -149,7 +150,6 @@ public final class SolverCPLEX implements Optimisation.Solver {
             if ((freeRow >= 0) && (freeCol >= 0)) {
                 destination.addTerm(source.getAdjustedQuadraticFactor(key), variables.get(freeRow), variables.get(freeCol));
             }
-
         }
     }
 
