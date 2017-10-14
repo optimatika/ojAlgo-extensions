@@ -133,6 +133,8 @@ public final class SolverGurobi implements Optimisation.Solver {
                     delegateSolver.setObjective(solObj, MINIMIZE);
                 }
 
+                delegateSolver.update();
+
                 return retVal;
 
             } catch (final GRBException exception) {
@@ -235,28 +237,28 @@ public final class SolverGurobi implements Optimisation.Solver {
 
     public Result solve(final Result kickStarter) {
 
+        final GRBVar[] tmpVars = myDelegateSolver.getVars();
+
         Optimisation.State retState = Optimisation.State.UNEXPLORED;
         double retValue = NaN;
-        Primitive64Array retSolution = null;
+        final Primitive64Array retSolution = Primitive64Array.make(myDelegateSolver.getVars().length);
 
         try {
 
             myDelegateSolver.optimize();
 
-            final int tmpStatus = myDelegateSolver.get(IntAttr.Status);
+            retState = this.translate(myDelegateSolver.get(IntAttr.Status));
 
-            retState = this.translate(tmpStatus);
+            if (retState.isFeasible()) {
 
-            retValue = myDelegateSolver.get(DoubleAttr.ObjVal);
+                retValue = myDelegateSolver.get(DoubleAttr.ObjVal);
 
-            final GRBVar[] tmpVars = myDelegateSolver.getVars();
-            retSolution = Primitive64Array.make(tmpVars.length);
-            for (int i = 0; i < tmpVars.length; i++) {
-                retSolution.set(i, tmpVars[i].get(DoubleAttr.X));
+                for (int i = 0; i < tmpVars.length; i++) {
+                    retSolution.set(i, tmpVars[i].get(DoubleAttr.X));
+                }
             }
 
         } catch (final GRBException exception) {
-            // TODO Auto-generated catch block
             exception.printStackTrace();
         }
 
