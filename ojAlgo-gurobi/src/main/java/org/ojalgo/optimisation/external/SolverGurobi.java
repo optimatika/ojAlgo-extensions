@@ -101,19 +101,34 @@ public final class SolverGurobi implements Optimisation.Solver {
 
                 final Expression modObj = model.objective().compensate(fixedModVars);
 
-                for (final Variable var : freeModVars) {
+                final int numberOfVariables = freeModVars.size();
 
-                    char type = CONTINUOUS;
-                    if (var.isBinary()) {
-                        type = BINARY;
-                    } else if (var.isInteger()) {
-                        type = INTEGER;
-                    }
+                final double[] lb = new double[numberOfVariables];
+                final double[] ub = new double[numberOfVariables];
+                final double[] obj = new double[numberOfVariables];
+                final char[] type = new char[numberOfVariables];
+                final String[] name = new String[numberOfVariables];
+
+                for (int v = 0; v < numberOfVariables; v++) {
+                    final Variable var = freeModVars.get(v);
+
+                    lb[v] = var.getUnadjustedLowerLimit();
+                    ub[v] = var.getUnadjustedUpperLimit();
 
                     final BigDecimal weight = var.getContributionWeight();
-                    delegateSolver.addVar(var.getUnadjustedLowerLimit(), var.getUnadjustedUpperLimit(), weight != null ? weight.doubleValue() : ZERO, type,
-                            var.getName());
+                    obj[v] = weight != null ? weight.doubleValue() : ZERO;
+
+                    type[v] = CONTINUOUS;
+                    if (var.isBinary()) {
+                        type[v] = BINARY;
+                    } else if (var.isInteger()) {
+                        type[v] = INTEGER;
+                    }
+
+                    name[v] = var.getName();
                 }
+
+                delegateSolver.addVars(lb, ub, obj, type, name);
                 delegateSolver.update();
 
                 final GRBVar[] delegateVariables = delegateSolver.getVars();
