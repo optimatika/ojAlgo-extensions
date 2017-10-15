@@ -22,6 +22,7 @@
 package org.ojalgo;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.ojalgo.access.Access1D;
 import org.ojalgo.access.Mutate2D;
@@ -39,6 +40,7 @@ import com.joptimizer.functions.ConvexMultivariateRealFunction;
 import com.joptimizer.functions.PSDQuadraticMultivariateRealFunction;
 import com.joptimizer.optimizers.JOptimizer;
 import com.joptimizer.optimizers.OptimizationRequest;
+import com.joptimizer.optimizers.OptimizationResponse;
 
 import cern.colt.matrix.tdouble.DoubleMatrix1D;
 import cern.colt.matrix.tdouble.DoubleMatrix2D;
@@ -48,192 +50,43 @@ import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix2D;
 
 public class SolverJOptimizer implements Optimisation.Solver {
 
-    static final class DoubleMatrixWrapper1D implements Access1D<Double> {
-
-        private final DoubleMatrix1D myDelegate;
-
-        DoubleMatrixWrapper1D(final DoubleMatrix1D delegate) {
-            super();
-            myDelegate = delegate;
-        }
-
-        public long count() {
-            return myDelegate.size();
-        }
-
-        public double doubleValue(final long index) {
-            return myDelegate.getQuick((int) index);
-        }
-
-        public Double get(final long index) {
-            return myDelegate.getQuick((int) index);
-        }
-
-    }
-
-    static final class MatrixStoreWrapper1D extends DoubleMatrix1D {
-
-        private final MatrixStore<Double> myGradient;
-
-        MatrixStoreWrapper1D(final MatrixStore<Double> gradient) {
-            myGradient = gradient;
-        }
-
-        @Override
-        public Object elements() {
-            return myGradient;
-        }
-
-        @Override
-        public double getQuick(final int index) {
-            return myGradient.doubleValue(index);
-        }
-
-        @Override
-        public DoubleMatrix1D like(final int size) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public DoubleMatrix2D like2D(final int rows, final int columns) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public DoubleMatrix2D reshape(final int rows, final int columns) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public DoubleMatrix3D reshape(final int slices, final int rows, final int columns) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public void setQuick(final int index, final double value) {
-            // TODO Auto-generated method stub
-
-        }
-
-        @Override
-        protected DoubleMatrix1D viewSelectionLike(final int[] offsets) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-    }
-
-    static final class MatrixStoreWrapper2D extends DoubleMatrix2D {
-
-        private final MatrixStore<Double> myDelegate;
-
-        MatrixStoreWrapper2D(final MatrixStore<Double> delegate) {
-            super();
-            myDelegate = delegate;
-        }
-
-        @Override
-        public Object elements() {
-            return myDelegate;
-        }
-
-        @Override
-        public double getQuick(final int row, final int column) {
-            return myDelegate.doubleValue(row, column);
-        }
-
-        @Override
-        public DoubleMatrix2D like(final int rows, final int columns) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public DoubleMatrix1D like1D(final int size) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public void setQuick(final int row, final int column, final double value) {
-            ((Mutate2D) myDelegate).set(row, column, value);
-        }
-
-        @Override
-        public DoubleMatrix1D vectorize() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        protected DoubleMatrix1D like1D(final int size, final int zero, final int stride) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        protected DoubleMatrix2D viewSelectionLike(final int[] rowOffsets, final int[] columnOffsets) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-    }
-
-    static class TwiceDifferentiableWrapperFunction implements ConvexMultivariateRealFunction {
-
-        private final TwiceDifferentiable<Double> myDelegate;
-
-        TwiceDifferentiableWrapperFunction(final TwiceDifferentiable<Double> delegate) {
-            super();
-            myDelegate = delegate;
-        }
-
-        public int getDim() {
-            return myDelegate.arity();
-        }
-
-        public DoubleMatrix1D gradient(final DoubleMatrix1D X) {
-
-            final Access1D<Double> point = new DoubleMatrixWrapper1D(X);
-
-            final MatrixStore<Double> gradient = myDelegate.getGradient(point);
-
-            return new MatrixStoreWrapper1D(gradient);
-        }
-
-        public DoubleMatrix2D hessian(final DoubleMatrix1D X) {
-
-            final Access1D<Double> point = new DoubleMatrixWrapper1D(X);
-
-            final MatrixStore<Double> hessian = myDelegate.getHessian(point);
-
-            return new MatrixStoreWrapper2D(hessian);
-        }
-
-        public double value(final DoubleMatrix1D X) {
-            // TODO Auto-generated method stub
-            return 0;
-        }
-
-    }
-
     public static final ExpressionsBasedModel.Integration<SolverJOptimizer> INTEGRATION = new ExpressionsBasedModel.Integration<SolverJOptimizer>() {
 
         public SolverJOptimizer build(final ExpressionsBasedModel model) {
 
             final List<Variable> variables = model.getVariables();
+            final int numbVars = variables.size();
 
             final Expression objective = model.objective();
-            final ConvexMultivariateRealFunction objectiveFunction = SolverJOptimizer.toFunction(objective, variables.size());
+            final ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toFunction(objective, numbVars, false);
 
-            final OptimizationRequest or = new OptimizationRequest();
-            or.setF0(objectiveFunction);
-            or.setInitialPoint(new double[] { 0.2, 0.2 });
-            or.setFi(null);
-            // TODO Auto-generated method stub
-            return new SolverJOptimizer(or);
+            final OptimizationRequest request = new OptimizationRequest();
+            request.setF0(objFunc);
+
+            final List<Expression> equalities = model.constraints().filter(c -> c.isEqualityConstraint() && !c.isAnyQuadraticFactorNonZero())
+                    .collect(Collectors.toList());
+            final int numbEquals = equalities.size();
+
+            final DenseDoubleMatrix2D a = new DenseDoubleMatrix2D(numbEquals, numbVars);
+            final DenseDoubleMatrix1D b = new DenseDoubleMatrix1D(numbEquals);
+
+            for (int i = 0; i < numbEquals; i++) {
+                final Expression constr = equalities.get(i);
+
+                final boolean negate = false;
+
+                for (final IntIndex key : constr.getLinearKeySet()) {
+                    final double adjusted = constr.getAdjustedLinearFactor(key);
+                    a.set(i, key.index, negate ? -adjusted : adjusted);
+                }
+
+                b.set(i, constr.getAdjustedLowerLimit());
+            }
+
+            request.setA(a);
+            request.setB(b);
+
+            return new SolverJOptimizer(request);
         }
 
         public boolean isCapable(final ExpressionsBasedModel model) {
@@ -242,16 +95,18 @@ public class SolverJOptimizer implements Optimisation.Solver {
 
     };
 
-    static ConvexMultivariateRealFunction toFunction(final Expression expression, final int dim) {
+    static ConvexMultivariateRealFunction toFunction(final Expression expression, final int dim, final boolean negate) {
 
         DenseDoubleMatrix2D p = null;
         DenseDoubleMatrix1D q = null;
+        final double r = 0.0;
 
         if (expression.isAnyQuadraticFactorNonZero()) {
             p = new DenseDoubleMatrix2D(dim, dim);
 
             for (final IntRowColumn key : expression.getQuadraticKeySet()) {
-                p.set(key.row, key.column, expression.getAdjustedQuadraticFactor(key));
+                final double adjusted = expression.getAdjustedQuadraticFactor(key);
+                p.set(key.row, key.column, negate ? -adjusted : adjusted);
             }
 
         }
@@ -260,11 +115,12 @@ public class SolverJOptimizer implements Optimisation.Solver {
             q = new DenseDoubleMatrix1D(dim);
 
             for (final IntIndex key : expression.getLinearKeySet()) {
-                q.set(key.index, expression.getAdjustedLinearFactor(key));
+                final double adjusted = expression.getAdjustedLinearFactor(key);
+                q.set(key.index, negate ? -adjusted : adjusted);
             }
         }
 
-        return new PSDQuadraticMultivariateRealFunction(p, q, 0.0);
+        return new PSDQuadraticMultivariateRealFunction(p, q, r);
     }
 
     private final OptimizationRequest myOptimizationRequest;
@@ -278,17 +134,23 @@ public class SolverJOptimizer implements Optimisation.Solver {
 
     public Result solve(final Result kickStarter) {
 
+        //  myOptimizationRequest.setInitialPoint(new double[] { 0.2, 0.2 });
+
         myOptimizer.setOptimizationRequest(myOptimizationRequest);
         try {
             myOptimizer.optimize();
         } catch (final JOptimizerException exception) {
-            // TODO Auto-generated catch block
+
             exception.printStackTrace();
         }
 
-        final double[] sol = myOptimizer.getOptimizationResponse().getSolution();
-        // TODO Auto-generated method stub
-        return null;
+        final OptimizationResponse response = myOptimizer.getOptimizationResponse();
+
+        final State retState = Optimisation.State.OPTIMAL;
+        final double retValue = response.getValue();
+        final Access1D<Double> retSolution = Access1D.wrap(response.getSolution());
+
+        return new Optimisation.Result(retState, retValue, retSolution);
     }
 
 }
