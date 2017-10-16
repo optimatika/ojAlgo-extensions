@@ -96,7 +96,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
                     retVal.getDelegateVariables().add(tmpSolVar);
                 }
 
-                for (final Expression expr : model.constraints().peek(e -> e.compensate(fixedModVars)).collect(Collectors.toList())) {
+                for (final Expression expr : model.constraints().map(e -> e.compensate(fixedModVars)).collect(Collectors.toList())) {
 
                     final IloNumExpr solExpr = SolverCPLEX.buildExpression(model, expr, delegateSolver, retVal.getDelegateVariables());
 

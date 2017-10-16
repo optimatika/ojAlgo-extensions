@@ -19,17 +19,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo;
+package org.ojalgo.joptimizer;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.ojalgo.access.Access1D;
-import org.ojalgo.access.Mutate2D;
 import org.ojalgo.access.Structure1D.IntIndex;
 import org.ojalgo.access.Structure2D.IntRowColumn;
-import org.ojalgo.function.multiary.MultiaryFunction.TwiceDifferentiable;
-import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
@@ -37,14 +34,12 @@ import org.ojalgo.optimisation.Variable;
 
 import com.joptimizer.exception.JOptimizerException;
 import com.joptimizer.functions.ConvexMultivariateRealFunction;
+import com.joptimizer.functions.LinearMultivariateRealFunction;
 import com.joptimizer.functions.PSDQuadraticMultivariateRealFunction;
 import com.joptimizer.optimizers.JOptimizer;
 import com.joptimizer.optimizers.OptimizationRequest;
 import com.joptimizer.optimizers.OptimizationResponse;
 
-import cern.colt.matrix.tdouble.DoubleMatrix1D;
-import cern.colt.matrix.tdouble.DoubleMatrix2D;
-import cern.colt.matrix.tdouble.DoubleMatrix3D;
 import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix1D;
 import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix2D;
 
@@ -120,7 +115,12 @@ public class SolverJOptimizer implements Optimisation.Solver {
             }
         }
 
-        return new PSDQuadraticMultivariateRealFunction(p, q, r);
+        if (p != null) {
+            return new PSDQuadraticMultivariateRealFunction(p, q, r);
+        } else {
+            return new LinearMultivariateRealFunction(q, r);
+        }
+
     }
 
     private final OptimizationRequest myOptimizationRequest;

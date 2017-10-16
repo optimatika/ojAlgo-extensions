@@ -31,6 +31,37 @@ import org.ojalgo.optimisation.Variable;
 
 public class ProblemCPLEX {
 
+    /**
+     * https://github.com/optimatika/ojAlgo-extensions/issues/3 <br>
+     * "compensating" didn't work because of an incorrectly used stream - did peek(...) instead of map(...).
+     */
+    @Test
+    public void testCompensate() {
+
+        ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION);
+
+        final ExpressionsBasedModel test = new ExpressionsBasedModel();
+        test.addVariable(Variable.make("X1").lower(0).upper(5).weight(1));
+        test.addVariable(Variable.make("X2").lower(0).upper(5).weight(1));
+        test.addVariable(Variable.make("X3").level(4).weight(1));
+        final Expression expressions = test.addExpression("1").upper(5);
+        expressions.set(0, 1).set(1, 1).set(2, 1);
+        final Optimisation.Result result = test.maximise();
+
+        Assert.assertTrue(test.validate(result));
+
+        Assert.assertTrue(result.getState().isOptimal());
+
+        Assert.assertEquals(5.0, result.getValue(), PrimitiveMath.MACHINE_EPSILON);
+
+        Assert.assertEquals(0.0, result.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(1.0, result.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(4.0, result.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
+    }
+
+    /**
+     * https://github.com/optimatika/ojAlgo-extensions/issues/1
+     */
     @Test
     public void testFixedVariables() {
 
@@ -46,9 +77,8 @@ public class ProblemCPLEX {
         final Optimisation.Result result = test.minimise();
 
         Assert.assertEquals(Optimisation.State.OPTIMAL, result.getState());
-        Assert.assertEquals(0.0, result.getValue(), PrimitiveMath.MACHINE_EPSILON);
 
-        // BasicLogger.debug(result);
+        Assert.assertEquals(0.0, result.getValue(), PrimitiveMath.MACHINE_EPSILON);
     }
 
 }

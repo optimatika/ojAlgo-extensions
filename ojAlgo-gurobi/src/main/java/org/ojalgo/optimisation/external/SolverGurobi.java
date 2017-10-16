@@ -133,7 +133,7 @@ public final class SolverGurobi implements Optimisation.Solver {
 
                 final GRBVar[] delegateVariables = delegateSolver.getVars();
 
-                for (final Expression expr : model.constraints().peek(e -> e.compensate(fixedModVars)).collect(Collectors.toList())) {
+                for (final Expression expr : model.constraints().map(e -> e.compensate(fixedModVars)).collect(Collectors.toList())) {
 
                     final GRBExpr solExpr = SolverGurobi.buildExpression(expr, model, delegateVariables);
 
