@@ -21,8 +21,6 @@ package org.ojalgo.commons.math3.linear;
  * SOFTWARE.
  */
 
-import static org.ojalgo.constant.PrimitiveMath.*;
-
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.DiagonalMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
@@ -50,11 +48,11 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
 
         public void supplyTo(final ElementsConsumer<Double> receiver) {
 
-            final int tmpLimRows = (int) Math.min(myArray2DRow.getRowDimension(), receiver.countRows());
-            final int tmpLimCols = (int) Math.min(myArray2DRow.getColumnDimension(), receiver.countColumns());
+            final int limRows = (int) Math.min(myArray2DRow.getRowDimension(), receiver.countRows());
+            final int limCols = (int) Math.min(myArray2DRow.getColumnDimension(), receiver.countColumns());
 
-            for (int i = 0; i < tmpLimRows; i++) {
-                for (int j = 0; j < tmpLimCols; j++) {
+            for (int i = 0; i < limRows; i++) {
+                for (int j = 0; j < limCols; j++) {
                     receiver.set(i, j, myArray2DRow.getEntry(i, j));
                 }
             }
@@ -70,11 +68,11 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
 
         public void supplyTo(final ElementsConsumer<Double> receiver) {
 
-            final long tmpLimRows = Math.min(this.countRows(), receiver.countRows());
-            final long tmpLimCols = Math.min(this.countColumns(), receiver.countColumns());
+            final long limRows = Math.min(this.countRows(), receiver.countRows());
+            final long limCols = Math.min(this.countColumns(), receiver.countColumns());
 
-            for (long j = 0L; j < tmpLimCols; j++) {
-                for (long i = 0L; i < tmpLimRows; i++) {
+            for (long j = 0L; j < limCols; j++) {
+                for (long i = 0L; i < limRows; i++) {
                     receiver.set(i, j, this.doubleValue(i, j));
                 }
             }
@@ -109,7 +107,7 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
 
         public void supplyTo(final ElementsConsumer<Double> receiver) {
 
-            receiver.fillAll(ZERO);
+            receiver.reset();
 
             final double[] diagonal = myDiagonal.getDataRef();
             for (int ij = 0; ij < diagonal.length; ij++) {
