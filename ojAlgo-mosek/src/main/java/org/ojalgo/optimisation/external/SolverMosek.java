@@ -82,7 +82,11 @@ public final class SolverMosek implements Optimisation.Solver {
             myLog.flush(target);
         }
 
-        SolverMosek makeSolver(final int numberOfConstraints, final int numberOfVariables) {
+        Env getEnv() {
+            return myEnv;
+        }
+
+        SolverMosek makeSolver(final int numberOfConstraints, final int numberOfVariables, final Optimisation.Options options) {
 
             final Task tmpTask = new Task(myEnv, numberOfConstraints, numberOfVariables);
 
@@ -91,7 +95,7 @@ public final class SolverMosek implements Optimisation.Solver {
 
             tmpTask.set_Stream(streamtype.log, myStream);
 
-            return new SolverMosek(tmpTask);
+            return new SolverMosek(tmpTask, options);
         }
 
         void printToLog(final Object message) {
@@ -112,7 +116,7 @@ public final class SolverMosek implements Optimisation.Solver {
             final int tmpNumberOfVariables = tmpFreeVariables.size();
             final int tmpNumberOfConstraints = tmpConstraints.size();
 
-            final SolverMosek retVal = ENVIRONMENT.makeSolver(tmpNumberOfConstraints, tmpNumberOfVariables);
+            final SolverMosek retVal = ENVIRONMENT.makeSolver(tmpNumberOfConstraints, tmpNumberOfVariables, model.options);
 
             for (int v = 0; v < tmpNumberOfVariables; v++) {
                 final Variable tmpVariable = tmpFreeVariables.get(v);
@@ -140,14 +144,17 @@ public final class SolverMosek implements Optimisation.Solver {
 
     static final Environment ENVIRONMENT = new Environment();
 
+    private final Optimisation.Options myOptions;
+
     private soltype mySolutionType = soltype.bas;
     private final Task myTask;
 
-    SolverMosek(final Task task) {
+    protected SolverMosek(final Task task, final Optimisation.Options options) {
 
         super();
 
         myTask = task;
+        myOptions = options;
     }
 
     public void dispose() {
@@ -168,6 +175,8 @@ public final class SolverMosek implements Optimisation.Solver {
         final double[] tmpSolution = new double[tmpNumberOfVariables];
 
         try {
+
+            this.configure(ENVIRONMENT.getEnv(), myTask, myOptions);
 
             if (myTask.optimize() == rescode.ok) {
 
@@ -201,7 +210,36 @@ public final class SolverMosek implements Optimisation.Solver {
         return new Optimisation.Result(tmpSate, tmpValue, Primitive64Array.wrap(tmpSolution));
     }
 
-    private boundkey getBoundKey(final Optimisation.Constraint modelEntity) {
+    /**
+     * Create a subclass and override this method to configure
+     */
+    protected void configure(final Env environment, final Task task, final Optimisation.Options options) {
+
+        myTask.putdouparam(Env.dparam.mio_max_time, options.time_abort);
+
+        final Object verbose = options.debug_solver;
+
+        if ((verbose != null) && (verbose instanceof Number)) {
+            final Number number = (Number) verbose;
+            final int value = number.intValue();
+            if (value == 0) {
+                myTask.putintparam(Env.iparam.log, 0);
+            } else if (value > 0) {
+                myTask.putintparam(Env.iparam.log, 1);
+            }
+        }
+
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+
+        this.dispose();
+
+        super.finalize();
+    }
+
+    boundkey getBoundKey(final Optimisation.Constraint modelEntity) {
 
         if (modelEntity.getLowerLimit() != null) {
             if (modelEntity.getUpperLimit() != null) {
@@ -220,32 +258,6 @@ public final class SolverMosek implements Optimisation.Solver {
                 return boundkey.fr;
             }
         }
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-
-        this.dispose();
-
-        super.finalize();
-    }
-
-    void configure(final Optimisation.Options options) {
-
-        myTask.putdouparam(Env.dparam.mio_max_time, options.time_abort);
-
-        final Object verbose = options.debug_solver;
-
-        if ((verbose != null) && (verbose instanceof Number)) {
-            final Number number = (Number) verbose;
-            final int value = number.intValue();
-            if (value == 0) {
-                myTask.putintparam(Env.iparam.log, 0);
-            } else if (value > 0) {
-                myTask.putintparam(Env.iparam.log, 1);
-            }
-        }
-
     }
 
     void putConstraint(final int index, final Expression constraint, final ExpressionsBasedModel model) {

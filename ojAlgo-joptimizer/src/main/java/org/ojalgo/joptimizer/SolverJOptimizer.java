@@ -81,7 +81,7 @@ public class SolverJOptimizer implements Optimisation.Solver {
             request.setA(a);
             request.setB(b);
 
-            return new SolverJOptimizer(request);
+            return new SolverJOptimizer(request, model.options);
         }
 
         public boolean isCapable(final ExpressionsBasedModel model) {
@@ -127,17 +127,23 @@ public class SolverJOptimizer implements Optimisation.Solver {
 
     private final JOptimizer myOptimizer = new JOptimizer();
 
-    SolverJOptimizer(final OptimizationRequest optimizationRequest) {
+    private final Optimisation.Options myOptions;
+
+    protected SolverJOptimizer(final OptimizationRequest optimizationRequest, final Optimisation.Options options) {
         super();
         myOptimizationRequest = optimizationRequest;
+        myOptions = options;
     }
 
     public Result solve(final Result kickStarter) {
 
         //  myOptimizationRequest.setInitialPoint(new double[] { 0.2, 0.2 });
 
+        this.configure(myOptimizer, myOptimizationRequest, myOptions);
+
         myOptimizer.setOptimizationRequest(myOptimizationRequest);
         try {
+
             myOptimizer.optimize();
         } catch (final JOptimizerException exception) {
 
@@ -151,6 +157,13 @@ public class SolverJOptimizer implements Optimisation.Solver {
         final Access1D<Double> retSolution = Access1D.wrap(response.getSolution());
 
         return new Optimisation.Result(retState, retValue, retSolution);
+    }
+
+    /**
+     * Create a subclass and override this method to configure
+     */
+    protected void configure(final JOptimizer optimizer, final OptimizationRequest request, final Optimisation.Options options) {
+
     }
 
 }

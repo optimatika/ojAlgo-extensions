@@ -48,7 +48,7 @@ import ilog.concert.IloQuadNumExpr;
 import ilog.cplex.IloCplex;
 import ilog.cplex.IloCplex.Status;
 
-public final class SolverCPLEX implements Optimisation.Solver {
+public class SolverCPLEX implements Optimisation.Solver {
 
     static final class Environment {
 
@@ -72,7 +72,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
         public SolverCPLEX build(final ExpressionsBasedModel model) {
 
-            final SolverCPLEX retVal = new SolverCPLEX();
+            final SolverCPLEX retVal = new SolverCPLEX(model.options);
             final IloCplex delegateSolver = retVal.getDelegateSolver();
 
             try {
@@ -200,11 +200,15 @@ public final class SolverCPLEX implements Optimisation.Solver {
     }
 
     private final IloCplex myDelegateSolver;
-    private final List<IloNumVar> myDelegateVariables;
 
-    SolverCPLEX() {
+    private final List<IloNumVar> myDelegateVariables;
+    private final Optimisation.Options myOptions;
+
+    protected SolverCPLEX(final Optimisation.Options options) {
 
         super();
+
+        myOptions = options;
 
         IloCplex tmpDelegate = null;
 
@@ -245,6 +249,8 @@ public final class SolverCPLEX implements Optimisation.Solver {
             double retValue = Double.NaN;
             final Primitive64Array retSolution = Primitive64Array.make(solVariables.size());
 
+            this.configure(myDelegateSolver, myOptions);
+
             if (myDelegateSolver.solve()) {
                 // Feasible or Optimal
 
@@ -265,6 +271,13 @@ public final class SolverCPLEX implements Optimisation.Solver {
         }
 
         return new Result(Optimisation.State.FAILED, Double.NaN, kickStarter);
+    }
+
+    /**
+     * Create a subclass and override this method to configure
+     */
+    protected void configure(final IloCplex cplex, final Optimisation.Options options) {
+
     }
 
     @Override

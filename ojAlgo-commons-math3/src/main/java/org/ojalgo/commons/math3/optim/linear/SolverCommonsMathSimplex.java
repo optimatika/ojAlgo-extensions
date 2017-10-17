@@ -43,7 +43,7 @@ import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 
-public final class SolverCommonsMathSimplex implements Optimisation.Solver {
+public class SolverCommonsMathSimplex implements Optimisation.Solver {
 
     public static final ExpressionsBasedModel.Integration<SolverCommonsMathSimplex> INTEGRATION = new ExpressionsBasedModel.Integration<SolverCommonsMathSimplex>() {
 
@@ -122,7 +122,7 @@ public final class SolverCommonsMathSimplex implements Optimisation.Solver {
     private final Set<OptimizationData> myModelData;
     private final Optimisation.Options myOptions;
 
-    SolverCommonsMathSimplex(final Set<OptimizationData> modelData, final Optimisation.Options options) {
+    protected SolverCommonsMathSimplex(final Set<OptimizationData> modelData, final Optimisation.Options options) {
         super();
         myModelData = modelData;
         myOptions = options;
@@ -142,6 +142,8 @@ public final class SolverCommonsMathSimplex implements Optimisation.Solver {
 
             final SimplexSolver solver = new SimplexSolver();
 
+            this.configure(solver, myOptions);
+
             final PointValuePair solutionAndValue = solver.optimize(myModelData.toArray(new OptimizationData[myModelData.size()]));
 
             state = Optimisation.State.OPTIMAL;
@@ -160,6 +162,13 @@ public final class SolverCommonsMathSimplex implements Optimisation.Solver {
         final Optimisation.Result result = new Optimisation.Result(state, value, solution);
 
         return result;
+    }
+
+    /**
+     * Create a subclass and override this method to configure
+     */
+    protected void configure(final SimplexSolver solver, final Optimisation.Options options) {
+
     }
 
 }

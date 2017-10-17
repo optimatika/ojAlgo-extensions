@@ -50,7 +50,7 @@ import gurobi.GRBModel;
 import gurobi.GRBQuadExpr;
 import gurobi.GRBVar;
 
-public final class SolverGurobi implements Optimisation.Solver {
+public class SolverGurobi implements Optimisation.Solver {
 
     static final class Environment {
 
@@ -94,7 +94,7 @@ public final class SolverGurobi implements Optimisation.Solver {
             try {
 
                 final GRBModel delegateSolver = new GRBModel(ENVIRONMENT.getGRBEnv());
-                final SolverGurobi retVal = new SolverGurobi(delegateSolver);
+                final SolverGurobi retVal = new SolverGurobi(delegateSolver, model.options);
 
                 final List<Variable> freeModVars = model.getFreeVariables();
                 final Set<IntIndex> fixedModVars = model.getFixedVariables();
@@ -234,11 +234,14 @@ public final class SolverGurobi implements Optimisation.Solver {
 
     private final GRBModel myDelegateSolver;
 
-    SolverGurobi(final GRBModel model) {
+    private final Optimisation.Options myOptions;
+
+    protected SolverGurobi(final GRBModel model, final Optimisation.Options options) {
 
         super();
 
         myDelegateSolver = model;
+        myOptions = options;
     }
 
     public void dispose() {
@@ -260,6 +263,8 @@ public final class SolverGurobi implements Optimisation.Solver {
 
         try {
 
+            this.configure(ENVIRONMENT.getGRBEnv(), myDelegateSolver, myOptions);
+
             myDelegateSolver.optimize();
 
             retState = this.translate(myDelegateSolver.get(IntAttr.Status));
@@ -280,7 +285,26 @@ public final class SolverGurobi implements Optimisation.Solver {
         return new Optimisation.Result(retState, retValue, retSolution);
     }
 
-    private State translate(final int status) {
+    /**
+     * Create a subclass and override this method to configure
+     */
+    protected void configure(final GRBEnv environment, final GRBModel model, final Optimisation.Options options) {
+
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+
+        this.dispose();
+
+        super.finalize();
+    }
+
+    GRBModel getDelegateSolver() {
+        return myDelegateSolver;
+    }
+
+    State translate(final int status) {
         switch (status) {
         case Status.INFEASIBLE:
             return Optimisation.State.INFEASIBLE;
@@ -314,18 +338,6 @@ public final class SolverGurobi implements Optimisation.Solver {
             return Optimisation.State.FAILED;
         }
 
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-
-        this.dispose();
-
-        super.finalize();
-    }
-
-    GRBModel getDelegateSolver() {
-        return myDelegateSolver;
     }
 
 }
