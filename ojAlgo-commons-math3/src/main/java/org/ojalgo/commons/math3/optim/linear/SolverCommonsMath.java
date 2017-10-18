@@ -43,11 +43,11 @@ import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 
-public class SolverCommonsMathSimplex implements Optimisation.Solver {
+public class SolverCommonsMath implements Optimisation.Solver {
 
-    public static final ExpressionsBasedModel.Integration<SolverCommonsMathSimplex> INTEGRATION = new ExpressionsBasedModel.Integration<SolverCommonsMathSimplex>() {
+    public static final ExpressionsBasedModel.Integration<SolverCommonsMath> INTEGRATION = new ExpressionsBasedModel.Integration<SolverCommonsMath>() {
 
-        public SolverCommonsMathSimplex build(final ExpressionsBasedModel model) {
+        public SolverCommonsMath build(final ExpressionsBasedModel model) {
 
             final Set<OptimizationData> data = new HashSet<>();
 
@@ -110,7 +110,7 @@ public class SolverCommonsMathSimplex implements Optimisation.Solver {
 
             data.add(new LinearConstraintSet(constraints));
 
-            return new SolverCommonsMathSimplex(data, model.options);
+            return new SolverCommonsMath(data, model.options);
         }
 
         public boolean isCapable(final ExpressionsBasedModel model) {
@@ -122,7 +122,7 @@ public class SolverCommonsMathSimplex implements Optimisation.Solver {
     private final Set<OptimizationData> myModelData;
     private final Optimisation.Options myOptions;
 
-    protected SolverCommonsMathSimplex(final Set<OptimizationData> modelData, final Optimisation.Options options) {
+    protected SolverCommonsMath(final Set<OptimizationData> modelData, final Optimisation.Options options) {
         super();
         myModelData = modelData;
         myOptions = options;

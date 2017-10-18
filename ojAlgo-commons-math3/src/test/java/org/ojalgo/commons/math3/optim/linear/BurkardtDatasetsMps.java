@@ -36,7 +36,7 @@ import junit.framework.TestCase;
 public class BurkardtDatasetsMps extends TestCase {
 
     static {
-        ExpressionsBasedModel.addIntegration(SolverCommonsMathSimplex.INTEGRATION);
+        ExpressionsBasedModel.addIntegration(SolverCommonsMath.INTEGRATION);
     }
 
     private static final String COMPOSITION_NOT_VALID = " Composition not valid!";
