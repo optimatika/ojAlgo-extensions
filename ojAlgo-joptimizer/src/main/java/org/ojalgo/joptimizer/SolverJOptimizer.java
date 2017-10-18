@@ -37,13 +37,34 @@ import com.joptimizer.functions.ConvexMultivariateRealFunction;
 import com.joptimizer.functions.LinearMultivariateRealFunction;
 import com.joptimizer.functions.PSDQuadraticMultivariateRealFunction;
 import com.joptimizer.optimizers.JOptimizer;
+import com.joptimizer.optimizers.LPOptimizationRequest;
+import com.joptimizer.optimizers.LPPrimalDualMethod;
 import com.joptimizer.optimizers.OptimizationRequest;
+import com.joptimizer.optimizers.OptimizationRequestHandler;
 import com.joptimizer.optimizers.OptimizationResponse;
 
 import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix1D;
 import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix2D;
 
 public class SolverJOptimizer implements Optimisation.Solver {
+
+    static final class Convex implements SolverJOptimizer.Strategy {
+
+        private final JOptimizer myOptimizer = new JOptimizer();
+        private final OptimizationRequest myRequest = new OptimizationRequest();
+
+    }
+
+    static final class Linear implements SolverJOptimizer.Strategy {
+
+        private final LPPrimalDualMethod myOptimizer = new LPPrimalDualMethod();
+        private final LPOptimizationRequest myRequest = new LPOptimizationRequest();
+
+    }
+
+    static interface Strategy<H extends OptimizationRequestHandler, R extends OptimizationRequest> {
+
+    }
 
     public static final ExpressionsBasedModel.Integration<SolverJOptimizer> INTEGRATION = new ExpressionsBasedModel.Integration<SolverJOptimizer>() {
 
@@ -56,6 +77,9 @@ public class SolverJOptimizer implements Optimisation.Solver {
             final ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toFunction(objective, numbVars, false);
 
             final OptimizationRequest request = new OptimizationRequest();
+
+            final LPOptimizationRequest lpRequest = new LPOptimizationRequest();
+
             request.setF0(objFunc);
 
             final List<Expression> equalities = model.constraints().filter(c -> c.isEqualityConstraint() && !c.isAnyQuadraticFactorNonZero())
@@ -123,8 +147,9 @@ public class SolverJOptimizer implements Optimisation.Solver {
 
     }
 
-    private final OptimizationRequest myOptimizationRequest;
+    private final LPPrimalDualMethod myLP = new LPPrimalDualMethod();
 
+    private final OptimizationRequest myOptimizationRequest;
     private final JOptimizer myOptimizer = new JOptimizer();
 
     private final Optimisation.Options myOptions;
@@ -141,16 +166,17 @@ public class SolverJOptimizer implements Optimisation.Solver {
 
         this.configure(myOptimizer, myOptimizationRequest, myOptions);
 
-        myOptimizer.setOptimizationRequest(myOptimizationRequest);
+        // myOptimizer.setOptimizationRequest(myOptimizationRequest);
+        myLP.setOptimizationRequest(myOptimizationRequest);
         try {
 
-            myOptimizer.optimize();
+            myLP.optimize();
         } catch (final JOptimizerException exception) {
 
             exception.printStackTrace();
         }
 
-        final OptimizationResponse response = myOptimizer.getOptimizationResponse();
+        final OptimizationResponse response = myLP.getOptimizationResponse();
 
         final State retState = Optimisation.State.OPTIMAL;
         final double retValue = response.getValue();
@@ -163,6 +189,13 @@ public class SolverJOptimizer implements Optimisation.Solver {
      * Create a subclass and override this method to configure
      */
     protected void configure(final JOptimizer optimizer, final OptimizationRequest request, final Optimisation.Options options) {
+
+    }
+
+    /**
+     * Create a subclass and override this method to configure
+     */
+    protected void configure(final LPPrimalDualMethod optimizer, final LPOptimizationRequest request, final Optimisation.Options options) {
 
     }
 
