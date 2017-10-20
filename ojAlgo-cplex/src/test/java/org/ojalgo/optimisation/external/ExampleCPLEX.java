@@ -26,6 +26,9 @@ import java.io.File;
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.MathProgSysModel;
+import org.ojalgo.optimisation.Optimisation.Options;
+
+import ilog.cplex.IloCplex;
 
 public class ExampleCPLEX {
 
@@ -38,6 +41,15 @@ public class ExampleCPLEX {
         final MathProgSysModel tmpMPS = MathProgSysModel.make(tmpFile);
 
         final ExpressionsBasedModel tmpModel = tmpMPS.getExpressionsBasedModel();
+
+        tmpModel.options.setConfigurator(new SolverCPLEX.Configurator() {
+
+            public void configure(final IloCplex cplex, final Options options) {
+                BasicLogger.debug();
+                BasicLogger.debug("I'm the CPLEX configurator!");
+                BasicLogger.debug();
+            }
+        });
 
         // Essentially this is what you need to do to "integrate" CPLEX with ojAlgo
         ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION);
