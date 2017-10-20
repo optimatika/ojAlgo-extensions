@@ -23,6 +23,7 @@ package org.ojalgo.commons.math3.optim.linear;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.math3.optim.OptimizationData;
@@ -43,9 +44,20 @@ import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 
-public class SolverCommonsMath implements Optimisation.Solver {
+public final class SolverCommonsMath implements Optimisation.Solver {
 
-    public static final ExpressionsBasedModel.Integration<SolverCommonsMath> INTEGRATION = new ExpressionsBasedModel.Integration<SolverCommonsMath>() {
+    @FunctionalInterface
+    public static interface Configurator {
+
+        void configure(SimplexSolver solver, Optimisation.Options options);
+
+    }
+
+    static final class Integration extends ExpressionsBasedModel.Integration<SolverCommonsMath> {
+
+        Integration() {
+            super();
+        }
 
         public SolverCommonsMath build(final ExpressionsBasedModel model) {
 
@@ -116,13 +128,15 @@ public class SolverCommonsMath implements Optimisation.Solver {
         public boolean isCapable(final ExpressionsBasedModel model) {
             return !model.isAnyVariableInteger() && !model.isAnyExpressionQuadratic();
         }
+    }
 
-    };
+    public static final SolverCommonsMath.Integration INTEGRATION = new Integration();
 
     private final Set<OptimizationData> myModelData;
+
     private final Optimisation.Options myOptions;
 
-    protected SolverCommonsMath(final Set<OptimizationData> modelData, final Optimisation.Options options) {
+    SolverCommonsMath(final Set<OptimizationData> modelData, final Optimisation.Options options) {
         super();
         myModelData = modelData;
         myOptions = options;
@@ -142,7 +156,10 @@ public class SolverCommonsMath implements Optimisation.Solver {
 
             final SimplexSolver solver = new SimplexSolver();
 
-            this.configure(solver, myOptions);
+            final Optional<Configurator> tmpConfigurator = myOptions.getConfigurator(Configurator.class);
+            if (tmpConfigurator.isPresent()) {
+                tmpConfigurator.get().configure(solver, myOptions);
+            }
 
             final PointValuePair solutionAndValue = solver.optimize(myModelData.toArray(new OptimizationData[myModelData.size()]));
 
@@ -162,13 +179,6 @@ public class SolverCommonsMath implements Optimisation.Solver {
         final Optimisation.Result result = new Optimisation.Result(state, value, solution);
 
         return result;
-    }
-
-    /**
-     * Create a subclass and override this method to configure
-     */
-    protected void configure(final SimplexSolver solver, final Optimisation.Options options) {
-
     }
 
 }

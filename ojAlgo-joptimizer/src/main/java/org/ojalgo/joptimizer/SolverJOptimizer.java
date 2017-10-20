@@ -22,6 +22,7 @@
 package org.ojalgo.joptimizer;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.ojalgo.access.Access1D;
@@ -46,7 +47,14 @@ import com.joptimizer.optimizers.OptimizationResponse;
 import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix1D;
 import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix2D;
 
-public class SolverJOptimizer implements Optimisation.Solver {
+public final class SolverJOptimizer implements Optimisation.Solver {
+
+    @FunctionalInterface
+    public static interface Configurator {
+
+        void configure(final JOptimizer optimizer, final OptimizationRequest request, final Optimisation.Options options);
+
+    }
 
     static final class Convex implements SolverJOptimizer.Strategy {
 
@@ -55,18 +63,11 @@ public class SolverJOptimizer implements Optimisation.Solver {
 
     }
 
-    static final class Linear implements SolverJOptimizer.Strategy {
+    static final class Integration extends ExpressionsBasedModel.Integration<SolverJOptimizer> {
 
-        private final LPPrimalDualMethod myOptimizer = new LPPrimalDualMethod();
-        private final LPOptimizationRequest myRequest = new LPOptimizationRequest();
-
-    }
-
-    static interface Strategy<H extends OptimizationRequestHandler, R extends OptimizationRequest> {
-
-    }
-
-    public static final ExpressionsBasedModel.Integration<SolverJOptimizer> INTEGRATION = new ExpressionsBasedModel.Integration<SolverJOptimizer>() {
+        Integration() {
+            super();
+        }
 
         public SolverJOptimizer build(final ExpressionsBasedModel model) {
 
@@ -111,8 +112,20 @@ public class SolverJOptimizer implements Optimisation.Solver {
         public boolean isCapable(final ExpressionsBasedModel model) {
             return !model.isAnyVariableInteger();
         }
+    }
 
-    };
+    static final class Linear implements SolverJOptimizer.Strategy {
+
+        private final LPPrimalDualMethod myOptimizer = new LPPrimalDualMethod();
+        private final LPOptimizationRequest myRequest = new LPOptimizationRequest();
+
+    }
+
+    static interface Strategy<H extends OptimizationRequestHandler, R extends OptimizationRequest> {
+
+    }
+
+    public static final SolverJOptimizer.Integration INTEGRATION = new Integration();
 
     static ConvexMultivariateRealFunction toFunction(final Expression expression, final int dim, final boolean negate) {
 
@@ -154,7 +167,7 @@ public class SolverJOptimizer implements Optimisation.Solver {
 
     private final Optimisation.Options myOptions;
 
-    protected SolverJOptimizer(final OptimizationRequest optimizationRequest, final Optimisation.Options options) {
+    SolverJOptimizer(final OptimizationRequest optimizationRequest, final Optimisation.Options options) {
         super();
         myOptimizationRequest = optimizationRequest;
         myOptions = options;
@@ -164,7 +177,10 @@ public class SolverJOptimizer implements Optimisation.Solver {
 
         //  myOptimizationRequest.setInitialPoint(new double[] { 0.2, 0.2 });
 
-        this.configure(myOptimizer, myOptimizationRequest, myOptions);
+        final Optional<Configurator> tmpConfigurator = myOptions.getConfigurator(Configurator.class);
+        if (tmpConfigurator.isPresent()) {
+            tmpConfigurator.get().configure(myOptimizer, myOptimizationRequest, myOptions);
+        }
 
         // myOptimizer.setOptimizationRequest(myOptimizationRequest);
         myLP.setOptimizationRequest(myOptimizationRequest);
@@ -183,20 +199,6 @@ public class SolverJOptimizer implements Optimisation.Solver {
         final Access1D<Double> retSolution = Access1D.wrap(response.getSolution());
 
         return new Optimisation.Result(retState, retValue, retSolution);
-    }
-
-    /**
-     * Create a subclass and override this method to configure
-     */
-    protected void configure(final JOptimizer optimizer, final OptimizationRequest request, final Optimisation.Options options) {
-
-    }
-
-    /**
-     * Create a subclass and override this method to configure
-     */
-    protected void configure(final LPPrimalDualMethod optimizer, final LPOptimizationRequest request, final Optimisation.Options options) {
-
     }
 
 }

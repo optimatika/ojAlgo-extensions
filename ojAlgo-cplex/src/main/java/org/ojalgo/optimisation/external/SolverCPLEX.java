@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -48,27 +49,22 @@ import ilog.concert.IloQuadNumExpr;
 import ilog.cplex.IloCplex;
 import ilog.cplex.IloCplex.Status;
 
-public class SolverCPLEX implements Optimisation.Solver {
+public final class SolverCPLEX implements Optimisation.Solver {
 
-    static final class Environment {
+    @FunctionalInterface
+    public static interface Configurator {
 
-        private final PrinterBuffer myLog = new CharacterRing().asPrinter();
-
-        Environment() {
-
-            super();
-
-        }
-
-        @Override
-        protected final void finalize() throws Throwable {
-
-            super.finalize();
-        }
+        void configure(final IloCplex cplex, final Optimisation.Options options);
 
     }
 
-    public static final ExpressionsBasedModel.Integration<SolverCPLEX> INTEGRATION = new ExpressionsBasedModel.Integration<SolverCPLEX>() {
+    static final class Integration extends ExpressionsBasedModel.Integration<SolverCPLEX> {
+
+        private final PrinterBuffer myLog = new CharacterRing().asPrinter();
+
+        Integration() {
+            super();
+        }
 
         public SolverCPLEX build(final ExpressionsBasedModel model) {
 
@@ -121,10 +117,9 @@ public class SolverCPLEX implements Optimisation.Solver {
         public boolean isCapable(final ExpressionsBasedModel model) {
             return true; // CPLEX can handle anything/everything ExpressionsBasedModel can model.
         }
+    }
 
-    };
-
-    static final Environment ENVIRONMENT = new Environment();
+    public static final SolverCPLEX.Integration INTEGRATION = new Integration();
 
     static void addLinear(final Expression source, final IloLinearNumExpr destination, final ExpressionsBasedModel model, final List<IloNumVar> variables)
             throws IloException {
@@ -204,7 +199,7 @@ public class SolverCPLEX implements Optimisation.Solver {
     private final List<IloNumVar> myDelegateVariables;
     private final Optimisation.Options myOptions;
 
-    protected SolverCPLEX(final Optimisation.Options options) {
+    SolverCPLEX(final Optimisation.Options options) {
 
         super();
 
@@ -249,7 +244,10 @@ public class SolverCPLEX implements Optimisation.Solver {
             double retValue = Double.NaN;
             final Primitive64Array retSolution = Primitive64Array.make(solVariables.size());
 
-            this.configure(myDelegateSolver, myOptions);
+            final Optional<Configurator> tmpConfigurator = myOptions.getConfigurator(Configurator.class);
+            if (tmpConfigurator.isPresent()) {
+                tmpConfigurator.get().configure(myDelegateSolver, myOptions);
+            }
 
             if (myDelegateSolver.solve()) {
                 // Feasible or Optimal
@@ -271,13 +269,6 @@ public class SolverCPLEX implements Optimisation.Solver {
         }
 
         return new Result(Optimisation.State.FAILED, Double.NaN, kickStarter);
-    }
-
-    /**
-     * Create a subclass and override this method to configure
-     */
-    protected void configure(final IloCplex cplex, final Optimisation.Options options) {
-
     }
 
     @Override

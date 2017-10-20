@@ -26,6 +26,7 @@ import static org.ojalgo.constant.PrimitiveMath.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -50,14 +51,21 @@ import gurobi.GRBModel;
 import gurobi.GRBQuadExpr;
 import gurobi.GRBVar;
 
-public class SolverGurobi implements Optimisation.Solver {
+public final class SolverGurobi implements Optimisation.Solver {
 
-    static final class Environment {
+    @FunctionalInterface
+    public static interface Configurator {
+
+        void configure(final GRBEnv environment, final GRBModel model, final Optimisation.Options options);
+
+    }
+
+    static final class Integration extends ExpressionsBasedModel.Integration<SolverGurobi> {
 
         private final GRBEnv myGRBEnv;
         private final PrinterBuffer myLog = new CharacterRing().asPrinter();
 
-        Environment() {
+        Integration() {
 
             super();
 
@@ -71,29 +79,11 @@ public class SolverGurobi implements Optimisation.Solver {
             myGRBEnv = tmpGRBEnv;
         }
 
-        @Override
-        protected final void finalize() throws Throwable {
-
-            if (myGRBEnv != null) {
-                myGRBEnv.dispose();
-            }
-
-            super.finalize();
-        }
-
-        final GRBEnv getGRBEnv() {
-            return myGRBEnv;
-        }
-
-    }
-
-    public static final ExpressionsBasedModel.Integration<SolverGurobi> INTEGRATION = new ExpressionsBasedModel.Integration<SolverGurobi>() {
-
         public SolverGurobi build(final ExpressionsBasedModel model) {
 
             try {
 
-                final GRBModel delegateSolver = new GRBModel(ENVIRONMENT.getGRBEnv());
+                final GRBModel delegateSolver = new GRBModel(myGRBEnv);
                 final SolverGurobi retVal = new SolverGurobi(delegateSolver, model.options);
 
                 final List<Variable> freeModVars = model.getFreeVariables();
@@ -163,9 +153,22 @@ public class SolverGurobi implements Optimisation.Solver {
             return true;
         }
 
-    };
+        @Override
+        protected final void finalize() throws Throwable {
 
-    static final Environment ENVIRONMENT = new Environment();
+            if (myGRBEnv != null) {
+                myGRBEnv.dispose();
+            }
+
+            super.finalize();
+        }
+
+        final GRBEnv getGRBEnv() {
+            return myGRBEnv;
+        }
+    }
+
+    public static final SolverGurobi.Integration INTEGRATION = new Integration();
 
     static void addConstraint(final GRBModel model, final GRBExpr expr, final char sense, final double rhs, final String name) {
         try {
@@ -236,7 +239,7 @@ public class SolverGurobi implements Optimisation.Solver {
 
     private final Optimisation.Options myOptions;
 
-    protected SolverGurobi(final GRBModel model, final Optimisation.Options options) {
+    SolverGurobi(final GRBModel model, final Optimisation.Options options) {
 
         super();
 
@@ -263,7 +266,10 @@ public class SolverGurobi implements Optimisation.Solver {
 
         try {
 
-            this.configure(ENVIRONMENT.getGRBEnv(), myDelegateSolver, myOptions);
+            final Optional<Configurator> tmpConfigurator = myOptions.getConfigurator(Configurator.class);
+            if (tmpConfigurator.isPresent()) {
+                tmpConfigurator.get().configure(INTEGRATION.getGRBEnv(), myDelegateSolver, myOptions);
+            }
 
             myDelegateSolver.optimize();
 
@@ -283,13 +289,6 @@ public class SolverGurobi implements Optimisation.Solver {
         }
 
         return new Optimisation.Result(retState, retValue, retSolution);
-    }
-
-    /**
-     * Create a subclass and override this method to configure
-     */
-    protected void configure(final GRBEnv environment, final GRBModel model, final Optimisation.Options options) {
-
     }
 
     @Override

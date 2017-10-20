@@ -22,6 +22,7 @@
 package org.ojalgo.optimisation.external;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -49,7 +50,14 @@ import mosek.Task;
 
 public final class SolverMosek implements Optimisation.Solver {
 
-    static final class Environment {
+    @FunctionalInterface
+    public static interface Configurator {
+
+        void configure(final Env environment, final Task task, final Optimisation.Options options);
+
+    }
+
+    static final class Integration extends ExpressionsBasedModel.Integration<SolverMosek> {
 
         private final Env myEnv = new Env();
         private final PrinterBuffer myLog = new CharacterRing().asPrinter();
@@ -57,15 +65,49 @@ public final class SolverMosek implements Optimisation.Solver {
 
             @Override
             public void stream(final String message) {
-                Environment.this.printToLog(message);
+                org.ojalgo.optimisation.external.SolverMosek.Integration.this.printToLog(message);
             }
         };
 
-        Environment() {
+        Integration() {
 
             super();
 
             myEnv.set_Stream(streamtype.log, myStream);
+        }
+
+        public SolverMosek build(final ExpressionsBasedModel model) {
+
+            final List<Variable> tmpFreeVariables = model.getFreeVariables();
+            final Set<IntIndex> tmpFixedVariables = model.getFixedVariables();
+
+            final List<Expression> tmpConstraints = model.constraints().collect(Collectors.toList());
+
+            final int tmpNumberOfVariables = tmpFreeVariables.size();
+            final int tmpNumberOfConstraints = tmpConstraints.size();
+
+            final SolverMosek retVal = INTEGRATION.makeSolver(tmpNumberOfConstraints, tmpNumberOfVariables, model.options);
+
+            for (int v = 0; v < tmpNumberOfVariables; v++) {
+                final Variable tmpVariable = tmpFreeVariables.get(v);
+                retVal.putVariable(v, tmpVariable);
+            }
+
+            for (int c = 0; c < tmpNumberOfConstraints; c++) {
+                final Expression tmpConstraint = tmpConstraints.get(c).compensate(tmpFixedVariables);
+                retVal.putConstraint(c, tmpConstraint, model);
+            }
+
+            final Expression tmpObjective = model.objective().compensate(tmpFixedVariables);
+            retVal.putObjective(tmpObjective, model);
+
+            retVal.setSolutionType(model);
+
+            return retVal;
+        }
+
+        public boolean isCapable(final ExpressionsBasedModel model) {
+            return true; // Can handle any variation of an ExpressionsBasedModel
         }
 
         @Override
@@ -101,55 +143,17 @@ public final class SolverMosek implements Optimisation.Solver {
         void printToLog(final Object message) {
             myLog.print(message);
         }
-
     }
 
-    public static final ExpressionsBasedModel.Integration<SolverMosek> INTEGRATION = new ExpressionsBasedModel.Integration<SolverMosek>() {
-
-        public SolverMosek build(final ExpressionsBasedModel model) {
-
-            final List<Variable> tmpFreeVariables = model.getFreeVariables();
-            final Set<IntIndex> tmpFixedVariables = model.getFixedVariables();
-
-            final List<Expression> tmpConstraints = model.constraints().collect(Collectors.toList());
-
-            final int tmpNumberOfVariables = tmpFreeVariables.size();
-            final int tmpNumberOfConstraints = tmpConstraints.size();
-
-            final SolverMosek retVal = ENVIRONMENT.makeSolver(tmpNumberOfConstraints, tmpNumberOfVariables, model.options);
-
-            for (int v = 0; v < tmpNumberOfVariables; v++) {
-                final Variable tmpVariable = tmpFreeVariables.get(v);
-                retVal.putVariable(v, tmpVariable);
-            }
-
-            for (int c = 0; c < tmpNumberOfConstraints; c++) {
-                final Expression tmpConstraint = tmpConstraints.get(c).compensate(tmpFixedVariables);
-                retVal.putConstraint(c, tmpConstraint, model);
-            }
-
-            final Expression tmpObjective = model.objective().compensate(tmpFixedVariables);
-            retVal.putObjective(tmpObjective, model);
-
-            retVal.setSolutionType(model);
-
-            return retVal;
-        }
-
-        public boolean isCapable(final ExpressionsBasedModel model) {
-            return true; // Can handle any variation of an ExpressionsBasedModel
-        }
-
-    };
-
-    static final Environment ENVIRONMENT = new Environment();
+    public static final SolverMosek.Integration INTEGRATION = new Integration();
 
     private final Optimisation.Options myOptions;
 
     private soltype mySolutionType = soltype.bas;
+
     private final Task myTask;
 
-    protected SolverMosek(final Task task, final Optimisation.Options options) {
+    SolverMosek(final Task task, final Optimisation.Options options) {
 
         super();
 
@@ -176,7 +180,12 @@ public final class SolverMosek implements Optimisation.Solver {
 
         try {
 
-            this.configure(ENVIRONMENT.getEnv(), myTask, myOptions);
+            this.configure(INTEGRATION.getEnv(), myTask, myOptions);
+
+            final Optional<Configurator> tmpConfigurator = myOptions.getConfigurator(Configurator.class);
+            if (tmpConfigurator.isPresent()) {
+                tmpConfigurator.get().configure(INTEGRATION.getEnv(), myTask, myOptions);
+            }
 
             if (myTask.optimize() == rescode.ok) {
 
@@ -210,10 +219,7 @@ public final class SolverMosek implements Optimisation.Solver {
         return new Optimisation.Result(tmpSate, tmpValue, Primitive64Array.wrap(tmpSolution));
     }
 
-    /**
-     * Create a subclass and override this method to configure
-     */
-    protected void configure(final Env environment, final Task task, final Optimisation.Options options) {
+    private void configure(final Env environment, final Task task, final Optimisation.Options options) {
 
         myTask.putdouparam(Env.dparam.mio_max_time, options.time_abort);
 
