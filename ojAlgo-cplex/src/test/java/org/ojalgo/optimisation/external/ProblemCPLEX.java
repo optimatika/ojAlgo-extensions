@@ -74,11 +74,21 @@ public class ProblemCPLEX {
         final Expression expressions = test.addExpression("1").lower(0).upper(2);
         expressions.set(1, 1).set(2, 1);
 
-        final Optimisation.Result result = test.minimise();
+        final Optimisation.Result minResult = test.minimise();
+        Assert.assertTrue(test.validate(minResult));
+        Assert.assertEquals(Optimisation.State.OPTIMAL, minResult.getState());
+        Assert.assertEquals(0.0, minResult.getValue(), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(0.5, minResult.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(0.0, minResult.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(0.0, minResult.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
 
-        Assert.assertEquals(Optimisation.State.OPTIMAL, result.getState());
-
-        Assert.assertEquals(0.0, result.getValue(), PrimitiveMath.MACHINE_EPSILON);
+        final Optimisation.Result maxResult = test.maximise();
+        Assert.assertTrue(test.validate(maxResult));
+        Assert.assertEquals(Optimisation.State.OPTIMAL, maxResult.getState());
+        Assert.assertEquals(4.0, maxResult.getValue(), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(0.5, maxResult.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(2.0, maxResult.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(0.0, maxResult.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
     }
 
 }
