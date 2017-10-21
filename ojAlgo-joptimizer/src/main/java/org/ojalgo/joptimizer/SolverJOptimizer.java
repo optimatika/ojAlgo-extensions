@@ -37,7 +37,6 @@ import com.joptimizer.exception.JOptimizerException;
 import com.joptimizer.functions.ConvexMultivariateRealFunction;
 import com.joptimizer.functions.LinearMultivariateRealFunction;
 import com.joptimizer.functions.PSDQuadraticMultivariateRealFunction;
-import com.joptimizer.optimizers.JOptimizer;
 import com.joptimizer.optimizers.LPOptimizationRequest;
 import com.joptimizer.optimizers.LPPrimalDualMethod;
 import com.joptimizer.optimizers.OptimizationRequest;
@@ -52,14 +51,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
     @FunctionalInterface
     public static interface Configurator {
 
-        void configure(final JOptimizer optimizer, final OptimizationRequest request, final Optimisation.Options options);
-
-    }
-
-    static final class Convex implements SolverJOptimizer.Strategy {
-
-        private final JOptimizer myOptimizer = new JOptimizer();
-        private final OptimizationRequest myRequest = new OptimizationRequest();
+        void configure(final OptimizationRequest request, final OptimizationRequestHandler handler, final Optimisation.Options options);
 
     }
 
@@ -71,40 +63,108 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
         public SolverJOptimizer build(final ExpressionsBasedModel model) {
 
+            final boolean max = model.isMaximisation();
+
+            OptimizationRequest request;
+            LPOptimizationRequest reqLP;
+
+            if (model.isAnyExpressionQuadratic()) {
+                request = new OptimizationRequest();
+                reqLP = null;
+            } else {
+                reqLP = new LPOptimizationRequest();
+                request = reqLP;
+            }
+
             final List<Variable> variables = model.getVariables();
             final int numbVars = variables.size();
 
             final Expression objective = model.objective();
-            final ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toFunction(objective, numbVars, false);
 
-            final OptimizationRequest request = new OptimizationRequest();
-
-            final LPOptimizationRequest lpRequest = new LPOptimizationRequest();
-
-            request.setF0(objFunc);
-
-            final List<Expression> equalities = model.constraints().filter(c -> c.isEqualityConstraint() && !c.isAnyQuadraticFactorNonZero())
+            final List<Expression> equalities = model.constraints().filter(expr -> expr.isEqualityConstraint() && !expr.isAnyQuadraticFactorNonZero())
                     .collect(Collectors.toList());
             final int numbEquals = equalities.size();
 
-            final DenseDoubleMatrix2D a = new DenseDoubleMatrix2D(numbEquals, numbVars);
+            final DenseDoubleMatrix2D A = new DenseDoubleMatrix2D(numbEquals, numbVars);
             final DenseDoubleMatrix1D b = new DenseDoubleMatrix1D(numbEquals);
 
             for (int i = 0; i < numbEquals; i++) {
                 final Expression constr = equalities.get(i);
 
-                final boolean negate = false;
-
                 for (final IntIndex key : constr.getLinearKeySet()) {
-                    final double adjusted = constr.getAdjustedLinearFactor(key);
-                    a.set(i, key.index, negate ? -adjusted : adjusted);
+                    A.set(i, key.index, constr.getAdjustedLinearFactor(key));
                 }
 
                 b.set(i, constr.getAdjustedLowerLimit());
             }
 
-            request.setA(a);
+            request.setA(A);
             request.setB(b);
+
+            if (reqLP != null) {
+                // LP
+
+                final DenseDoubleMatrix1D c = new DenseDoubleMatrix1D(numbVars);
+                final DenseDoubleMatrix1D lb = new DenseDoubleMatrix1D(numbVars);
+                final DenseDoubleMatrix1D ub = new DenseDoubleMatrix1D(numbVars);
+
+                for (int i = 0; i < numbVars; i++) {
+                    final double cost = objective.getAdjustedLinearFactor(i);
+                    c.setQuick(i, max ? -cost : cost);
+                    final Variable var = variables.get(i);
+                    final double low = var.getUnadjustedLowerLimit();
+                    lb.setQuick(i, Double.isFinite(low) ? low : LPPrimalDualMethod.DEFAULT_MIN_LOWER_BOUND);
+                    final double upp = var.getUnadjustedUpperLimit();
+                    ub.setQuick(i, Double.isFinite(upp) ? upp : LPPrimalDualMethod.DEFAULT_MAX_UPPER_BOUND);
+                }
+
+                final List<Expression> lowIneq = model.constraints().filter(expr -> expr.isLowerConstraint() && !expr.isAnyQuadraticFactorNonZero())
+                        .collect(Collectors.toList());
+                final int numbLowIneq = lowIneq.size();
+
+                final List<Expression> uppIneq = model.constraints().filter(expr -> expr.isUpperConstraint() && !expr.isAnyQuadraticFactorNonZero())
+                        .collect(Collectors.toList());
+                final int numbUppIneq = uppIneq.size();
+
+                final DenseDoubleMatrix2D G = new DenseDoubleMatrix2D(numbLowIneq + numbUppIneq, numbVars);
+                final DenseDoubleMatrix1D h = new DenseDoubleMatrix1D(numbLowIneq + numbUppIneq);
+
+                for (int i = 0; i < numbLowIneq; i++) {
+                    final Expression constr = lowIneq.get(i);
+
+                    for (final IntIndex key : constr.getLinearKeySet()) {
+                        G.set(i, key.index, -constr.getAdjustedLinearFactor(key));
+                    }
+
+                    h.set(i, -constr.getAdjustedLowerLimit());
+                }
+
+                for (int i = 0; i < numbUppIneq; i++) {
+                    final Expression constr = uppIneq.get(i);
+
+                    for (final IntIndex key : constr.getLinearKeySet()) {
+                        G.set(numbLowIneq + i, key.index, constr.getAdjustedLinearFactor(key));
+                    }
+
+                    h.set(numbLowIneq + i, constr.getAdjustedLowerLimit());
+                }
+
+                reqLP.setC(c);
+
+                reqLP.setLb(lb);
+                reqLP.setUb(ub);
+
+                reqLP.setG(G);
+                reqLP.setH(h);
+
+            } else {
+                // QP
+
+                final ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toFunction(objective, numbVars, false);
+
+                request.setF0(objFunc);
+
+            }
 
             return new SolverJOptimizer(request, model.options);
         }
@@ -112,17 +172,6 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         public boolean isCapable(final ExpressionsBasedModel model) {
             return !model.isAnyVariableInteger();
         }
-    }
-
-    static final class Linear implements SolverJOptimizer.Strategy {
-
-        private final LPPrimalDualMethod myOptimizer = new LPPrimalDualMethod();
-        private final LPOptimizationRequest myRequest = new LPOptimizationRequest();
-
-    }
-
-    static interface Strategy<H extends OptimizationRequestHandler, R extends OptimizationRequest> {
-
     }
 
     public static final SolverJOptimizer.Integration INTEGRATION = new Integration();
@@ -160,16 +209,13 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
     }
 
-    private final LPPrimalDualMethod myLP = new LPPrimalDualMethod();
-
-    private final OptimizationRequest myOptimizationRequest;
-    private final JOptimizer myOptimizer = new JOptimizer();
-
     private final Optimisation.Options myOptions;
 
-    SolverJOptimizer(final OptimizationRequest optimizationRequest, final Optimisation.Options options) {
+    private final OptimizationRequest myRequest;
+
+    SolverJOptimizer(final OptimizationRequest request, final Optimisation.Options options) {
         super();
-        myOptimizationRequest = optimizationRequest;
+        myRequest = request;
         myOptions = options;
     }
 
@@ -177,22 +223,24 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
         //  myOptimizationRequest.setInitialPoint(new double[] { 0.2, 0.2 });
 
+        final OptimizationRequestHandler tmpHandler = myRequest instanceof LPOptimizationRequest ? new LPPrimalDualMethod() : null;
+
         final Optional<Configurator> tmpConfigurator = myOptions.getConfigurator(Configurator.class);
         if (tmpConfigurator.isPresent()) {
-            tmpConfigurator.get().configure(myOptimizer, myOptimizationRequest, myOptions);
+            tmpConfigurator.get().configure(myRequest, tmpHandler, myOptions);
         }
 
         // myOptimizer.setOptimizationRequest(myOptimizationRequest);
-        myLP.setOptimizationRequest(myOptimizationRequest);
+        tmpHandler.setOptimizationRequest(myRequest);
         try {
 
-            myLP.optimize();
+            tmpHandler.optimize();
         } catch (final JOptimizerException exception) {
 
             exception.printStackTrace();
         }
 
-        final OptimizationResponse response = myLP.getOptimizationResponse();
+        final OptimizationResponse response = tmpHandler.getOptimizationResponse();
 
         final State retState = Optimisation.State.OPTIMAL;
         final double retValue = response.getValue();
