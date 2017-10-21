@@ -146,7 +146,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                         G.set(numbLowIneq + i, key.index, constr.getAdjustedLinearFactor(key));
                     }
 
-                    h.set(numbLowIneq + i, constr.getAdjustedLowerLimit());
+                    h.set(numbLowIneq + i, constr.getAdjustedUpperLimit());
                 }
 
                 reqLP.setC(c);
@@ -225,6 +225,10 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
         final OptimizationRequestHandler tmpHandler = myRequest instanceof LPOptimizationRequest ? new LPPrimalDualMethod() : null;
 
+        if (myRequest instanceof LPOptimizationRequest) {
+            ((LPOptimizationRequest) myRequest).setPresolvingDisabled(true);
+        }
+
         final Optional<Configurator> tmpConfigurator = myOptions.getConfigurator(Configurator.class);
         if (tmpConfigurator.isPresent()) {
             tmpConfigurator.get().configure(myRequest, tmpHandler, myOptions);
@@ -243,10 +247,10 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         final OptimizationResponse response = tmpHandler.getOptimizationResponse();
 
         final State retState = Optimisation.State.OPTIMAL;
-        final double retValue = response.getValue();
+        // final double retValue = response.getValue();
         final Access1D<Double> retSolution = Access1D.wrap(response.getSolution());
 
-        return new Optimisation.Result(retState, retValue, retSolution);
+        return new Optimisation.Result(retState, retSolution);
     }
 
 }
