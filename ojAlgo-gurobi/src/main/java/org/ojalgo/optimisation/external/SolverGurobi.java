@@ -62,7 +62,7 @@ public final class SolverGurobi implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverGurobi> {
 
-        private final GRBEnv myGRBEnv;
+        private final GRBEnv myEnvironment;
         private final PrinterBuffer myLog = new CharacterRing().asPrinter();
 
         Integration() {
@@ -76,14 +76,14 @@ public final class SolverGurobi implements Optimisation.Solver {
                 tmpGRBEnv = null;
             }
 
-            myGRBEnv = tmpGRBEnv;
+            myEnvironment = tmpGRBEnv;
         }
 
         public SolverGurobi build(final ExpressionsBasedModel model) {
 
             try {
 
-                final GRBModel delegateSolver = new GRBModel(myGRBEnv);
+                final GRBModel delegateSolver = new GRBModel(myEnvironment);
                 final SolverGurobi retVal = new SolverGurobi(delegateSolver, model.options);
 
                 final List<Variable> freeModVars = model.getFreeVariables();
@@ -156,8 +156,8 @@ public final class SolverGurobi implements Optimisation.Solver {
         @Override
         protected final void finalize() throws Throwable {
 
-            if (myGRBEnv != null) {
-                myGRBEnv.dispose();
+            if (myEnvironment != null) {
+                myEnvironment.dispose();
             }
 
             super.finalize();
@@ -168,8 +168,8 @@ public final class SolverGurobi implements Optimisation.Solver {
             return true;
         }
 
-        final GRBEnv getGRBEnv() {
-            return myGRBEnv;
+        final GRBEnv getEnvironment() {
+            return myEnvironment;
         }
 
     }
@@ -274,7 +274,7 @@ public final class SolverGurobi implements Optimisation.Solver {
 
             final Optional<Configurator> tmpConfigurator = myOptions.getConfigurator(Configurator.class);
             if (tmpConfigurator.isPresent()) {
-                tmpConfigurator.get().configure(INTEGRATION.getGRBEnv(), myDelegateSolver, myOptions);
+                tmpConfigurator.get().configure(INTEGRATION.getEnvironment(), myDelegateSolver, myOptions);
             }
 
             myDelegateSolver.optimize();

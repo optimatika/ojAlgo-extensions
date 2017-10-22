@@ -59,7 +59,7 @@ public final class SolverMosek implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverMosek> {
 
-        private final Env myEnv = new Env();
+        private final Env myEnvironment = new Env();
         private final PrinterBuffer myLog = new CharacterRing().asPrinter();
         private final Stream myStream = new Stream() {
 
@@ -73,7 +73,7 @@ public final class SolverMosek implements Optimisation.Solver {
 
             super();
 
-            myEnv.set_Stream(streamtype.log, myStream);
+            myEnvironment.set_Stream(streamtype.log, myStream);
         }
 
         public SolverMosek build(final ExpressionsBasedModel model) {
@@ -113,8 +113,8 @@ public final class SolverMosek implements Optimisation.Solver {
         @Override
         protected final void finalize() throws Throwable {
 
-            if (myEnv != null) {
-                myEnv.dispose();
+            if (myEnvironment != null) {
+                myEnvironment.dispose();
             }
 
             super.finalize();
@@ -124,13 +124,13 @@ public final class SolverMosek implements Optimisation.Solver {
             myLog.flush(target);
         }
 
-        Env getEnv() {
-            return myEnv;
+        Env getEnvironment() {
+            return myEnvironment;
         }
 
         SolverMosek makeSolver(final int numberOfConstraints, final int numberOfVariables, final Optimisation.Options options) {
 
-            final Task tmpTask = new Task(myEnv, numberOfConstraints, numberOfVariables);
+            final Task tmpTask = new Task(myEnvironment, numberOfConstraints, numberOfVariables);
 
             tmpTask.appendcons(numberOfConstraints);
             tmpTask.appendvars(numberOfVariables);
@@ -186,11 +186,11 @@ public final class SolverMosek implements Optimisation.Solver {
 
         try {
 
-            this.configure(INTEGRATION.getEnv(), myTask, myOptions);
+            this.configure(INTEGRATION.getEnvironment(), myTask, myOptions);
 
             final Optional<Configurator> tmpConfigurator = myOptions.getConfigurator(Configurator.class);
             if (tmpConfigurator.isPresent()) {
-                tmpConfigurator.get().configure(INTEGRATION.getEnv(), myTask, myOptions);
+                tmpConfigurator.get().configure(INTEGRATION.getEnvironment(), myTask, myOptions);
             }
 
             if (myTask.optimize() == rescode.ok) {
