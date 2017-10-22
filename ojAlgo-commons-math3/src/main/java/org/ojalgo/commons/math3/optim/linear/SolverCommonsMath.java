@@ -130,7 +130,7 @@ public final class SolverCommonsMath implements Optimisation.Solver {
         }
 
         @Override
-        protected boolean isPruned() {
+        protected boolean isSolutionMapped() {
             return false;
         }
 

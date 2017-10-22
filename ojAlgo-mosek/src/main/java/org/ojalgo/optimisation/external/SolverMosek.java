@@ -145,7 +145,7 @@ public final class SolverMosek implements Optimisation.Solver {
         }
 
         @Override
-        protected boolean isPruned() {
+        protected boolean isSolutionMapped() {
             return true;
         }
 

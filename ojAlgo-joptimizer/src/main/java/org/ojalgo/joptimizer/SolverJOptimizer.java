@@ -23,6 +23,7 @@ package org.ojalgo.joptimizer;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.ojalgo.access.Access1D;
@@ -76,8 +77,10 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                 request = reqLP;
             }
 
-            final List<Variable> variables = model.getVariables();
+            final List<Variable> variables = model.getFreeVariables();
             final int numbVars = variables.size();
+
+            final Set<IntIndex> fixed = model.getFixedVariables();
 
             final Expression objective = model.objective();
 
@@ -89,10 +92,11 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             final DenseDoubleMatrix1D b = new DenseDoubleMatrix1D(numbEquals);
 
             for (int i = 0; i < numbEquals; i++) {
-                final Expression constr = equalities.get(i);
+                final Expression constr = equalities.get(i).compensate(fixed);
 
                 for (final IntIndex key : constr.getLinearKeySet()) {
-                    A.set(i, key.index, constr.getAdjustedLinearFactor(key));
+                    final int freeIndex = model.indexOfFreeVariable(key);
+                    A.set(i, freeIndex, constr.getAdjustedLinearFactor(key));
                 }
 
                 b.set(i, constr.getAdjustedLowerLimit());
@@ -130,20 +134,22 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                 final DenseDoubleMatrix1D h = new DenseDoubleMatrix1D(numbLowIneq + numbUppIneq);
 
                 for (int i = 0; i < numbLowIneq; i++) {
-                    final Expression constr = lowIneq.get(i);
+                    final Expression constr = lowIneq.get(i).compensate(fixed);
 
                     for (final IntIndex key : constr.getLinearKeySet()) {
-                        G.set(i, key.index, -constr.getAdjustedLinearFactor(key));
+                        final int freeIndex = model.indexOfFreeVariable(key);
+                        G.set(i, freeIndex, -constr.getAdjustedLinearFactor(key));
                     }
 
                     h.set(i, -constr.getAdjustedLowerLimit());
                 }
 
                 for (int i = 0; i < numbUppIneq; i++) {
-                    final Expression constr = uppIneq.get(i);
+                    final Expression constr = uppIneq.get(i).compensate(fixed);
 
                     for (final IntIndex key : constr.getLinearKeySet()) {
-                        G.set(numbLowIneq + i, key.index, constr.getAdjustedLinearFactor(key));
+                        final int freeIndex = model.indexOfFreeVariable(key);
+                        G.set(numbLowIneq + i, freeIndex, constr.getAdjustedLinearFactor(key));
                     }
 
                     h.set(numbLowIneq + i, constr.getAdjustedUpperLimit());
@@ -160,7 +166,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             } else {
                 // QP
 
-                final ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toFunction(objective, numbVars, false);
+                final ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toFunction(objective.compensate(fixed), numbVars, false, model);
 
                 request.setF0(objFunc);
 
@@ -174,15 +180,15 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         }
 
         @Override
-        protected boolean isPruned() {
-            return false;
+        protected boolean isSolutionMapped() {
+            return true;
         }
 
     }
 
     public static final SolverJOptimizer.Integration INTEGRATION = new Integration();
 
-    static ConvexMultivariateRealFunction toFunction(final Expression expression, final int dim, final boolean negate) {
+    static ConvexMultivariateRealFunction toFunction(final Expression expression, final int dim, final boolean negate, final ExpressionsBasedModel model) {
 
         DenseDoubleMatrix2D p = null;
         DenseDoubleMatrix1D q = null;
@@ -193,7 +199,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
             for (final IntRowColumn key : expression.getQuadraticKeySet()) {
                 final double adjusted = expression.getAdjustedQuadraticFactor(key);
-                p.set(key.row, key.column, negate ? -adjusted : adjusted);
+                p.set(model.indexOfFreeVariable(key.row), model.indexOfFreeVariable(key.column), negate ? -adjusted : adjusted);
             }
 
         }
@@ -203,7 +209,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
             for (final IntIndex key : expression.getLinearKeySet()) {
                 final double adjusted = expression.getAdjustedLinearFactor(key);
-                q.set(key.index, negate ? -adjusted : adjusted);
+                q.set(model.indexOfFreeVariable(key.index), negate ? -adjusted : adjusted);
             }
         }
 

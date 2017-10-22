@@ -164,7 +164,7 @@ public final class SolverGurobi implements Optimisation.Solver {
         }
 
         @Override
-        protected boolean isPruned() {
+        protected boolean isSolutionMapped() {
             return true;
         }
 
