@@ -172,6 +172,12 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         public boolean isCapable(final ExpressionsBasedModel model) {
             return !model.isAnyVariableInteger();
         }
+
+        @Override
+        protected boolean isPruned() {
+            return false;
+        }
+
     }
 
     public static final SolverJOptimizer.Integration INTEGRATION = new Integration();

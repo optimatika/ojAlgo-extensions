@@ -143,6 +143,12 @@ public final class SolverMosek implements Optimisation.Solver {
         void printToLog(final Object message) {
             myLog.print(message);
         }
+
+        @Override
+        protected boolean isPruned() {
+            return true;
+        }
+
     }
 
     public static final SolverMosek.Integration INTEGRATION = new Integration();

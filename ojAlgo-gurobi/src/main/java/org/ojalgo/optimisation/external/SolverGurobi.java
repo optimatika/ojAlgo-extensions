@@ -163,9 +163,15 @@ public final class SolverGurobi implements Optimisation.Solver {
             super.finalize();
         }
 
+        @Override
+        protected boolean isPruned() {
+            return true;
+        }
+
         final GRBEnv getGRBEnv() {
             return myGRBEnv;
         }
+
     }
 
     public static final SolverGurobi.Integration INTEGRATION = new Integration();

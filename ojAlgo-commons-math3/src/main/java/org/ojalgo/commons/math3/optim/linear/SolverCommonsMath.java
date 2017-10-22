@@ -128,6 +128,12 @@ public final class SolverCommonsMath implements Optimisation.Solver {
         public boolean isCapable(final ExpressionsBasedModel model) {
             return !model.isAnyVariableInteger() && !model.isAnyExpressionQuadratic();
         }
+
+        @Override
+        protected boolean isPruned() {
+            return false;
+        }
+
     }
 
     public static final SolverCommonsMath.Integration INTEGRATION = new Integration();

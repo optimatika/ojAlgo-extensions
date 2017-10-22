@@ -117,6 +117,12 @@ public final class SolverCPLEX implements Optimisation.Solver {
         public boolean isCapable(final ExpressionsBasedModel model) {
             return true; // CPLEX can handle anything/everything ExpressionsBasedModel can model.
         }
+
+        @Override
+        protected boolean isPruned() {
+            return true;
+        }
+
     }
 
     public static final SolverCPLEX.Integration INTEGRATION = new Integration();
