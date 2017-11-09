@@ -51,6 +51,7 @@ import gurobi.GRBModel;
 import gurobi.GRBQuadExpr;
 import gurobi.GRBVar;
 
+@SuppressWarnings("restriction")
 public final class SolverGurobi implements Optimisation.Solver {
 
     @FunctionalInterface
@@ -123,7 +124,8 @@ public final class SolverGurobi implements Optimisation.Solver {
 
                 final GRBVar[] delegateVariables = delegateSolver.getVars();
 
-                for (final Expression expr : model.constraints().map(e -> e.compensate(fixedModVars)).collect(Collectors.toList())) {
+                final List<Expression> tmpCollect = model.constraints().map(e -> e.compensate(fixedModVars)).collect(Collectors.toList());
+                for (final Expression expr : tmpCollect) {
 
                     final GRBExpr solExpr = SolverGurobi.buildExpression(expr, model, delegateVariables);
 
@@ -233,10 +235,10 @@ public final class SolverGurobi implements Optimisation.Solver {
             SolverGurobi.addConstraint(delegateSolver, solExpr, EQUAL, modExpr.getAdjustedLowerLimit(), modExpr.getName());
         } else {
             if (modExpr.isLowerConstraint()) {
-                SolverGurobi.addConstraint(delegateSolver, solExpr, LESS_EQUAL, modExpr.getAdjustedLowerLimit(), modExpr.getName());
+                SolverGurobi.addConstraint(delegateSolver, solExpr, GREATER_EQUAL, modExpr.getAdjustedLowerLimit(), modExpr.getName());
             }
             if (modExpr.isUpperConstraint()) {
-                SolverGurobi.addConstraint(delegateSolver, solExpr, GREATER_EQUAL, modExpr.getAdjustedUpperLimit(), modExpr.getName());
+                SolverGurobi.addConstraint(delegateSolver, solExpr, LESS_EQUAL, modExpr.getAdjustedUpperLimit(), modExpr.getName());
             }
         }
     }

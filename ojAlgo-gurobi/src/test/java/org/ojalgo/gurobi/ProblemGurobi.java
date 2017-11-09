@@ -32,33 +32,79 @@ import org.ojalgo.optimisation.external.SolverGurobi;
 
 public class ProblemGurobi {
 
+    /**
+     * https://github.com/optimatika/ojAlgo-extensions/issues/3 <br>
+     * "compensating" didn't work because of an incorrectly used stream - did peek(...) instead of map(...).
+     * <br>
+     * Reported as a problem with the CPLEX integration
+     */
+    @Test
+    public void testCompensate() {
+
+        ExpressionsBasedModel.addIntegration(SolverGurobi.INTEGRATION);
+
+        final ExpressionsBasedModel test = new ExpressionsBasedModel();
+        test.addVariable(Variable.make("X1").lower(0).upper(5).weight(1));
+        test.addVariable(Variable.make("X2").lower(0).upper(5).weight(1));
+        test.addVariable(Variable.make("X3").level(4).weight(1));
+        final Expression expressions = test.addExpression("1").upper(5);
+        expressions.set(0, 1).set(1, 1).set(2, 1);
+        final Optimisation.Result result = test.maximise();
+
+        Assert.assertTrue(test.validate(result));
+
+        Assert.assertTrue(result.getState().isOptimal());
+
+        Assert.assertEquals(5.0, result.getValue(), PrimitiveMath.MACHINE_EPSILON);
+
+        Assert.assertEquals(0.0, result.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(1.0, result.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(4.0, result.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
+    }
+
+    /**
+     * https://github.com/optimatika/ojAlgo-extensions/issues/1 <br>
+     * Reported as a problem with the CPLEX integration
+     */
     @Test
     public void testFixedVariables() {
 
         ExpressionsBasedModel.addIntegration(SolverGurobi.INTEGRATION);
 
         final ExpressionsBasedModel test = new ExpressionsBasedModel();
-        test.addVariable(Variable.make("1").level(0.5));
-        test.addVariable(Variable.make("2").lower(0).upper(5).weight(2));
-        test.addVariable(Variable.make("3").lower(0).upper(1).weight(1));
-        final Expression expressions = test.addExpression("1").lower(0).upper(2);
+        test.addVariable(Variable.make("V1").level(0.5));
+        test.addVariable(Variable.make("V2").lower(0).upper(5).weight(2));
+        test.addVariable(Variable.make("V3").lower(0).upper(1).weight(1));
+        final Expression expressions = test.addExpression("E1").lower(0).upper(2);
         expressions.set(1, 1).set(2, 1);
 
-        final Optimisation.Result result = test.minimise();
+        final Optimisation.Result minResult = test.minimise();
+        Assert.assertTrue(test.validate(minResult));
+        Assert.assertEquals(Optimisation.State.OPTIMAL, minResult.getState());
+        Assert.assertEquals(0.0, minResult.getValue(), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(0.5, minResult.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(0.0, minResult.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(0.0, minResult.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
 
-        Assert.assertEquals(Optimisation.State.OPTIMAL, result.getState());
-        Assert.assertEquals(0.0, result.getValue(), PrimitiveMath.MACHINE_EPSILON);
-
-        // BasicLogger.debug(result);
+        final Optimisation.Result maxResult = test.maximise();
+        Assert.assertTrue(test.validate(maxResult));
+        Assert.assertEquals(Optimisation.State.OPTIMAL, maxResult.getState());
+        Assert.assertEquals(4.0, maxResult.getValue(), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(0.5, maxResult.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(2.0, maxResult.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
+        Assert.assertEquals(0.0, maxResult.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
     }
 
+    /**
+     * https://github.com/optimatika/ojAlgo-extensions/issues/2
+     */
     @Test
     public void testGitHubIssue2() {
 
         final Variable[] objective = new Variable[] { new Variable("X1").weight(0.8), new Variable("X2").weight(0.2), new Variable("X3").weight(0.7),
                 new Variable("X4").weight(0.3), new Variable("X5").weight(0.6), new Variable("X6").weight(0.4) };
 
-        // ExpressionsBasedModel.addIntegration(SolverGurobi.INTEGRATION);
+        ExpressionsBasedModel.addIntegration(SolverGurobi.INTEGRATION);
         final ExpressionsBasedModel model = new ExpressionsBasedModel(objective);
 
         model.addExpression("C1").set(0, 1).set(2, 1).set(4, 1).level(23);

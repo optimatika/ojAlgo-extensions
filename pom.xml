@@ -57,7 +57,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <path.lib.cplex>/Users/apete/Applications/IBM/ILOG/CPLEX_Studio_Community1262/cplex/lib/cplex.jar</path.lib.cplex>
         <path.lib.mosek>/Users/apete/Applications/mosek/7/tools/platform/osx64x86/bin/mosek.jar</path.lib.mosek>
-        <path.lib.gurobi>/Users/apete/Applications/Gurobi/lib/gurobi.jar</path.lib.gurobi>
+        <path.lib.gurobi>/Library/gurobi751/mac64/lib/gurobi.jar</path.lib.gurobi>
     </properties>
     <dependencies>
         <dependency>
@@ -108,7 +108,7 @@
             <dependency>
                 <groupId>gurobi</groupId>
                 <artifactId>gurobi</artifactId>
-                <version>1.2.3</version>
+                <version>7.5.1</version>
                 <scope>system</scope>
                 <systemPath>${path.lib.gurobi}</systemPath>
             </dependency>
