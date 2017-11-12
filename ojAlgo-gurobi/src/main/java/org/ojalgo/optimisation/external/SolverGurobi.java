@@ -279,6 +279,8 @@ public final class SolverGurobi implements Optimisation.Solver {
                 tmpConfigurator.get().configure(INTEGRATION.getEnvironment(), myDelegateSolver, myOptions);
             }
 
+            myDelegateSolver.getEnv().set(gurobi.GRB.IntParam.OutputFlag, 0);
+
             myDelegateSolver.optimize();
 
             retState = this.translate(myDelegateSolver.get(IntAttr.Status));
