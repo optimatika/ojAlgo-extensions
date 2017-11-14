@@ -120,6 +120,11 @@ public final class SolverMosek implements Optimisation.Solver {
             super.finalize();
         }
 
+        @Override
+        protected boolean isSolutionMapped() {
+            return true;
+        }
+
         void flushLog(final Printer target) {
             myLog.flush(target);
         }
@@ -144,14 +149,31 @@ public final class SolverMosek implements Optimisation.Solver {
             myLog.print(message);
         }
 
-        @Override
-        protected boolean isSolutionMapped() {
-            return true;
-        }
-
     }
 
     public static final SolverMosek.Integration INTEGRATION = new Integration();
+
+    static final Configurator DEFAULT = new Configurator() {
+
+        public void configure(final Env environment, final Task task, final Options options) {
+
+            task.putdouparam(Env.dparam.mio_max_time, options.time_abort);
+
+            final Object verbose = options.debug_solver;
+
+            if ((verbose != null) && (verbose instanceof Number)) {
+                final Number number = (Number) verbose;
+                final int value = number.intValue();
+                if (value == 0) {
+                    task.putintparam(Env.iparam.log, 0);
+                } else if (value > 0) {
+                    task.putintparam(Env.iparam.log, 1);
+                }
+            }
+
+        }
+
+    };
 
     private final Optimisation.Options myOptions;
 
@@ -186,11 +208,12 @@ public final class SolverMosek implements Optimisation.Solver {
 
         try {
 
-            this.configure(INTEGRATION.getEnvironment(), myTask, myOptions);
+            final Env tmpEnvironment = INTEGRATION.getEnvironment();
 
-            final Optional<Configurator> tmpConfigurator = myOptions.getConfigurator(Configurator.class);
-            if (tmpConfigurator.isPresent()) {
-                tmpConfigurator.get().configure(INTEGRATION.getEnvironment(), myTask, myOptions);
+            DEFAULT.configure(tmpEnvironment, myTask, myOptions);
+            final Optional<Configurator> optional = myOptions.getConfigurator(Configurator.class);
+            if (optional.isPresent()) {
+                optional.get().configure(tmpEnvironment, myTask, myOptions);
             }
 
             if (myTask.optimize() == rescode.ok) {
@@ -223,24 +246,6 @@ public final class SolverMosek implements Optimisation.Solver {
         }
 
         return new Optimisation.Result(tmpSate, tmpValue, Primitive64Array.wrap(tmpSolution));
-    }
-
-    private void configure(final Env environment, final Task task, final Optimisation.Options options) {
-
-        myTask.putdouparam(Env.dparam.mio_max_time, options.time_abort);
-
-        final Object verbose = options.debug_solver;
-
-        if ((verbose != null) && (verbose instanceof Number)) {
-            final Number number = (Number) verbose;
-            final int value = number.intValue();
-            if (value == 0) {
-                myTask.putintparam(Env.iparam.log, 0);
-            } else if (value > 0) {
-                myTask.putintparam(Env.iparam.log, 1);
-            }
-        }
-
     }
 
     @Override

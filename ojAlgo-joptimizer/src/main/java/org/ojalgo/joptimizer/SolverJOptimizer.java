@@ -188,6 +188,14 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
     public static final SolverJOptimizer.Integration INTEGRATION = new Integration();
 
+    static final Configurator DEFAULT = new Configurator() {
+
+        public void configure(final OptimizationRequest request, final OptimizationRequestHandler handler, final Options options) {
+            // TODO Auto-generated method stub
+        }
+
+    };
+
     static ConvexMultivariateRealFunction toFunction(final Expression expression, final int dim, final boolean negate, final ExpressionsBasedModel model) {
 
         DenseDoubleMatrix2D p = null;
@@ -241,9 +249,10 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             ((LPOptimizationRequest) myRequest).setPresolvingDisabled(true);
         }
 
-        final Optional<Configurator> tmpConfigurator = myOptions.getConfigurator(Configurator.class);
-        if (tmpConfigurator.isPresent()) {
-            tmpConfigurator.get().configure(myRequest, tmpHandler, myOptions);
+        DEFAULT.configure(myRequest, tmpHandler, myOptions);
+        final Optional<Configurator> optional = myOptions.getConfigurator(Configurator.class);
+        if (optional.isPresent()) {
+            optional.get().configure(myRequest, tmpHandler, myOptions);
         }
 
         // myOptimizer.setOptimizationRequest(myOptimizationRequest);

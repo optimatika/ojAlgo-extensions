@@ -178,6 +178,14 @@ public final class SolverGurobi implements Optimisation.Solver {
 
     public static final SolverGurobi.Integration INTEGRATION = new Integration();
 
+    static final Configurator DEFAULT = new Configurator() {
+
+        public void configure(final GRBEnv environment, final GRBModel model, final Options options) {
+            // TODO Auto-generated method stub
+        }
+
+    };
+
     static void addConstraint(final GRBModel model, final GRBExpr expr, final char sense, final double rhs, final String name) {
         try {
             if (expr instanceof GRBQuadExpr) {
@@ -274,9 +282,12 @@ public final class SolverGurobi implements Optimisation.Solver {
 
         try {
 
-            final Optional<Configurator> tmpConfigurator = myOptions.getConfigurator(Configurator.class);
-            if (tmpConfigurator.isPresent()) {
-                tmpConfigurator.get().configure(INTEGRATION.getEnvironment(), myDelegateSolver, myOptions);
+            final GRBEnv tmpEnvironment = INTEGRATION.getEnvironment();
+
+            DEFAULT.configure(tmpEnvironment, myDelegateSolver, myOptions);
+            final Optional<Configurator> optional = myOptions.getConfigurator(Configurator.class);
+            if (optional.isPresent()) {
+                optional.get().configure(tmpEnvironment, myDelegateSolver, myOptions);
             }
 
             myDelegateSolver.getEnv().set(gurobi.GRB.IntParam.OutputFlag, 0);

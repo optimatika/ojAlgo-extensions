@@ -127,6 +127,21 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
     public static final SolverCPLEX.Integration INTEGRATION = new Integration();
 
+    static final Configurator DEFAULT = new Configurator() {
+
+        public void configure(final IloCplex cplex, final Options options) {
+
+            cplex.setOut(new OutputStream() {
+
+                @Override
+                public void write(final int b) throws IOException {
+                }
+            });
+
+        }
+
+    };
+
     static void addLinear(final Expression source, final IloLinearNumExpr destination, final ExpressionsBasedModel model, final List<IloNumVar> variables)
             throws IloException {
 
@@ -222,13 +237,6 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
         myDelegateSolver = tmpDelegate;
         myDelegateVariables = new ArrayList<>();
-
-        myDelegateSolver.setOut(new OutputStream() {
-
-            @Override
-            public void write(final int b) throws IOException {
-            }
-        });
     }
 
     public void dispose() {
@@ -250,9 +258,10 @@ public final class SolverCPLEX implements Optimisation.Solver {
             double retValue = Double.NaN;
             final Primitive64Array retSolution = Primitive64Array.make(solVariables.size());
 
-            final Optional<Configurator> tmpConfigurator = myOptions.getConfigurator(Configurator.class);
-            if (tmpConfigurator.isPresent()) {
-                tmpConfigurator.get().configure(myDelegateSolver, myOptions);
+            DEFAULT.configure(myDelegateSolver, myOptions);
+            final Optional<Configurator> optional = myOptions.getConfigurator(Configurator.class);
+            if (optional.isPresent()) {
+                optional.get().configure(myDelegateSolver, myOptions);
             }
 
             if (myDelegateSolver.solve()) {

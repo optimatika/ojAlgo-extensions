@@ -138,6 +138,14 @@ public final class SolverCommonsMath implements Optimisation.Solver {
 
     public static final SolverCommonsMath.Integration INTEGRATION = new Integration();
 
+    static final Configurator DEFAULT = new Configurator() {
+
+        public void configure(final SimplexSolver solver, final Options options) {
+            // TODO Auto-generated method stub
+        }
+
+    };
+
     private final Set<OptimizationData> myModelData;
 
     private final Optimisation.Options myOptions;
@@ -162,9 +170,10 @@ public final class SolverCommonsMath implements Optimisation.Solver {
 
             final SimplexSolver solver = new SimplexSolver();
 
-            final Optional<Configurator> tmpConfigurator = myOptions.getConfigurator(Configurator.class);
-            if (tmpConfigurator.isPresent()) {
-                tmpConfigurator.get().configure(solver, myOptions);
+            DEFAULT.configure(solver, myOptions);
+            final Optional<Configurator> optional = myOptions.getConfigurator(Configurator.class);
+            if (optional.isPresent()) {
+                optional.get().configure(solver, myOptions);
             }
 
             final PointValuePair solutionAndValue = solver.optimize(myModelData.toArray(new OptimizationData[myModelData.size()]));
