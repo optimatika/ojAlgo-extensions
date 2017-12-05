@@ -76,10 +76,10 @@ public class BlackLittermanSpreadsheet extends AdaptingSpreadsheet<BlackLitterma
         //this.setMatrixSheetValue(anObj.getViewConfidences());
 
         this.activateSheet(RISK_AVERSION);
-        this.setNumberCellValue(anObj.getRiskAversion().getNumber());
+        this.setNumberCellValue(anObj.getRiskAversion().get());
 
         this.activateSheet(WEIGHT_ON_VIEWS);
-        this.setNumberCellValue(anObj.getConfidence().getNumber());
+        this.setNumberCellValue(anObj.getConfidence().get());
 
         this.activateSheet(MARKET_RETURNS);
         //this.setMatrixSheetValue(anObj.getOriginalReturns());
