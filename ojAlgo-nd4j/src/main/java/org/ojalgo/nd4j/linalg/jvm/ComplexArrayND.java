@@ -1113,19 +1113,7 @@ public final class ComplexArrayND extends ArrayND<ComplexNumber> implements ICom
     }
 
     @Override
-    public int offset() {
-        // TODO Auto-generated method stub
-        return 0;
-    }
-
-    @Override
     public char ordering() {
-        // TODO Auto-generated method stub
-        return 0;
-    }
-
-    @Override
-    public int originalOffset() {
         // TODO Auto-generated method stub
         return 0;
     }

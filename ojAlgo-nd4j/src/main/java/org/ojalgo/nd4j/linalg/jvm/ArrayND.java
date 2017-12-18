@@ -837,17 +837,7 @@ public class ArrayND<N extends Number> implements INDArray {
         return null;
     }
 
-    public int offset() {
-        // TODO Auto-generated method stub
-        return 0;
-    }
-
     public char ordering() {
-        // TODO Auto-generated method stub
-        return 0;
-    }
-
-    public int originalOffset() {
         // TODO Auto-generated method stub
         return 0;
     }
@@ -1479,6 +1469,241 @@ public class ArrayND<N extends Number> implements INDArray {
 
     private ArrayAnyD<N> copy() {
         return myFactory.copy(myDelegate);
+    }
+
+    public double getDoubleUnsafe(final long offset) {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
+    public INDArray putScalarUnsafe(final long offset, final double value) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray javaTensorAlongDimension(final int index, final int... dimension) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray putiColumnVector(final INDArray columnVector) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray putiRowVector(final INDArray rowVector) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray mean(final INDArray result, final int... dimension) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray amean(final int... dimension) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Number ameanNumber() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray amax(final int... dimension) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Number amaxNumber() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray amin(final int... dimension) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Number aminNumber() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Number scan(final Condition condition) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray sum(final INDArray result, final int... dimension) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Number entropyNumber() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Number shannonEntropyNumber() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Number logEntropyNumber() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray entropy(final int... dimension) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray shannonEntropy(final int... dimension) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray logEntropy(final int... dimension) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray subArray(final long[] offsets, final int[] shape, final int[] stride) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public long offset() {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
+    public long originalOffset() {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
+    public INDArray unsafeDuplication(final boolean blocking) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray remainder(final INDArray denominator) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray remainder(final INDArray denominator, final INDArray result) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray remainder(final Number denominator) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray remainder(final Number denominator, final INDArray result) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray remainderi(final INDArray denominator) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray remainderi(final Number denominator) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray fmod(final INDArray denominator) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray fmod(final INDArray denominator, final INDArray result) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray fmod(final Number denominator) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray fmod(final Number denominator, final INDArray result) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray fmodi(final INDArray denominator) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray fmodi(final Number denominator) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray argMax(final int... dimension) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public boolean isAttached() {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    public boolean isInScope() {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    public INDArray detach() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray leverage() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray leverageTo(final String id) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray migrate() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Number percentileNumber(final Number percentile) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Number medianNumber() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray median(final int... dimension) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public INDArray percentile(final Number percentile, final int... dimension) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
 }

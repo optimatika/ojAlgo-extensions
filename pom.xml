@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.ojalgo</groupId>
     <artifactId>ojalgo-extensions</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <packaging>pom</packaging>
     <name>ojAlgo-extensions</name>
     <url>http://ojalgo.org</url>
@@ -74,7 +74,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>2.9.0</version>
+            <version>2.13.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -120,27 +120,27 @@
             <dependency>
                 <groupId>org.apache.spark</groupId>
                 <artifactId>spark-core_2.11</artifactId>
-                <version>2.1.0</version>
+                <version>2.2.1</version>
             </dependency>
             <dependency>
                 <groupId>org.nd4j</groupId>
                 <artifactId>nd4j-api</artifactId>
-                <version>0.7.2</version>
+                <version>0.9.1</version>
             </dependency>
             <dependency>
                 <groupId>org.deeplearning4j</groupId>
                 <artifactId>deeplearning4j-core</artifactId>
-                <version>0.7.2</version>
+                <version>0.9.1</version>
             </dependency>
             <dependency>
                 <groupId>com.opengamma.strata</groupId>
                 <artifactId>strata-calc</artifactId>
-                <version>1.2.0</version>
+                <version>1.6.0</version>
             </dependency>
             <dependency>
                 <groupId>com.opengamma.strata</groupId>
                 <artifactId>strata-pricer</artifactId>
-                <version>1.2.0</version>
+                <version>1.6.0</version>
             </dependency>
             <dependency>
                 <groupId>com.sun.mail</groupId>
@@ -160,7 +160,7 @@
             <dependency>
                 <groupId>org.eclipse.persistence</groupId>
                 <artifactId>javax.persistence</artifactId>
-                <version>2.1.1</version>
+                <version>2.2.0</version>
             </dependency>
             <dependency>
                 <groupId>com.joptimizer</groupId>
