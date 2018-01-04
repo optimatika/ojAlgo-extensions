@@ -10,11 +10,13 @@
     <url>http://ojalgo.org</url>
     <description>Extensions to oj! Algorithms with 3:d party dependencies</description>
     <modules>
+        <module>ojAlgo-choco</module>
         <module>ojAlgo-commons-math3</module>
         <module>ojAlgo-cplex</module>
         <module>ojAlgo-deeplearning4j</module>
         <module>ojAlgo-gurobi</module>
         <module>ojAlgo-jfreechart</module>
+        <module>ojAlgo-joptimizer</module>
         <module>ojAlgo-jxl</module>
         <module>ojAlgo-mail</module>
         <module>ojAlgo-mosek</module>
@@ -23,7 +25,6 @@
         <module>ojAlgo-spark</module>
         <module>ojAlgo-strata</module>
         <module>ojAlgo-unsafe</module>
-        <module>ojAlgo-joptimizer</module>
     </modules>
     <organization>
         <name>Optimatika</name>
@@ -166,6 +167,11 @@
                 <groupId>com.joptimizer</groupId>
                 <artifactId>joptimizer</artifactId>
                 <version>4.0.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.choco-solver</groupId>
+                <artifactId>choco-solver</artifactId>
+                <version>4.0.6</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
