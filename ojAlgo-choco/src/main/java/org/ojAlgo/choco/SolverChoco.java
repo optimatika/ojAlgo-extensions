@@ -21,10 +21,15 @@
  */
 package org.ojAlgo.choco;
 
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.chocosolver.solver.variables.IntVar;
 import org.ojalgo.netio.CharacterRing;
 import org.ojalgo.netio.CharacterRing.PrinterBuffer;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
+import org.ojalgo.optimisation.Variable;
 
 public final class SolverChoco implements Optimisation.Solver {
 
@@ -45,7 +50,11 @@ public final class SolverChoco implements Optimisation.Solver {
 
         public SolverChoco build(final ExpressionsBasedModel model) {
 
-            return null;
+            final SolverChoco retVal = new SolverChoco(model.options);
+
+            retVal.addVariables(model.getVariables());
+
+            return retVal;
         }
 
         public boolean isCapable(final ExpressionsBasedModel model) {
@@ -79,6 +88,30 @@ public final class SolverChoco implements Optimisation.Solver {
         super();
 
         myOptions = options;
+
+    }
+
+    void addVariables(final List<Variable> variables) {
+
+        for (final Variable var : variables) {
+
+            final String name = var.getName();
+            final BigDecimal lower = var.getLowerLimit();
+            final BigDecimal upper = var.getUpperLimit();
+
+            if (var.isInteger()) {
+
+                myDelegateModel.intVar(name, lower != null ? lower.intValue() : IntVar.MIN_INT_BOUND, upper != null ? upper.intValue() : IntVar.MAX_INT_BOUND);
+
+            } else {
+
+                myDelegateModel.realVar(name, lower != null ? lower.doubleValue() : Double.NEGATIVE_INFINITY,
+                        upper != null ? upper.doubleValue() : Double.POSITIVE_INFINITY, myOptions.solution.epsilon());
+
+            }
+        }
+
+        // TODO Auto-generated method stub
 
     }
 
