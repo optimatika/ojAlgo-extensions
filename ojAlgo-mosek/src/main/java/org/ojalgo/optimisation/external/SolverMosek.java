@@ -159,7 +159,7 @@ public final class SolverMosek implements Optimisation.Solver {
 
             task.putdouparam(Env.dparam.mio_max_time, options.time_abort);
 
-            final Object verbose = options.debug_solver;
+            final Object verbose = options.logger_solver;
 
             if ((verbose != null) && (verbose instanceof Number)) {
                 final Number number = (Number) verbose;
