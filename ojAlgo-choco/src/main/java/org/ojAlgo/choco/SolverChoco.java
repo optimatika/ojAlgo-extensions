@@ -100,19 +100,12 @@ public final class SolverChoco implements Optimisation.Solver {
             final BigDecimal upper = var.getUpperLimit();
 
             if (var.isInteger()) {
-
                 myDelegateModel.intVar(name, lower != null ? lower.intValue() : IntVar.MIN_INT_BOUND, upper != null ? upper.intValue() : IntVar.MAX_INT_BOUND);
-
             } else {
-
                 myDelegateModel.realVar(name, lower != null ? lower.doubleValue() : Double.NEGATIVE_INFINITY,
                         upper != null ? upper.doubleValue() : Double.POSITIVE_INFINITY, myOptions.solution.epsilon());
-
             }
         }
-
-        // TODO Auto-generated method stub
-
     }
 
     public void dispose() {
