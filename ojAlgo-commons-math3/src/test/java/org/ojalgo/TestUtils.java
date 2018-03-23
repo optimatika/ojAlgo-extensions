@@ -21,7 +21,6 @@ package org.ojalgo;
  * SOFTWARE.
  */
 
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Arrays;
