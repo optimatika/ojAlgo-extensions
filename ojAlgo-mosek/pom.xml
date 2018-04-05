@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
@@ -7,10 +8,16 @@
         <version>1.1.0</version>
     </parent>
     <artifactId>ojalgo-mosek</artifactId>
+    <properties>
+        <path.lib.mosek>/Users/apete/Applications/mosek/7/tools/platform/osx64x86/bin/mosek.jar</path.lib.mosek>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>mosek</groupId>
             <artifactId>mosek</artifactId>
+            <version>7.1</version>
+            <scope>system</scope>
+            <systemPath>${path.lib.mosek}</systemPath>
         </dependency>
     </dependencies>
     <name>ojAlgo-mosek</name>

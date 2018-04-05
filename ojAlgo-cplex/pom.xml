@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
@@ -9,10 +10,16 @@
     <artifactId>ojalgo-cplex</artifactId>
     <name>ojAlgo-cplex</name>
     <description>ojAlgo and CPLEX integration</description>
+    <properties>
+        <path.lib.cplex>/Users/apete/Applications/IBM/ILOG/CPLEX_Studio_Community1262/cplex/lib/cplex.jar</path.lib.cplex>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>cplex</groupId>
             <artifactId>cplex</artifactId>
+            <version>12.6.2</version>
+            <scope>system</scope>
+            <systemPath>${path.lib.cplex}</systemPath>
         </dependency>
     </dependencies>
 </project>

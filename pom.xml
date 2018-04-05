@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.ojalgo</groupId>
@@ -56,9 +57,6 @@
     </issueManagement>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <path.lib.cplex>/Users/apete/Applications/IBM/ILOG/CPLEX_Studio_Community1262/cplex/lib/cplex.jar</path.lib.cplex>
-        <path.lib.mosek>/Users/apete/Applications/mosek/7/tools/platform/osx64x86/bin/mosek.jar</path.lib.mosek>
-        <path.lib.gurobi>/Library/gurobi751/mac64/lib/gurobi.jar</path.lib.gurobi>
     </properties>
     <dependencies>
         <dependency>
@@ -91,87 +89,6 @@
                 <groupId>org.ojalgo</groupId>
                 <artifactId>ojalgo-finance</artifactId>
                 <version>1.0.1-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>cplex</groupId>
-                <artifactId>cplex</artifactId>
-                <version>12.6.2</version>
-                <scope>system</scope>
-                <systemPath>${path.lib.cplex}</systemPath>
-            </dependency>
-            <dependency>
-                <groupId>mosek</groupId>
-                <artifactId>mosek</artifactId>
-                <version>7.1</version>
-                <scope>system</scope>
-                <systemPath>${path.lib.mosek}</systemPath>
-            </dependency>
-            <dependency>
-                <groupId>gurobi</groupId>
-                <artifactId>gurobi</artifactId>
-                <version>7.5.1</version>
-                <scope>system</scope>
-                <systemPath>${path.lib.gurobi}</systemPath>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-math3</artifactId>
-                <version>3.6.1</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.spark</groupId>
-                <artifactId>spark-core_2.11</artifactId>
-                <version>2.2.1</version>
-            </dependency>
-            <dependency>
-                <groupId>org.nd4j</groupId>
-                <artifactId>nd4j-api</artifactId>
-                <version>0.9.1</version>
-            </dependency>
-            <dependency>
-                <groupId>org.deeplearning4j</groupId>
-                <artifactId>deeplearning4j-core</artifactId>
-                <version>0.9.1</version>
-            </dependency>
-            <dependency>
-                <groupId>com.opengamma.strata</groupId>
-                <artifactId>strata-calc</artifactId>
-                <version>1.6.0</version>
-            </dependency>
-            <dependency>
-                <groupId>com.opengamma.strata</groupId>
-                <artifactId>strata-pricer</artifactId>
-                <version>1.6.0</version>
-            </dependency>
-            <dependency>
-                <groupId>com.sun.mail</groupId>
-                <artifactId>javax.mail</artifactId>
-                <version>1.5.6</version>
-            </dependency>
-            <dependency>
-                <groupId>net.sourceforge.jexcelapi</groupId>
-                <artifactId>jxl</artifactId>
-                <version>2.6.12</version>
-            </dependency>
-            <dependency>
-                <groupId>org.jfree</groupId>
-                <artifactId>jfreechart</artifactId>
-                <version>1.0.19</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.persistence</groupId>
-                <artifactId>javax.persistence</artifactId>
-                <version>2.2.0</version>
-            </dependency>
-            <dependency>
-                <groupId>com.joptimizer</groupId>
-                <artifactId>joptimizer</artifactId>
-                <version>4.0.0</version>
-            </dependency>
-            <dependency>
-                <groupId>org.choco-solver</groupId>
-                <artifactId>choco-solver</artifactId>
-                <version>4.0.6</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
