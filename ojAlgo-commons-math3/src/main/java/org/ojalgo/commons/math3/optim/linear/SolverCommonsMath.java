@@ -75,8 +75,8 @@ public final class SolverCommonsMath implements Optimisation.Solver {
             final double[] upperBounds = new double[variables.size()];
             for (int v = 0; v < variables.size(); v++) {
                 tmpVariable = variables.get(v);
-                lowerBounds[v] = tmpVariable.getAdjustedLowerLimit() / tmpVariable.getAdjustmentFactor();
-                upperBounds[v] = tmpVariable.getAdjustedUpperLimit() / tmpVariable.getAdjustmentFactor();
+                lowerBounds[v] = tmpVariable.getUnadjustedLowerLimit();
+                upperBounds[v] = tmpVariable.getUnadjustedUpperLimit();
             }
             final SimpleBounds simpleBounds = new SimpleBounds(lowerBounds, upperBounds);
 

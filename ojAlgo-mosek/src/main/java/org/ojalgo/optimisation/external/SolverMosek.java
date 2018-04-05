@@ -401,13 +401,13 @@ public final class SolverMosek implements Optimisation.Solver {
 
     void putVariable(final int index, final Variable variable) {
 
-        final boundkey tmpBoundType = this.getBoundKey(variable);
-        final double tmpLowerBound = variable.getAdjustedLowerLimit();
-        final double tmpUpperBound = variable.getAdjustedUpperLimit();
-        final variabletype tmpVariableType = variable.isInteger() ? variabletype.type_int : variabletype.type_cont;
+        final boundkey boundType = this.getBoundKey(variable);
+        final double lowerBound = variable.getUnadjustedLowerLimit();
+        final double upperBound = variable.getUnadjustedUpperLimit();
+        final variabletype variableType = variable.isInteger() ? variabletype.type_int : variabletype.type_cont;
 
-        myTask.putvarbound(index, tmpBoundType, tmpLowerBound, tmpUpperBound);
-        myTask.putvartype(index, tmpVariableType);
+        myTask.putvarbound(index, boundType, lowerBound, upperBound);
+        myTask.putvartype(index, variableType);
     }
 
     void setSolutionType(final ExpressionsBasedModel model) {
