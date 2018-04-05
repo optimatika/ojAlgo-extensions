@@ -108,10 +108,6 @@ public class ArrayStructureTest extends ArrayTests {
         super();
     }
 
-    public ArrayStructureTest(final String aName) {
-        super(aName);
-    }
-
     public void testGetIndexintArray() {
 
         final int[] tmpRef1 = new int[] { 1 };

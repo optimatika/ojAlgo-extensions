@@ -37,10 +37,6 @@ public class LongToNumberMapTest extends ArrayTests {
         super();
     }
 
-    public LongToNumberMapTest(final String aName) {
-        super(aName);
-    }
-
     public void testAlignCapacity() {
         TestUtils.assertEquals(1, 1L << PrimitiveMath.powerOf2Larger(-1L));
         TestUtils.assertEquals(16, 1L << PrimitiveMath.powerOf2Larger(16L));

@@ -32,10 +32,6 @@ public class AggregatorProduct extends BasicArrayTest {
         super();
     }
 
-    public AggregatorProduct(final String aName) {
-        super(aName);
-    }
-
     @Override
     void doTest(final BasicArray<Double> array) {
 

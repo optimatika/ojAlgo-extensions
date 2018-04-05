@@ -35,10 +35,6 @@ public class SegmentedArrayTest extends ArrayTests {
         super();
     }
 
-    public SegmentedArrayTest(final String aName) {
-        super(aName);
-    }
-
     public void testRandomSetAndGetBackBasic() {
 
         final long tmpCount = Long.MAX_VALUE;

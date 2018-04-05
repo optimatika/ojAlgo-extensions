@@ -32,10 +32,6 @@ public class Array1DTest extends ArrayTests {
         super();
     }
 
-    public Array1DTest(final String aName) {
-        super(aName);
-    }
-
     public void testSortingEvenSizedArrayAscending() {
 
         final double[][] tmpRows = new double[][] { { 4, 5, 6, 7, 8, 9 }, { 9, 8, 7, 6, 5, 4 }, { 9, 5, 7, 6, 8, 4 }, { 4, 8, 6, 7, 5, 9 } };

@@ -26,14 +26,12 @@ import org.ojalgo.optimisation.Optimisation.Result;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.type.context.NumberContext;
 
-import junit.framework.TestCase;
-
 /**
  * A collection of datasets found here: http://people.sc.fsu.edu/~burkardt/datasets/mps/mps.html
  *
  * @author apete
  */
-public class BurkardtDatasetsMps extends TestCase {
+public class BurkardtDatasetsMps extends Object {
 
     static {
         ExpressionsBasedModel.addIntegration(SolverCommonsMath.INTEGRATION);
@@ -46,10 +44,6 @@ public class BurkardtDatasetsMps extends TestCase {
 
     public BurkardtDatasetsMps() {
         super();
-    }
-
-    public BurkardtDatasetsMps(final String someName) {
-        super(someName);
     }
 
     /**
