@@ -33,7 +33,7 @@ final class Native32Array extends OffHeapArray {
 
     Native32Array(final long count) {
 
-        super(count);
+        super(OffHeapArray.NATIVE32, count);
 
         myPointer = NativeMemory.allocateFloatArray(this, count);
 

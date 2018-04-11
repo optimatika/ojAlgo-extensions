@@ -33,7 +33,7 @@ final class Native64Array extends OffHeapArray {
 
     Native64Array(final long count) {
 
-        super(count);
+        super(OffHeapArray.NATIVE64, count);
 
         myPointer = NativeMemory.allocateDoubleArray(this, count);
 

@@ -138,9 +138,9 @@ public abstract class OffHeapArray extends DenseArray<Double> {
 
     private final long myCount;
 
-    OffHeapArray(final long count) {
+    OffHeapArray(DenseArray.Factory<Double> factory, final long count) {
 
-        super();
+        super(factory);
 
         myCount = count;
     }
