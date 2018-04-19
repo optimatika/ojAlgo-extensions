@@ -1,3 +1,4 @@
+package org.ojalgo;
 /*
  * Copyright 1997-2018 Optimatika
  *
@@ -19,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo;
+
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

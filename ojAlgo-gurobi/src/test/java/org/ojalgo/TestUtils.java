@@ -1,4 +1,3 @@
-package org.ojalgo;
 /*
  * Copyright 1997-2018 Optimatika
  *
@@ -20,7 +19,7 @@ package org.ojalgo;
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
+package org.ojalgo;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -50,7 +49,9 @@ import org.ojalgo.type.TypeUtils;
 import org.ojalgo.type.context.NumberContext;
 
 /**
- * JUnitUtils
+ * This class is a copy of a class with the same name (and name space) in the ojAlgo core project. Do NOT
+ * modify this file here directly. If you need any changes or additions then do them in ojAlgo, and then copy
+ * the entire file contents here.
  *
  * @author apete
  */
@@ -279,19 +280,7 @@ public abstract class TestUtils {
 
     public static void assertEquals(final String message, final Number expected, final Number actual, final NumberContext context) {
 
-        if ((expected instanceof ComplexNumber) || (actual instanceof ComplexNumber)) {
-
-            final ComplexNumber tmpExpected = ComplexNumber.valueOf(expected);
-            final ComplexNumber tmpActual = ComplexNumber.valueOf(actual);
-
-            if (!!context.isDifferent(tmpExpected.getReal(), tmpActual.getReal())) {
-                Assertions.fail(() -> message + " (real)" + ": " + expected + " != " + actual);
-            }
-            if (!!context.isDifferent(tmpExpected.getImaginary(), tmpActual.getImaginary())) {
-                Assertions.fail(() -> message + " (imaginary)" + ": " + expected + " != " + actual);
-            }
-
-        } else if ((expected instanceof Quaternion) || (actual instanceof Quaternion)) {
+        if ((expected instanceof Quaternion) || (actual instanceof Quaternion)) {
 
             final Quaternion tmpExpected = Quaternion.valueOf(expected);
             final Quaternion tmpActual = Quaternion.valueOf(actual);
@@ -307,6 +296,18 @@ public abstract class TestUtils {
             }
             if (!!context.isDifferent(tmpExpected.k, tmpActual.k)) {
                 Assertions.fail(() -> message + " (k)" + ": " + expected + " != " + actual);
+            }
+
+        } else if ((expected instanceof ComplexNumber) || (actual instanceof ComplexNumber)) {
+
+            final ComplexNumber tmpExpected = ComplexNumber.valueOf(expected);
+            final ComplexNumber tmpActual = ComplexNumber.valueOf(actual);
+
+            if (!!context.isDifferent(tmpExpected.getReal(), tmpActual.getReal())) {
+                Assertions.fail(() -> message + " (real)" + ": " + expected + " != " + actual);
+            }
+            if (!!context.isDifferent(tmpExpected.getImaginary(), tmpActual.getImaginary())) {
+                Assertions.fail(() -> message + " (imaginary)" + ": " + expected + " != " + actual);
             }
 
         } else {
