@@ -71,7 +71,7 @@ public abstract class BasicArrayTest extends Object {
     }
 
     public void testSegmentedSparse() {
-        this.doTest(BasicArray.factory(Primitive64Array.FACTORY).makeSegmented(COUNT));
+        this.doTest(new BasicArray.Factory<>(Primitive64Array.FACTORY).makeSegmented(COUNT));
     }
 
     public void testSparse() {
