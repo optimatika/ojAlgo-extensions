@@ -28,7 +28,7 @@ import org.ojalgo.function.FunctionSet;
 import org.ojalgo.function.NullaryFunction;
 import org.ojalgo.function.PrimitiveFunction;
 import org.ojalgo.function.UnaryFunction;
-import org.ojalgo.function.ConsumerFunction;
+import org.ojalgo.function.VoidFunction;
 import org.ojalgo.function.aggregator.AggregatorSet;
 import org.ojalgo.function.aggregator.PrimitiveAggregator;
 import org.ojalgo.scalar.PrimitiveScalar;
@@ -198,7 +198,7 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         this.set(index, value.doubleValue());
     }
 
-    public void visitOne(final long index, final ConsumerFunction<Double> visitor) {
+    public void visitOne(final long index, final VoidFunction<Double> visitor) {
         visitor.accept(this.doubleValue(index));
     }
 
@@ -270,7 +270,7 @@ public abstract class OffHeapArray extends DenseArray<Double> {
     }
 
     @Override
-    protected void visit(final long first, final long limit, final long step, final ConsumerFunction<Double> visitor) {
+    protected void visit(final long first, final long limit, final long step, final VoidFunction<Double> visitor) {
         for (long i = first; i < limit; i += step) {
             visitor.invoke(this.doubleValue(i));
         }
