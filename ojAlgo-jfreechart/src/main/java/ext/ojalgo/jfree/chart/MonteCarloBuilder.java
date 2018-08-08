@@ -25,7 +25,6 @@ import java.awt.Color;
 import java.util.List;
 
 import org.jfree.chart.plot.Plot;
-import org.ojalgo.access.Access2D;
 import org.ojalgo.constant.PrimitiveMath;
 import org.ojalgo.finance.portfolio.SimpleAsset;
 import org.ojalgo.finance.portfolio.SimplePortfolio;
@@ -35,6 +34,7 @@ import org.ojalgo.random.SampleSet;
 import org.ojalgo.random.process.GeometricBrownianMotion;
 import org.ojalgo.random.process.RandomProcess;
 import org.ojalgo.series.CalendarDateSeries;
+import org.ojalgo.structure.Access2D;
 import org.ojalgo.type.CalendarDate;
 import org.ojalgo.type.CalendarDateDuration;
 import org.ojalgo.type.CalendarDateUnit;

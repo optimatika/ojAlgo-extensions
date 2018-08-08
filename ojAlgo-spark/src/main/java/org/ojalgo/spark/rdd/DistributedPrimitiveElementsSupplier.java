@@ -28,13 +28,13 @@ import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
-import org.ojalgo.access.Access2D;
 import org.ojalgo.function.BinaryFunction;
 import org.ojalgo.function.UnaryFunction;
 import org.ojalgo.matrix.store.ElementsConsumer;
 import org.ojalgo.matrix.store.ElementsSupplier;
 import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.PhysicalStore.Factory;
+import org.ojalgo.structure.Access2D;
 import org.ojalgo.matrix.store.PrimitiveDenseStore;
 
 import scala.reflect.ClassManifestFactory$;

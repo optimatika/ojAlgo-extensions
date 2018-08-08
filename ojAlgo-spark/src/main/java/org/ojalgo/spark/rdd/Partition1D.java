@@ -22,7 +22,7 @@
 package org.ojalgo.spark.rdd;
 
 import org.apache.spark.Partition;
-import org.ojalgo.access.Structure1D;
+import org.ojalgo.structure.Structure1D;
 
 public class Partition1D implements Partition, Structure1D {
 

@@ -26,8 +26,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.ojalgo.access.Structure1D.IntIndex;
-import org.ojalgo.access.Structure2D.IntRowColumn;
 import org.ojalgo.array.Primitive64Array;
 import org.ojalgo.netio.BasicLogger.Printer;
 import org.ojalgo.netio.CharacterRing;
@@ -36,6 +34,8 @@ import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
+import org.ojalgo.structure.Structure1D.IntIndex;
+import org.ojalgo.structure.Structure2D.IntRowColumn;
 
 import mosek.Env;
 import mosek.Env.boundkey;

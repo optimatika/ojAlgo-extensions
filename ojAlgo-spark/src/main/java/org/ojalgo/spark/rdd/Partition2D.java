@@ -22,9 +22,9 @@
 package org.ojalgo.spark.rdd;
 
 import org.apache.spark.Partition;
-import org.ojalgo.access.Structure2D;
 import org.ojalgo.matrix.store.ElementsConsumer;
 import org.ojalgo.matrix.store.PhysicalStore;
+import org.ojalgo.structure.Structure2D;
 
 public class Partition2D implements Partition, Structure2D {
 

@@ -4,9 +4,9 @@ import org.apache.commons.math3.exception.NotStrictlyPositiveException;
 import org.apache.commons.math3.exception.OutOfRangeException;
 import org.apache.commons.math3.linear.AbstractRealMatrix;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
-import org.ojalgo.access.Access2D;
-import org.ojalgo.access.Mutate2D;
 import org.ojalgo.matrix.store.RawStore;
+import org.ojalgo.structure.Access2D;
+import org.ojalgo.structure.Mutate2D;
 
 public class Access2DWrapper extends AbstractRealMatrix {
 

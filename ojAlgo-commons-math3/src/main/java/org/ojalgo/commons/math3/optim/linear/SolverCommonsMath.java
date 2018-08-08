@@ -38,11 +38,11 @@ import org.apache.commons.math3.optim.linear.SimplexSolver;
 import org.apache.commons.math3.optim.linear.UnboundedSolutionException;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
 import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
-import org.ojalgo.access.Access1D;
-import org.ojalgo.access.Structure1D.IntIndex;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
+import org.ojalgo.structure.Access1D;
+import org.ojalgo.structure.Structure1D.IntIndex;
 
 public final class SolverCommonsMath implements Optimisation.Solver {
 
