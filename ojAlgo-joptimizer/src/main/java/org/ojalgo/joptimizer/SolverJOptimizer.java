@@ -26,13 +26,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.ojalgo.access.Access1D;
-import org.ojalgo.access.Structure1D.IntIndex;
-import org.ojalgo.access.Structure2D.IntRowColumn;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
+import org.ojalgo.structure.Access1D;
+import org.ojalgo.structure.Structure1D.IntIndex;
+import org.ojalgo.structure.Structure2D.IntRowColumn;
 
 import com.joptimizer.exception.JOptimizerException;
 import com.joptimizer.functions.ConvexMultivariateRealFunction;
