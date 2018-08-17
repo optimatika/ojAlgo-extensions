@@ -34,8 +34,8 @@ import org.ojalgo.matrix.store.ElementsConsumer;
 import org.ojalgo.matrix.store.ElementsSupplier;
 import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.PhysicalStore.Factory;
-import org.ojalgo.structure.Access2D;
 import org.ojalgo.matrix.store.PrimitiveDenseStore;
+import org.ojalgo.structure.Access2D;
 
 import scala.reflect.ClassManifestFactory$;
 import scala.reflect.ClassTag;
