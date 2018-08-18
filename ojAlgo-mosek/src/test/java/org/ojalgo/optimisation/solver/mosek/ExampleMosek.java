@@ -19,14 +19,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.optimisation.external;
+package org.ojalgo.optimisation.solver.mosek;
 
 import java.io.File;
 
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.MathProgSysModel;
-import org.ojalgo.optimisation.solver.mosek.SolverMosek;
 
 public class ExampleMosek {
 

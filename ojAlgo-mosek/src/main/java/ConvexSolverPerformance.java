@@ -6,8 +6,8 @@ import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation.Result;
 import org.ojalgo.optimisation.Optimisation.State;
-import org.ojalgo.optimisation.solver.mosek.SolverMosek;
 import org.ojalgo.optimisation.Variable;
+import org.ojalgo.optimisation.solver.mosek.SolverMosek;
 import org.ojalgo.random.Uniform;
 
 /**

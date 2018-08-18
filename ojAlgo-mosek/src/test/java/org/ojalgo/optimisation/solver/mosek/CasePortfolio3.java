@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.optimisation.external;
+package org.ojalgo.optimisation.solver.mosek;
 
 /**
  * A reimplementation of the example code case_portfolio_3.java supplied by Mosek with the software package.
