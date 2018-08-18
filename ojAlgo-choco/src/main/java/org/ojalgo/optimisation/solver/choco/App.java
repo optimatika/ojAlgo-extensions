@@ -1,4 +1,4 @@
-package org.ojAlgo.choco;
+package org.ojalgo.optimisation.solver.choco;
 
 /**
  * Hello world!

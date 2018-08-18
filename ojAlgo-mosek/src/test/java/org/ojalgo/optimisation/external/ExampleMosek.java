@@ -26,6 +26,7 @@ import java.io.File;
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.MathProgSysModel;
+import org.ojalgo.optimisation.solver.mosek.SolverMosek;
 
 public class ExampleMosek {
 

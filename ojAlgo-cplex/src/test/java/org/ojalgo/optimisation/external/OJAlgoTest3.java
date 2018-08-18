@@ -8,6 +8,7 @@ import org.ojalgo.array.Primitive64Array;
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation.Result;
+import org.ojalgo.optimisation.solver.cplex.SolverCPLEX;
 
 public class OJAlgoTest3 {
 

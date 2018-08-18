@@ -27,6 +27,7 @@ import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.MathProgSysModel;
 import org.ojalgo.optimisation.Optimisation.Options;
+import org.ojalgo.optimisation.solver.cplex.SolverCPLEX;
 
 import ilog.cplex.IloCplex;
 

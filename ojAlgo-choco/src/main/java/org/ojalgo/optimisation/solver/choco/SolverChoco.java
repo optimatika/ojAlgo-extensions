@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojAlgo.choco;
+package org.ojalgo.optimisation.solver.choco;
 
 import java.math.BigDecimal;
 import java.util.List;

@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.optimisation.external;
+package org.ojalgo.optimisation.solver.mosek;
 
 import java.util.List;
 import java.util.Optional;
@@ -65,7 +65,7 @@ public final class SolverMosek implements Optimisation.Solver {
 
             @Override
             public void stream(final String message) {
-                org.ojalgo.optimisation.external.SolverMosek.Integration.this.printToLog(message);
+                org.ojalgo.optimisation.solver.mosek.SolverMosek.Integration.this.printToLog(message);
             }
         };
 
