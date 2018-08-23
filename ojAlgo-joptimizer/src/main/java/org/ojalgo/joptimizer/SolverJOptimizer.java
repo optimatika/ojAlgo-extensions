@@ -44,8 +44,8 @@ import com.joptimizer.optimizers.OptimizationRequest;
 import com.joptimizer.optimizers.OptimizationRequestHandler;
 import com.joptimizer.optimizers.OptimizationResponse;
 
-import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix1D;
-import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix2D;
+import cern.colt.matrix.impl.DenseDoubleMatrix1D;
+import cern.colt.matrix.impl.DenseDoubleMatrix2D;
 
 public final class SolverJOptimizer implements Optimisation.Solver {
 
