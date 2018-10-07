@@ -159,20 +159,14 @@ public final class SolverMosek implements Optimisation.Solver {
 
             task.putdouparam(Env.dparam.mio_max_time, options.time_abort);
 
-            final Object verbose = options.logger_solver;
+            final Class<? extends Solver> loggerSolver = options.logger_solver;
 
-            if ((verbose != null) && (verbose instanceof Number)) {
-                final Number number = (Number) verbose;
-                final int value = number.intValue();
-                if (value == 0) {
-                    task.putintparam(Env.iparam.log, 0);
-                } else if (value > 0) {
-                    task.putintparam(Env.iparam.log, 1);
-                }
+            if ((loggerSolver != null) && loggerSolver.isAssignableFrom(SolverMosek.class)) {
+                task.putintparam(Env.iparam.log, 1);
+            } else {
+                task.putintparam(Env.iparam.log, 0);
             }
-
         }
-
     };
 
     private final Optimisation.Options myOptions;
