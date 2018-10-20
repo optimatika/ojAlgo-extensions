@@ -29,7 +29,6 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
 
-import org.ojalgo.matrix.BasicMatrix;
 import org.ojalgo.matrix.PrimitiveMatrix;
 import org.ojalgo.type.TypeUtils;
 
@@ -168,7 +167,7 @@ public class InMemorySpreadsheet implements Spreadsheet {
         }
     }
 
-    public BasicMatrix getMatrixSheetValue() {
+    public PrimitiveMatrix getMatrixSheetValue() {
 
         this.goHome();
         while (this.getCell() instanceof NumberCell) {
@@ -292,7 +291,7 @@ public class InMemorySpreadsheet implements Spreadsheet {
         }
     }
 
-    public void setMatrixSheetValue(final BasicMatrix aSheetValue) {
+    public void setMatrixSheetValue(final PrimitiveMatrix aSheetValue) {
 
         this.goHome();
 

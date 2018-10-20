@@ -25,7 +25,7 @@ import java.io.File;
 import java.util.Date;
 import java.util.List;
 
-import org.ojalgo.matrix.BasicMatrix;
+import org.ojalgo.matrix.PrimitiveMatrix;
 
 import ext.ojalgo.jexcel.database.Table;
 
@@ -59,7 +59,7 @@ public abstract class AdaptingSpreadsheet<T> implements Spreadsheet {
         return mySpreadsheet.getDateCellValue();
     }
 
-    public BasicMatrix getMatrixSheetValue() {
+    public PrimitiveMatrix getMatrixSheetValue() {
         return mySpreadsheet.getMatrixSheetValue();
     }
 
@@ -129,7 +129,7 @@ public abstract class AdaptingSpreadsheet<T> implements Spreadsheet {
         mySpreadsheet.setDateRowValues(someRowValues);
     }
 
-    public void setMatrixSheetValue(final BasicMatrix aSheetValue) {
+    public void setMatrixSheetValue(final PrimitiveMatrix aSheetValue) {
         mySpreadsheet.setMatrixSheetValue(aSheetValue);
     }
 
