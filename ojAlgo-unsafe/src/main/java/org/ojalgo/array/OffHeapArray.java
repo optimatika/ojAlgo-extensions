@@ -111,29 +111,12 @@ public abstract class OffHeapArray extends DenseArray<Double> {
 
     };
 
-    /**
-     * @deprecated v42 Use {@link #makeNative64(long)} instead
-     */
-    @Deprecated
-    public static OffHeapArray make(final long count) {
-        return OffHeapArray.makeNative64(count);
-    }
-
     public static OffHeapArray makeNative32(final long count) {
         return new Native32Array(count);
     }
 
     public static OffHeapArray makeNative64(final long count) {
         return new Native64Array(count);
-    }
-
-    /**
-     * @deprecated v42 Use {@link SegmentedArray#makeDense(DenseArray.Factory, long)} or
-     *             {@link SegmentedArray#makeSparse(BasicArray.BasicFactory, long)} instead
-     */
-    @Deprecated
-    public static final SegmentedArray<Double> makeSegmented(final long count) {
-        return NATIVE64.makeSegmented(count);
     }
 
     private final long myCount;
