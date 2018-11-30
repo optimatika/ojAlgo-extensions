@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<project
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.ojalgo</groupId>
+        <artifactId>ojalgo-extensions</artifactId>
+        <version>1.1.0</version>
+    </parent>
+    <artifactId>ojalgo-yahoofinance-api</artifactId>
+    <name>ojAlgo-yahoofinance-api</name>
+    <description>ojAlgo and GUROBI integration</description>
+    <dependencies>
+        <dependency>
+            <groupId>org.ojalgo</groupId>
+            <artifactId>ojalgo-finance</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yahoofinance-api</groupId>
+            <artifactId>YahooFinanceAPI</artifactId>
+            <version>3.14.0</version>
+        </dependency>
+    </dependencies>
+</project>
