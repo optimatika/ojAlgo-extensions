@@ -26,7 +26,7 @@
         <module>ojAlgo-spark</module>
         <module>ojAlgo-strata</module>
         <module>ojAlgo-unsafe</module>
-        <module>ojAlgo-yahoofinance-api</module>
+        <module>ojAlgo-yahoofinance</module>
     </modules>
     <organization>
         <name>Optimatika</name>
