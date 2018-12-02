@@ -21,32 +21,56 @@
  */
 package org.ojalgo.yahoofinance;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.ojAlgo.yahoofinance.YahooFinanceDataSource;
+import org.ojalgo.TestUtils;
 import org.ojalgo.finance.data.DatePrice;
 import org.ojalgo.type.CalendarDateUnit;
-
-import yahoofinance.Stock;
-import yahoofinance.YahooFinance;
-import yahoofinance.histquotes.HistoricalQuote;
 
 public class TestDownload {
 
     @Test
-    public void testDownload() throws IOException {
+    public void testYahooDailyAAPL() {
 
-        Stock tesla = YahooFinance.get("TSLA", true);
-        List<HistoricalQuote> history = tesla.getHistory();
-        //  List<HistoricalQuote> history2 = tesla.getHistory(null, null, null);
-        System.out.println(history);
+        final YahooFinanceDataSource dataSource = YahooFinanceDataSource.of("AAPL", CalendarDateUnit.DAY);
 
-        YahooFinanceDataSource source = YahooFinanceDataSource.of("AAPL", CalendarDateUnit.DAY);
-        List<DatePrice> prices = source.getHistoricalPrices();
-        System.out.println(prices);
+        final List<DatePrice> rows = dataSource.getHistoricalPrices();
 
+        if (rows.size() <= 0) {
+            TestUtils.fail("No data!");
+        } else if (rows.size() < 7559) {
+            TestUtils.fail("Less data than usual! only got: " + rows.size());
+        }
+    }
+
+    @Test
+    public void testYahooMonthlyAAPL() {
+
+        final YahooFinanceDataSource dataSource = YahooFinanceDataSource.of("AAPL", CalendarDateUnit.MONTH);
+
+        final List<DatePrice> rows = dataSource.getHistoricalPrices();
+
+        if (rows.size() <= 0) {
+            TestUtils.fail("No data!");
+        } else if (rows.size() < 359) {
+            TestUtils.fail("Less data than usual! only got: " + rows.size());
+        }
+    }
+
+    @Test
+    public void testYahooWeeklyAAPL() {
+
+        final YahooFinanceDataSource dataSource = YahooFinanceDataSource.of("AAPL", CalendarDateUnit.WEEK);
+
+        final List<DatePrice> rows = dataSource.getHistoricalPrices();
+
+        if (rows.size() <= 0) {
+            TestUtils.fail("No data!");
+        } else if (rows.size() < 1509) {
+            TestUtils.fail("Less data than usual! only got: " + rows.size());
+        }
     }
 
 }

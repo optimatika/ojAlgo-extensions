@@ -21,7 +21,6 @@
  */
 package org.ojAlgo.yahoofinance;
 
-import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -29,6 +28,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,8 +43,8 @@ import org.ojalgo.series.CalendarDateSeries;
 import org.ojalgo.type.CalendarDate;
 import org.ojalgo.type.CalendarDateUnit;
 
-import yahoofinance.Stock;
 import yahoofinance.YahooFinance;
+import yahoofinance.histquotes.Interval;
 
 public final class YahooFinanceDataSource implements FinanceData {
 
@@ -55,28 +55,39 @@ public final class YahooFinanceDataSource implements FinanceData {
         return new YahooFinanceDataSource(symbol, resolution);
     }
 
-    private final Stock myFetcher;
+    private final String mySymbol;
     private final CalendarDateUnit myResolution;
 
     YahooFinanceDataSource(String symbol, CalendarDateUnit resolution) {
 
         super();
 
-        Stock fetcher = null;
-
-        try {
-            fetcher = YahooFinance.get(symbol);
-        } catch (IOException exception) {
-            exception.printStackTrace();
-        }
-
-        myFetcher = fetcher;
+        mySymbol = symbol;
         myResolution = resolution;
     }
 
     public List<DatePrice> getHistoricalPrices() {
+
+        Calendar from = Calendar.getInstance();
+        from.add(Calendar.YEAR, -30);
+
+        Calendar to = Calendar.getInstance();
+
+        Interval interval = Interval.DAILY;
+        switch (myResolution) {
+        case WEEK:
+            interval = Interval.WEEKLY;
+            break;
+        case MONTH:
+            interval = Interval.MONTHLY;
+            break;
+        default:
+            interval = Interval.DAILY;
+            break;
+        }
+
         try {
-            return myFetcher.getHistory().stream().map(hq -> {
+            return YahooFinance.get(mySymbol, from, to, interval).getHistory().stream().map(hq -> {
                 YahooParser.Data dp = new YahooParser.Data(CalendarDate.toLocalDate(hq.getDate()));
                 dp.adjustedClose = hq.getAdjClose().doubleValue();
                 dp.close = hq.getClose().doubleValue();
@@ -88,8 +99,8 @@ public final class YahooFinanceDataSource implements FinanceData {
             }).sorted().collect(Collectors.toList());
         } catch (final Exception exception) {
             exception.printStackTrace();
-            BasicLogger.error("Fetch problem for {}!", myFetcher.getClass().getSimpleName());
-            BasicLogger.error("Symbol & Resolution: {} & {}", myFetcher.getSymbol(), myResolution);
+            BasicLogger.error("Fetch problem for {}!", this.getClass().getSimpleName());
+            BasicLogger.error("Symbol & Resolution: {} & {}", mySymbol, myResolution);
             return Collections.emptyList();
         }
     }
@@ -141,7 +152,7 @@ public final class YahooFinanceDataSource implements FinanceData {
     }
 
     public String getSymbol() {
-        return myFetcher.getSymbol();
+        return mySymbol;
     }
 
 }
