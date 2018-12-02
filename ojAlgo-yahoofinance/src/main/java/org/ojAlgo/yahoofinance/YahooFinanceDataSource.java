@@ -89,12 +89,12 @@ public final class YahooFinanceDataSource implements FinanceData {
         try {
             return YahooFinance.get(mySymbol, from, to, interval).getHistory().stream().map(hq -> {
                 YahooParser.Data dp = new YahooParser.Data(CalendarDate.toLocalDate(hq.getDate()));
-                dp.adjustedClose = hq.getAdjClose().doubleValue();
-                dp.close = hq.getClose().doubleValue();
-                dp.high = hq.getHigh().doubleValue();
-                dp.low = hq.getLow().doubleValue();
-                dp.open = hq.getOpen().doubleValue();
-                dp.volume = hq.getVolume().doubleValue();
+                dp.adjustedClose = hq.getAdjClose() != null ? hq.getAdjClose().doubleValue() : Double.NaN;
+                dp.close = hq.getClose() != null ? hq.getClose().doubleValue() : Double.NaN;
+                dp.high = hq.getHigh() != null ? hq.getHigh().doubleValue() : Double.NaN;
+                dp.low = hq.getLow() != null ? hq.getLow().doubleValue() : Double.NaN;
+                dp.open = hq.getOpen() != null ? hq.getOpen().doubleValue() : Double.NaN;
+                dp.volume = hq.getVolume() != null ? hq.getVolume().doubleValue() : Double.NaN;
                 return dp;
             }).sorted().collect(Collectors.toList());
         } catch (final Exception exception) {
