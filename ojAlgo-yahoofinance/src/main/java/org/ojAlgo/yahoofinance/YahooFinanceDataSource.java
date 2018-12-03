@@ -21,13 +21,7 @@
  */
 package org.ojAlgo.yahoofinance;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.temporal.TemporalAdjuster;
-import java.time.temporal.TemporalAdjusters;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
@@ -39,7 +33,6 @@ import org.ojalgo.finance.data.FinanceData;
 import org.ojalgo.finance.data.parser.YahooParser;
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.series.BasicSeries;
-import org.ojalgo.series.CalendarDateSeries;
 import org.ojalgo.type.CalendarDate;
 import org.ojalgo.type.CalendarDateUnit;
 
@@ -48,15 +41,12 @@ import yahoofinance.histquotes.Interval;
 
 public final class YahooFinanceDataSource implements FinanceData {
 
-    private static final TemporalAdjuster FRIDAY = TemporalAdjusters.nextOrSame(DayOfWeek.FRIDAY);
-    private static final TemporalAdjuster LAST_DAY_OF_MONTH = TemporalAdjusters.lastDayOfMonth();
-
     public static YahooFinanceDataSource of(String symbol, CalendarDateUnit resolution) {
         return new YahooFinanceDataSource(symbol, resolution);
     }
 
-    private final String mySymbol;
     private final CalendarDateUnit myResolution;
+    private final String mySymbol;
 
     YahooFinanceDataSource(String symbol, CalendarDateUnit resolution) {
 
@@ -105,25 +95,6 @@ public final class YahooFinanceDataSource implements FinanceData {
         }
     }
 
-    public CalendarDateSeries<Double> getPriceSeries() {
-        return this.getPriceSeries(myResolution, LocalTime.NOON, ZoneOffset.UTC);
-    }
-
-    public CalendarDateSeries<Double> getPriceSeries(CalendarDateUnit resolution) {
-        return this.getPriceSeries(resolution, LocalTime.NOON, ZoneOffset.UTC);
-    }
-
-    public CalendarDateSeries<Double> getPriceSeries(CalendarDateUnit resolution, LocalTime time, ZoneId zoneId) {
-
-        CalendarDateSeries<Double> retVal = new CalendarDateSeries<>(resolution);
-
-        for (DatePrice datePrice : this.getHistoricalPrices()) {
-            retVal.put(CalendarDate.valueOf(datePrice.key.atTime(time).atZone(zoneId)), datePrice.getPrice());
-        }
-
-        return retVal;
-    }
-
     public BasicSeries.NaturallySequenced<LocalDate, Double> getPriceSeries(DenseArray.Factory<Double> denseArrayFactory) {
 
         BasicSeries.NaturallySequenced<LocalDate, Double> retVal = BasicSeries.LOCAL_DATE.build(denseArrayFactory);
@@ -135,7 +106,7 @@ public final class YahooFinanceDataSource implements FinanceData {
                 adjusted = (LocalDate) LAST_DAY_OF_MONTH.adjustInto(datePrice.key);
                 break;
             case WEEK:
-                adjusted = (LocalDate) FRIDAY.adjustInto(datePrice.key);
+                adjusted = (LocalDate) FRIDAY_OF_WEEK.adjustInto(datePrice.key);
                 break;
             default:
                 adjusted = datePrice.key;
@@ -145,10 +116,6 @@ public final class YahooFinanceDataSource implements FinanceData {
         }
 
         return retVal;
-    }
-
-    public CalendarDateSeries<Double> getPriceSeries(LocalTime time, ZoneId zoneId) {
-        return this.getPriceSeries(myResolution, time, zoneId);
     }
 
     public String getSymbol() {
