@@ -27,7 +27,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.ojalgo.array.DenseArray;
+import org.ojalgo.array.Primitive64Array;
 import org.ojalgo.finance.data.DatePrice;
 import org.ojalgo.finance.data.FinanceData;
 import org.ojalgo.finance.data.parser.YahooParser;
@@ -101,9 +101,9 @@ public final class YahooFinanceDataSource implements FinanceData {
         }
     }
 
-    public BasicSeries.NaturallySequenced<LocalDate, Double> getPriceSeries(DenseArray.Factory<Double> denseArrayFactory) {
+    public BasicSeries.NaturallySequenced<LocalDate, Double> getPriceSeries() {
 
-        BasicSeries.NaturallySequenced<LocalDate, Double> retVal = BasicSeries.LOCAL_DATE.build(denseArrayFactory);
+        BasicSeries.NaturallySequenced<LocalDate, Double> retVal = BasicSeries.LOCAL_DATE.build(Primitive64Array.FACTORY);
 
         LocalDate adjusted;
         for (DatePrice datePrice : this.getHistoricalPrices()) {
