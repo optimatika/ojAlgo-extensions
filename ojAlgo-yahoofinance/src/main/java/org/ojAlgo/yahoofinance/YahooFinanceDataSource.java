@@ -39,6 +39,12 @@ import org.ojalgo.type.CalendarDateUnit;
 import yahoofinance.YahooFinance;
 import yahoofinance.histquotes.Interval;
 
+/**
+ * https://financequotes-api.com <br>
+ * https://github.com/sstrickx/yahoofinance-api
+ *
+ * @author apete
+ */
 public final class YahooFinanceDataSource implements FinanceData {
 
     public static YahooFinanceDataSource of(String symbol, CalendarDateUnit resolution) {
