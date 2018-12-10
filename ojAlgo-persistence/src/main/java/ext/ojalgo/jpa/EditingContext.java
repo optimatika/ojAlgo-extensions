@@ -41,16 +41,24 @@ public class EditingContext extends Object implements Serializable {
 
     public static final boolean DEBUG = false;
 
-    private static final EntityManagerFactory EMF = Persistence.createEntityManagerFactory("TacticsData");
+    private static EntityManagerFactory EMF = null;
+
+    public static void configure(String persistenceUnitName) {
+        EMF = Persistence.createEntityManagerFactory(persistenceUnitName);
+    }
+
+    public static void configure(String persistenceUnitName, Properties properties) {
+        EMF = Persistence.createEntityManagerFactory(persistenceUnitName, properties);
+    }
 
     private final HashMap<Object, AbstractBO<?>> myAllObjects = new HashMap<>();
     private final LinkedList<AbstractBO<?>> myDeletes = new LinkedList<>();
+    private final EntityManager myEntityManager = EMF.createEntityManager();
     private final UUID myIdentifier = UUID.randomUUID();
     private final LinkedList<AbstractBO<?>> myInserts = new LinkedList<>();
     private final Set<AbstractBO<?>> myRefreshs = new HashSet<>();
-    private final Set<AbstractBO<?>> myUpdates = new HashSet<>();
 
-    private final EntityManager myEntityManager = EMF.createEntityManager();
+    private final Set<AbstractBO<?>> myUpdates = new HashSet<>();
 
     public EditingContext() {
         super();
