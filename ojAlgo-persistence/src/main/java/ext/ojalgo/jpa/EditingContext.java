@@ -43,10 +43,16 @@ public class EditingContext extends Object implements Serializable {
 
     private static EntityManagerFactory EMF = null;
 
+    /**
+     * Will only work if the required connection parameters are defined in persistence.xml
+     */
     public static void configure(String persistenceUnitName) {
         EMF = Persistence.createEntityManagerFactory(persistenceUnitName);
     }
 
+    /**
+     * @param properties Must contain the connection parameters (get them from some properties file)
+     */
     public static void configure(String persistenceUnitName, Properties properties) {
         EMF = Persistence.createEntityManagerFactory(persistenceUnitName, properties);
     }
