@@ -59,7 +59,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <ojalgo.version>47.0.0</ojalgo.version>
-        <ojalgo.finance.version>2.0.0</ojalgo.finance.version>
+        <ojalgo-finance.version>2.0.0</ojalgo-finance.version>
         <junit.jupiter.version>5.3.1</junit.jupiter.version>
     </properties>
     <dependencies>
@@ -100,7 +100,7 @@
             <dependency>
                 <groupId>org.ojalgo</groupId>
                 <artifactId>ojalgo-finance</artifactId>
-                <version>${ojalgo.finance.version}</version>
+                <version>${ojalgo-finance.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
