@@ -41,7 +41,7 @@ import org.jfree.data.xy.XYDataset;
 /**
  * XYSeriesData
  * {@linkplain ChartFactory#createScatterPlot(String, String, String, org.jfree.data.xy.XYDataset, org.jfree.chart.plot.PlotOrientation, boolean, boolean, boolean)}
- * 
+ *
  * @author apete
  */
 public class ScatterPlotBuilder extends NumberSeriesCollection {
@@ -91,7 +91,7 @@ public class ScatterPlotBuilder extends NumberSeriesCollection {
             urlGenerator = new StandardXYURLGenerator();
         }
         final XYItemRenderer tmpRenderer = new XYLineAndShapeRenderer(false, true);
-        tmpRenderer.setBaseToolTipGenerator(toolTipGenerator);
+        tmpRenderer.setDefaultToolTipGenerator(toolTipGenerator);
         tmpRenderer.setURLGenerator(urlGenerator);
         retVal.setRenderer(tmpRenderer);
         retVal.setOrientation(orientation);

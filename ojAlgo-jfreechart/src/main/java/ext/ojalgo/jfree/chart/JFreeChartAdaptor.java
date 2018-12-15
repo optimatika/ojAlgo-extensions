@@ -25,7 +25,7 @@ import java.awt.Paint;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import org.jfree.chart.ChartUtilities;
+import org.jfree.chart.ChartUtils;
 import org.jfree.chart.JFreeChart;
 import org.ojalgo.ProgrammingError;
 
@@ -94,7 +94,7 @@ public final class JFreeChartAdaptor implements ChartBuilder.ChartResource<JFree
         final ByteArrayOutputStream tmpStream = new ByteArrayOutputStream();
 
         try {
-            ChartUtilities.writeChartAsPNG(tmpStream, myDelegate, myWidth, myHeight);
+            ChartUtils.writeChartAsPNG(tmpStream, myDelegate, myWidth, myHeight);
         } catch (final IOException anException) {
             // TODO Something!!
         }

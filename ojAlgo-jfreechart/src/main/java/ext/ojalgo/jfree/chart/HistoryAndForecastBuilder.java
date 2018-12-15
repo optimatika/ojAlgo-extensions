@@ -93,7 +93,7 @@ public class HistoryAndForecastBuilder extends CalendarDateSeriesCollection {
         } else {
             tmpRenderer = new XYLineAndShapeRenderer(true, false);
         }
-        tmpRenderer.setBaseToolTipGenerator(null);
+        tmpRenderer.setDefaultToolTipGenerator(null);
         tmpRenderer.setURLGenerator(null);
 
         String tmpKey;

@@ -51,10 +51,10 @@ public class StackedBarChartBuilder extends AbstractData2D {
         tmpRenderer.setShadowVisible(false);
 
         if (this.isTooltips()) {
-            tmpRenderer.setBaseToolTipGenerator(new StandardCategoryToolTipGenerator());
+            tmpRenderer.setDefaultToolTipGenerator(new StandardCategoryToolTipGenerator());
         }
         if (this.isUrls()) {
-            tmpRenderer.setBaseItemURLGenerator(new StandardCategoryURLGenerator());
+            tmpRenderer.setDefaultItemURLGenerator(new StandardCategoryURLGenerator());
         }
 
         this.setColours(tmpRenderer, tmpDataset);
