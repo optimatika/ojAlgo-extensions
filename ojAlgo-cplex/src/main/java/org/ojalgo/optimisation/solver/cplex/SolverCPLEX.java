@@ -87,8 +87,10 @@ public final class SolverCPLEX implements Optimisation.Solver {
                         type = IloNumVarType.Int;
                     }
 
-                    final IloNumVar tmpSolVar = delegateSolver.numVar(var.getUnadjustedLowerLimit(), var.getUnadjustedUpperLimit(), type, var.getName());
-                    retVal.getDelegateVariables().add(tmpSolVar);
+                    double unadjustedLowerLimit = var.getUnadjustedLowerLimit();
+                    double unadjustedUpperLimit = var.getUnadjustedUpperLimit();
+                    final IloNumVar solverVar = delegateSolver.numVar(unadjustedLowerLimit, unadjustedUpperLimit, type, var.getName());
+                    retVal.getDelegateVariables().add(solverVar);
                 }
 
                 for (final Expression expr : model.constraints().map(e -> e.compensate(fixedModVars)).collect(Collectors.toList())) {

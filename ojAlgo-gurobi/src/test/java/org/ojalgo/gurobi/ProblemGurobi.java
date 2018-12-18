@@ -21,6 +21,7 @@
  */
 package org.ojalgo.gurobi;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.ojalgo.TestUtils;
 import org.ojalgo.constant.PrimitiveMath;
@@ -30,6 +31,7 @@ import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.optimisation.solver.gurobi.SolverGurobi;
 
+@Disabled
 public class ProblemGurobi {
 
     /**
