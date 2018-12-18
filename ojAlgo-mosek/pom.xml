@@ -8,8 +8,11 @@
         <version>2.0.0</version>
     </parent>
     <artifactId>ojalgo-mosek</artifactId>
+    <name>ojAlgo-mosek</name>
     <properties>
-        <path.lib.mosek>/Users/apete/Applications/mosek/7/tools/platform/osx64x86/bin/mosek.jar</path.lib.mosek>
+        <path.installation.mosek>/Users/apete/Applications/mosek</path.installation.mosek> <!-- You have to change this! -->
+        <path.jar.mosek>${path.installation.mosek}/7/tools/platform/osx64x86/bin/mosek.jar</path.jar.mosek>
+        <path.native.mosek>${path.installation.mosek}/7/tools/platform/osx64x86/bin</path.native.mosek>
     </properties>
     <dependencies>
         <dependency>
@@ -17,8 +20,18 @@
             <artifactId>mosek</artifactId>
             <version>7.1</version>
             <scope>system</scope>
-            <systemPath>${path.lib.mosek}</systemPath>
+            <systemPath>${path.jar.mosek}</systemPath>
         </dependency>
     </dependencies>
-    <name>ojAlgo-mosek</name>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Djava.library.path=${path.native.mosek}</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
