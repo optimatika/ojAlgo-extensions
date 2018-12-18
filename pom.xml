@@ -5,7 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.ojalgo</groupId>
     <artifactId>ojalgo-extensions</artifactId>
-    <version>2.0.0</version>
+    <!-- The major version digit corresponds to the pom structure version -->
+    <!-- The minor version digit corresponds to the major version of ojAlgo -->
+    <!-- The patch version digit corresponds to the major version of ojAlgo-finance -->
+    <version>2.47.2</version>
     <packaging>pom</packaging>
     <name>ojAlgo-extensions</name>
     <url>http://ojalgo.org</url>

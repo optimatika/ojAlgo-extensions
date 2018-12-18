@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.ojalgo</groupId>
     <artifactId>ojalgo-extensions</artifactId>
-    <version>2.0.0</version>
+    <version>2.47.2</version>
   </parent>
   <artifactId>ojalgo-unsafe</artifactId>
   <name>ojAlgo-unsafe</name>
