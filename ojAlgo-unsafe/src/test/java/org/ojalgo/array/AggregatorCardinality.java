@@ -32,10 +32,6 @@ public class AggregatorCardinality extends BasicArrayTest {
         super();
     }
 
-    public AggregatorCardinality(final String aName) {
-        super(aName);
-    }
-
     @Override
     void doTest(final BasicArray<Double> array) {
 

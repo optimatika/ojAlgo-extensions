@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2017 Optimatika
+ * Copyright 1997-2018 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,9 +22,9 @@
 package org.ojalgo.spark.rdd;
 
 import org.apache.spark.Partition;
-import org.ojalgo.access.Structure2D;
 import org.ojalgo.matrix.store.ElementsConsumer;
 import org.ojalgo.matrix.store.PhysicalStore;
+import org.ojalgo.structure.Structure2D;
 
 public class Partition2D implements Partition, Structure2D {
 

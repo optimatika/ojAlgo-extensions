@@ -1,10 +1,14 @@
 package org.ojalgo.optimisation.external;
 
+import java.math.BigDecimal;
+
+import org.ojalgo.array.BigArray;
+import org.ojalgo.array.DenseArray;
 import org.ojalgo.array.Primitive64Array;
-import org.ojalgo.matrix.store.BigDenseStore;
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation.Result;
+import org.ojalgo.optimisation.solver.cplex.SolverCPLEX;
 
 public class OJAlgoTest3 {
 
@@ -35,12 +39,12 @@ public class OJAlgoTest3 {
         // OPTIMAL 560300.4700496289 @ [74542.7288388, 48961.3064461, 13408.93322, 40061.705994, 0.0, 40061.705994, 13408.93322, 0.0, 7.04812228046, 2773.81908243, 2773.81908243, 0.0, 0.0, 0.0, 11604.5308488, 12395.4691449, 4339.53410099, 7660.46589271, 78.8113907425, 221.188602961, 11604.5308488, 12395.4691449, 10813.3798123, 0.0, 9186.62018135, 0.0, 11999.9999937, 0.0, 0.0, 4339.53410099, 7660.46589271, 0.0, 0.0, 47953.0468934, 24046.9531003, 0.0, 0.0, 14244.4816129, 13755.5183808, 12395.4691449, 0.0, 11604.5308488, 0.0, 0.0, 0.0, 6679.71873106, 9320.28126264, 12395.4691449, 0.0, 11604.5308488, 0.0, 55999.9999937]
         // Solution 3 OK
 
-        final BigDenseStore tmpOjSol1 = BigDenseStore.FACTORY.columns(new double[] { 23731.5685592, 14658.0750029, 8725.18286313, 0.0, 0.0, 0.0, 0.0,
+        final DenseArray<BigDecimal> tmpOjSol1 = BigArray.FACTORY.copy(new double[] { 23731.5685592, 14658.0750029, 8725.18286313, 0.0, 0.0, 0.0, 0.0,
                 2885.17357483, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0185765703008, 0.0116103564374, 0.00696621386358, 0.00232207128747, -0.574712643678 });
-        final BigDenseStore tmpOjSol2 = BigDenseStore.FACTORY.columns(
-                new double[] { 22988.5057471, 14367.816092, 8620.68965517, 0.0, 0.0, 0.0, 0.0, 2873.56321839, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 });
-        final BigDenseStore tmpOjSol3 = BigDenseStore.FACTORY
-                .columns(new double[] { 80150.9434796, 48981.1320493, 13358.4905589, 40075.4716767, 0.0, 40075.4716767, 13358.4905589, 0.0, 0.0, 0.0, 0.0, 0.0,
+        final DenseArray<BigDecimal> tmpOjSol2 = BigArray.FACTORY
+                .copy(new double[] { 22988.5057471, 14367.816092, 8620.68965517, 0.0, 0.0, 0.0, 0.0, 2873.56321839, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 });
+        final DenseArray<BigDecimal> tmpOjSol3 = BigArray.FACTORY
+                .copy(new double[] { 80150.9434796, 48981.1320493, 13358.4905589, 40075.4716767, 0.0, 40075.4716767, 13358.4905589, 0.0, 0.0, 0.0, 0.0, 0.0,
                         0.0, 0.0, 24000.0, 0.0, 12000.0, 0.0, 0.0, 300.0, 24000.0, 0.0, 20000.0, 0.0, 0.0, 0.0, 12000.0, 12000.0, 0.0, 0.0, 0.0, 72000.0, 0.0,
                         0.0, 0.0, 28000.0, 0.0, 0.0, 0.0, 24000.0, 0.0, 0.0, 0.0, 16000.0, 0.0, 0.0, 0.0, 24000.0, 0.0, 0.0, 0.0, 56000.0 });
 
@@ -151,7 +155,7 @@ public class OJAlgoTest3 {
                 0.0, 47953.0468934, 24046.9531003, 0.0, 0.0, 14244.4816129, 13755.5183808, 12395.4691449, 0.0, 11604.5308488, 0.0, 0.0, 0.0, 6679.71873106,
                 9320.28126264, 12395.4691449, 0.0, 11604.5308488, 0.0, 55999.9999937 };
         final Primitive64Array tmpSolution1 = Primitive64Array.wrap(tmpCplexSolution);
-        final BigDenseStore tmpSolution2 = BigDenseStore.FACTORY.columns(tmpSolution1);
+        final DenseArray<BigDecimal> tmpSolution2 = BigArray.FACTORY.copy(tmpSolution1);
 
         if (tmpModel3.validate(tmpSolution2)) {
             BasicLogger.debug("OK");

@@ -22,7 +22,7 @@
 package org.ojalgo.array;
 
 import org.ojalgo.TestUtils;
-import org.ojalgo.access.StructureAnyD;
+import org.ojalgo.structure.StructureAnyD;
 
 /**
  * AbstractArrayTest
@@ -106,10 +106,6 @@ public class ArrayStructureTest extends ArrayTests {
 
     public ArrayStructureTest() {
         super();
-    }
-
-    public ArrayStructureTest(final String aName) {
-        super(aName);
     }
 
     public void testGetIndexintArray() {

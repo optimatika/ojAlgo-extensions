@@ -32,10 +32,6 @@ public class AggregatorSum extends BasicArrayTest {
         super();
     }
 
-    public AggregatorSum(final String aName) {
-        super(aName);
-    }
-
     @Override
     void doTest(final BasicArray<Double> array) {
 

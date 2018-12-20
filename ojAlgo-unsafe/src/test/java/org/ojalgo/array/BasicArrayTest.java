@@ -30,7 +30,7 @@ import org.ojalgo.random.Uniform;
  *
  * @author apete
  */
-public abstract class BasicArrayTest extends ArrayTests {
+public abstract class BasicArrayTest extends Object {
 
     static final int COUNT = 100;
     static final long[] INDICES = new long[10];
@@ -44,10 +44,6 @@ public abstract class BasicArrayTest extends ArrayTests {
 
     public BasicArrayTest() {
         super();
-    }
-
-    public BasicArrayTest(final String aName) {
-        super(aName);
     }
 
     public void testHugeSparse() {
@@ -75,7 +71,7 @@ public abstract class BasicArrayTest extends ArrayTests {
     }
 
     public void testSegmentedSparse() {
-        this.doTest(BasicArray.factory(Primitive64Array.FACTORY).makeSegmented(COUNT));
+        this.doTest(new BasicArray.Factory<>(Primitive64Array.FACTORY).makeSegmented(COUNT));
     }
 
     public void testSparse() {

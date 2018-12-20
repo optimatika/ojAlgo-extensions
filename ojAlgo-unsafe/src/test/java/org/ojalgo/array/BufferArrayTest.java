@@ -35,10 +35,6 @@ public class BufferArrayTest extends ArrayTests {
         super();
     }
 
-    public BufferArrayTest(final String aName) {
-        super(aName);
-    }
-
     public void testRandomGetSet() {
 
         final int tmpCount = 5000;

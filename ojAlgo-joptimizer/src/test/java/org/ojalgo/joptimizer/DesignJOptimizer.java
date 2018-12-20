@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2017 Optimatika
+ * Copyright 1997-2018 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,9 +21,9 @@
  */
 package org.ojalgo.joptimizer;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.ojalgo.constant.PrimitiveMath;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.ojalgo.TestUtils;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
@@ -34,6 +34,8 @@ public class DesignJOptimizer {
     @Test
     public void testSimplyLowerAndUpperBounds() {
 
+        double precision = 0.00001;
+
         ExpressionsBasedModel.addIntegration(SolverJOptimizer.INTEGRATION);
 
         final ExpressionsBasedModel model = new ExpressionsBasedModel();
@@ -43,20 +45,21 @@ public class DesignJOptimizer {
         model.addExpression("SUM").set(0, 1).set(1, 1).set(2, 1).level(6);
 
         final Optimisation.Result minResult = model.minimise();
-        Assert.assertTrue(model.validate(minResult));
-        Assert.assertTrue(minResult.getState().isOptimal());
-        Assert.assertEquals(11, minResult.getValue(), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(2, minResult.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(1, minResult.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(3, minResult.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertTrue(model.validate(minResult));
+        TestUtils.assertTrue(minResult.getState().isOptimal());
+
+        TestUtils.assertEquals(11, minResult.getValue(), precision);
+        TestUtils.assertEquals(2, minResult.doubleValue(0), precision);
+        TestUtils.assertEquals(1, minResult.doubleValue(1), precision);
+        TestUtils.assertEquals(3, minResult.doubleValue(2), precision);
 
         final Optimisation.Result maxResult = model.maximise();
-        Assert.assertTrue(model.validate(maxResult));
-        Assert.assertTrue(maxResult.getState().isOptimal());
-        Assert.assertEquals(13, maxResult.getValue(), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(2, maxResult.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(3, maxResult.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(1, maxResult.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertTrue(model.validate(maxResult));
+        TestUtils.assertTrue(maxResult.getState().isOptimal());
+        TestUtils.assertEquals(13, maxResult.getValue(), precision);
+        TestUtils.assertEquals(2, maxResult.doubleValue(0), precision);
+        TestUtils.assertEquals(3, maxResult.doubleValue(1), precision);
+        TestUtils.assertEquals(1, maxResult.doubleValue(2), precision);
     }
 
     /**
@@ -64,7 +67,10 @@ public class DesignJOptimizer {
      * https://github.com/optimatika/ojAlgo-extensions/issues/3
      */
     @Test
+    @Disabled
     public void testCompensate() {
+
+        double precision = 0.00001;
 
         ExpressionsBasedModel.addIntegration(SolverJOptimizer.INTEGRATION);
 
@@ -76,15 +82,15 @@ public class DesignJOptimizer {
         expressions.set(0, 1).set(1, 1).set(2, 1);
         final Optimisation.Result result = test.maximise();
 
-        Assert.assertTrue(test.validate(result));
+        TestUtils.assertTrue(test.validate(result));
 
-        Assert.assertTrue(result.getState().isOptimal());
+        TestUtils.assertTrue(result.getState().isOptimal());
 
-        Assert.assertEquals(5.0, result.getValue(), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertEquals(5.0, result.getValue(), precision);
 
-        Assert.assertEquals(0.0, result.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(1.0, result.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(4.0, result.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertEquals(0.0, result.doubleValue(0), precision);
+        TestUtils.assertEquals(1.0, result.doubleValue(1), precision);
+        TestUtils.assertEquals(4.0, result.doubleValue(2), precision);
     }
 
     /**
@@ -92,7 +98,10 @@ public class DesignJOptimizer {
      * https://github.com/optimatika/ojAlgo-extensions/issues/1
      */
     @Test
+    @Disabled
     public void testFixedVariables() {
+
+        double precision = 0.000001;
 
         ExpressionsBasedModel.addIntegration(SolverJOptimizer.INTEGRATION);
 
@@ -104,20 +113,22 @@ public class DesignJOptimizer {
         expressions.set(1, 1).set(2, 1);
 
         final Optimisation.Result minResult = test.minimise();
-        Assert.assertTrue(test.validate(minResult));
-        Assert.assertEquals(Optimisation.State.OPTIMAL, minResult.getState());
-        Assert.assertEquals(0.0, minResult.getValue(), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(0.5, minResult.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(0.0, minResult.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(0.0, minResult.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertTrue(test.validate(minResult));
+        TestUtils.assertEquals(Optimisation.State.OPTIMAL, minResult.getState());
+
+        TestUtils.assertEquals(0.0, minResult.getValue(), precision);
+        TestUtils.assertEquals(0.5, minResult.doubleValue(0), precision);
+        TestUtils.assertEquals(0.0, minResult.doubleValue(1), precision);
+        TestUtils.assertEquals(0.0, minResult.doubleValue(2), precision);
 
         final Optimisation.Result maxResult = test.maximise();
-        Assert.assertTrue(test.validate(maxResult));
-        Assert.assertEquals(Optimisation.State.OPTIMAL, maxResult.getState());
-        Assert.assertEquals(4.0, maxResult.getValue(), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(0.5, maxResult.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(2.0, maxResult.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(0.0, maxResult.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertTrue(test.validate(maxResult));
+        TestUtils.assertEquals(Optimisation.State.OPTIMAL, maxResult.getState());
+
+        TestUtils.assertEquals(4.0, maxResult.getValue(), precision);
+        TestUtils.assertEquals(0.5, maxResult.doubleValue(0), precision);
+        TestUtils.assertEquals(2.0, maxResult.doubleValue(1), precision);
+        TestUtils.assertEquals(0.0, maxResult.doubleValue(2), precision);
     }
 
 }

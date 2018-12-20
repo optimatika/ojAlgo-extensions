@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika
+ * Copyright 1997-2018 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,16 +41,30 @@ public class EditingContext extends Object implements Serializable {
 
     public static final boolean DEBUG = false;
 
-    private static final EntityManagerFactory EMF = Persistence.createEntityManagerFactory("TacticsData");
+    private static EntityManagerFactory EMF = null;
+
+    /**
+     * Will only work if the required connection parameters are defined in persistence.xml
+     */
+    public static void configure(String persistenceUnitName) {
+        EMF = Persistence.createEntityManagerFactory(persistenceUnitName);
+    }
+
+    /**
+     * @param properties Must contain the connection parameters (get them from some properties file)
+     */
+    public static void configure(String persistenceUnitName, Properties properties) {
+        EMF = Persistence.createEntityManagerFactory(persistenceUnitName, properties);
+    }
 
     private final HashMap<Object, AbstractBO<?>> myAllObjects = new HashMap<>();
     private final LinkedList<AbstractBO<?>> myDeletes = new LinkedList<>();
+    private final EntityManager myEntityManager = EMF.createEntityManager();
     private final UUID myIdentifier = UUID.randomUUID();
     private final LinkedList<AbstractBO<?>> myInserts = new LinkedList<>();
     private final Set<AbstractBO<?>> myRefreshs = new HashSet<>();
-    private final Set<AbstractBO<?>> myUpdates = new HashSet<>();
 
-    private final EntityManager myEntityManager = EMF.createEntityManager();
+    private final Set<AbstractBO<?>> myUpdates = new HashSet<>();
 
     public EditingContext() {
         super();

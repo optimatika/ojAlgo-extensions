@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2017 Optimatika
+ * Copyright 1997-2018 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,11 +38,11 @@ import org.apache.commons.math3.optim.linear.SimplexSolver;
 import org.apache.commons.math3.optim.linear.UnboundedSolutionException;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
 import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
-import org.ojalgo.access.Access1D;
-import org.ojalgo.access.Structure1D.IntIndex;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
+import org.ojalgo.structure.Access1D;
+import org.ojalgo.structure.Structure1D.IntIndex;
 
 public final class SolverCommonsMath implements Optimisation.Solver {
 
@@ -75,8 +75,8 @@ public final class SolverCommonsMath implements Optimisation.Solver {
             final double[] upperBounds = new double[variables.size()];
             for (int v = 0; v < variables.size(); v++) {
                 tmpVariable = variables.get(v);
-                lowerBounds[v] = tmpVariable.getAdjustedLowerLimit() / tmpVariable.getAdjustmentFactor();
-                upperBounds[v] = tmpVariable.getAdjustedUpperLimit() / tmpVariable.getAdjustmentFactor();
+                lowerBounds[v] = tmpVariable.getUnadjustedLowerLimit();
+                upperBounds[v] = tmpVariable.getUnadjustedUpperLimit();
             }
             final SimpleBounds simpleBounds = new SimpleBounds(lowerBounds, upperBounds);
 

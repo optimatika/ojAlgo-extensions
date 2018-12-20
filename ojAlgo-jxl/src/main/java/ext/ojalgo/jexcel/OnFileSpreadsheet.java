@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2014 Optimatika
+ * Copyright 1997-2018 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
-import org.ojalgo.matrix.BasicMatrix;
+import org.ojalgo.matrix.PrimitiveMatrix;
 
 import ext.ojalgo.jexcel.database.Table;
 import jxl.Workbook;
@@ -68,7 +68,7 @@ public class OnFileSpreadsheet implements Spreadsheet {
         return myCurrent.getDateCellValue();
     }
 
-    public BasicMatrix getMatrixSheetValue() {
+    public PrimitiveMatrix getMatrixSheetValue() {
         return myCurrent.getMatrixSheetValue();
     }
 
@@ -143,7 +143,7 @@ public class OnFileSpreadsheet implements Spreadsheet {
         myCurrent.setDateRowValues(someRowValues);
     }
 
-    public void setMatrixSheetValue(final BasicMatrix aSheetValue) {
+    public void setMatrixSheetValue(final PrimitiveMatrix aSheetValue) {
         myCurrent.setMatrixSheetValue(aSheetValue);
     }
 

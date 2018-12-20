@@ -21,7 +21,6 @@
  */
 package org.ojalgo.array;
 
-import org.ojalgo.access.Access1D;
 import org.ojalgo.constant.PrimitiveMath;
 import org.ojalgo.function.BinaryFunction;
 import org.ojalgo.function.FunctionSet;
@@ -33,6 +32,7 @@ import org.ojalgo.function.aggregator.AggregatorSet;
 import org.ojalgo.function.aggregator.PrimitiveAggregator;
 import org.ojalgo.scalar.PrimitiveScalar;
 import org.ojalgo.scalar.Scalar;
+import org.ojalgo.structure.Access1D;
 
 /**
  * <p>
@@ -111,14 +111,6 @@ public abstract class OffHeapArray extends DenseArray<Double> {
 
     };
 
-    /**
-     * @deprecated v42 Use {@link #makeNative64(long)} instead
-     */
-    @Deprecated
-    public static OffHeapArray make(final long count) {
-        return OffHeapArray.makeNative64(count);
-    }
-
     public static OffHeapArray makeNative32(final long count) {
         return new Native32Array(count);
     }
@@ -127,20 +119,11 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         return new Native64Array(count);
     }
 
-    /**
-     * @deprecated v42 Use {@link SegmentedArray#makeDense(DenseArray.Factory, long)} or
-     *             {@link SegmentedArray#makeSparse(BasicArray.BasicFactory, long)} instead
-     */
-    @Deprecated
-    public static final SegmentedArray<Double> makeSegmented(final long count) {
-        return NATIVE64.makeSegmented(count);
-    }
-
     private final long myCount;
 
-    OffHeapArray(final long count) {
+    OffHeapArray(DenseArray.Factory<Double> factory, final long count) {
 
-        super();
+        super(factory);
 
         myCount = count;
     }

@@ -1,18 +1,38 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.ojalgo</groupId>
         <artifactId>ojalgo-extensions</artifactId>
-        <version>1.1.0</version>
+        <version>2.47.2</version>
     </parent>
     <artifactId>ojalgo-cplex</artifactId>
     <name>ojAlgo-cplex</name>
     <description>ojAlgo and CPLEX integration</description>
+    <properties>
+        <path.installation.cplex>/Users/apete/Applications/IBM</path.installation.cplex> <!-- You have to change this! -->
+        <path.jar.cplex>${path.installation.cplex}/ILOG/CPLEX_Studio_Community1262/cplex/lib/cplex.jar</path.jar.cplex>
+        <path.native.cplex>${path.installation.cplex}/ILOG/CPLEX_Studio_Community1262/cplex/bin/x86-64_osx</path.native.cplex>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>cplex</groupId>
             <artifactId>cplex</artifactId>
+            <version>12.6.2</version>
+            <scope>system</scope>
+            <systemPath>${path.jar.cplex}</systemPath>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Djava.library.path=${path.native.cplex}</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

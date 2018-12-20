@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2017 Optimatika
+ * Copyright 1997-2018 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,13 +21,15 @@
  */
 package org.ojalgo.optimisation.external;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.ojalgo.TestUtils;
 import org.ojalgo.constant.PrimitiveMath;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
+import org.ojalgo.optimisation.solver.cplex.SolverCPLEX;
 
 public class ProblemCPLEX {
 
@@ -48,15 +50,15 @@ public class ProblemCPLEX {
         expressions.set(0, 1).set(1, 1).set(2, 1);
         final Optimisation.Result result = test.maximise();
 
-        Assert.assertTrue(test.validate(result));
+        TestUtils.assertTrue(test.validate(result));
 
-        Assert.assertTrue(result.getState().isOptimal());
+        TestUtils.assertTrue(result.getState().isOptimal());
 
-        Assert.assertEquals(5.0, result.getValue(), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertEquals(5.0, result.getValue(), PrimitiveMath.MACHINE_EPSILON);
 
-        Assert.assertEquals(0.0, result.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(1.0, result.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(4.0, result.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertEquals(0.0, result.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertEquals(1.0, result.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertEquals(4.0, result.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
     }
 
     /**
@@ -75,33 +77,35 @@ public class ProblemCPLEX {
         expressions.set(1, 1).set(2, 1);
 
         final Optimisation.Result minResult = test.minimise();
-        Assert.assertTrue(test.validate(minResult));
-        Assert.assertEquals(Optimisation.State.OPTIMAL, minResult.getState());
-        Assert.assertEquals(0.0, minResult.getValue(), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(0.5, minResult.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(0.0, minResult.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(0.0, minResult.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertTrue(test.validate(minResult));
+        TestUtils.assertEquals(Optimisation.State.OPTIMAL, minResult.getState());
+        TestUtils.assertEquals(0.0, minResult.getValue(), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertEquals(0.5, minResult.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertEquals(0.0, minResult.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertEquals(0.0, minResult.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
 
         final Optimisation.Result maxResult = test.maximise();
-        Assert.assertTrue(test.validate(maxResult));
-        Assert.assertEquals(Optimisation.State.OPTIMAL, maxResult.getState());
-        Assert.assertEquals(4.0, maxResult.getValue(), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(0.5, maxResult.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(2.0, maxResult.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
-        Assert.assertEquals(0.0, maxResult.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertTrue(test.validate(maxResult));
+        TestUtils.assertEquals(Optimisation.State.OPTIMAL, maxResult.getState());
+        TestUtils.assertEquals(4.0, maxResult.getValue(), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertEquals(0.5, maxResult.doubleValue(0), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertEquals(2.0, maxResult.doubleValue(1), PrimitiveMath.MACHINE_EPSILON);
+        TestUtils.assertEquals(0.0, maxResult.doubleValue(2), PrimitiveMath.MACHINE_EPSILON);
     }
 
     /**
      * https://github.com/optimatika/ojAlgo-extensions/issues/2 <br>
-     * Reported as a problem with the Gurobi integration
+     * Reported as a problem with the Gurobi integration. The problem is unbounded. Many solvers do not return
+     * a feasible solution in such case - even if they could.
      */
     @Test
+    @Tag("unstable")
     public void testGitHubIssue2() {
 
         final Variable[] objective = new Variable[] { new Variable("X1").weight(0.8), new Variable("X2").weight(0.2), new Variable("X3").weight(0.7),
                 new Variable("X4").weight(0.3), new Variable("X5").weight(0.6), new Variable("X6").weight(0.4) };
 
-        ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION);
+        // ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION);
         final ExpressionsBasedModel model = new ExpressionsBasedModel(objective);
 
         model.addExpression("C1").set(0, 1).set(2, 1).set(4, 1).level(23);
@@ -114,7 +118,7 @@ public class ProblemCPLEX {
 
         // A valid solution of 25.8 can be produced with:
         //     X1=10, X2=0, X3=8, X4=0, X5=5, X6=23
-        Assert.assertEquals(25.8, result.getValue(), 0.001);
+        TestUtils.assertEquals(25.8, result.getValue(), 0.001);
     }
 
 }
