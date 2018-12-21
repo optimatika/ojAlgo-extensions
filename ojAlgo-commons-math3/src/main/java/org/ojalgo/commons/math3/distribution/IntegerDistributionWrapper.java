@@ -31,23 +31,23 @@ public final class IntegerDistributionWrapper<D extends IntegerDistribution> ext
         return new IntegerDistributionWrapper<D>(delegateDistribution);
     }
 
-    private final D myDelegateDistribution;
+    private final D myDelegate;
 
     private IntegerDistributionWrapper(D delegateDistribution) {
         super();
-        myDelegateDistribution = delegateDistribution;
+        myDelegate = delegateDistribution;
     }
 
-    public D getDelegateDistribution() {
-        return myDelegateDistribution;
+    public D getDelegate() {
+        return myDelegate;
     }
 
     public double getExpected() {
-        return myDelegateDistribution.getNumericalMean();
+        return myDelegate.getNumericalMean();
     }
 
     public double getProbability(int value) {
-        return myDelegateDistribution.probability(value);
+        return myDelegate.probability(value);
     }
 
     @Override
@@ -57,12 +57,12 @@ public final class IntegerDistributionWrapper<D extends IntegerDistribution> ext
 
     @Override
     public double getVariance() {
-        return myDelegateDistribution.getNumericalVariance();
+        return myDelegate.getNumericalVariance();
     }
 
     @Override
     protected double generate() {
-        return myDelegateDistribution.sample();
+        return myDelegate.sample();
     }
 
 }

@@ -31,31 +31,31 @@ public final class RealDistributionWrapper<D extends RealDistribution> extends R
         return new RealDistributionWrapper<D>(delegateDistribution);
     }
 
-    private final D myDelegateDistribution;
+    private final D myDelegate;
 
     private RealDistributionWrapper(D delegateDistribution) {
         super();
-        myDelegateDistribution = delegateDistribution;
+        myDelegate = delegateDistribution;
     }
 
-    public D getDelegateDistribution() {
-        return myDelegateDistribution;
+    public D getDelegate() {
+        return myDelegate;
+    }
+
+    public double getDensity(double value) {
+        return myDelegate.density(value);
     }
 
     public double getDistribution(double value) {
-        return myDelegateDistribution.cumulativeProbability(value);
+        return myDelegate.cumulativeProbability(value);
     }
 
     public double getExpected() {
-        return myDelegateDistribution.getNumericalMean();
-    }
-
-    public double getProbability(double value) {
-        return myDelegateDistribution.density(value);
+        return myDelegate.getNumericalMean();
     }
 
     public double getQuantile(double probability) {
-        return myDelegateDistribution.inverseCumulativeProbability(probability);
+        return myDelegate.inverseCumulativeProbability(probability);
     }
 
     @Override
@@ -65,12 +65,12 @@ public final class RealDistributionWrapper<D extends RealDistribution> extends R
 
     @Override
     public double getVariance() {
-        return myDelegateDistribution.getNumericalVariance();
+        return myDelegate.getNumericalVariance();
     }
 
     @Override
     protected double generate() {
-        return myDelegateDistribution.sample();
+        return myDelegate.sample();
     }
 
 }
