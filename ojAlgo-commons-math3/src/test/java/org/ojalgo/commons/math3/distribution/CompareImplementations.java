@@ -28,6 +28,7 @@ import org.ojalgo.TestUtils;
 import org.ojalgo.random.Cauchy;
 import org.ojalgo.random.ContinuousDistribution;
 import org.ojalgo.random.Normal;
+import org.ojalgo.random.RandomNumberTest;
 import org.ojalgo.random.RandomUtils;
 import org.ojalgo.random.TDistribution;
 
@@ -38,12 +39,7 @@ public class CompareImplementations {
         ContinuousDistribution expected = RealDistributionWrapper.of(acm);
         ContinuousDistribution actual = oj;
 
-        for (int d = -20; d < 21; d++) { // -2 .. 2
-            double value = d / 10.0;
-            double e = expected.getDensity(value);
-            double a = actual.getDensity(value);
-            TestUtils.assertEquals(e, a, 0.000001);
-        }
+        RandomNumberTest.compareDensity(expected, actual);
     }
 
     static void compareDistribution(RealDistribution acm, ContinuousDistribution oj) {
@@ -51,12 +47,7 @@ public class CompareImplementations {
         ContinuousDistribution expected = RealDistributionWrapper.of(acm);
         ContinuousDistribution actual = oj;
 
-        for (int d = -20; d < 21; d++) { // -2 .. 2
-            double value = d / 10.0;
-            double e = expected.getDistribution(-value);
-            double a = actual.getDistribution(-value);
-            TestUtils.assertEquals(e, a, 0.0001);
-        }
+        RandomNumberTest.compareDistribution(expected, actual);
     }
 
     static void compareQuantile(RealDistribution acm, ContinuousDistribution oj) {
@@ -64,12 +55,7 @@ public class CompareImplementations {
         ContinuousDistribution expected = RealDistributionWrapper.of(acm);
         ContinuousDistribution actual = oj;
 
-        for (int t = 1; t < 10; t++) { // 0.1 .. 0.9
-            double probability = t / 10.0;
-            double e = expected.getQuantile(probability);
-            double a = actual.getQuantile(probability);
-            TestUtils.assertEquals(e, a, 0.0000001);
-        }
+        RandomNumberTest.compareQuantile(expected, actual);
     }
 
     @Test
