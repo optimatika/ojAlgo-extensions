@@ -25,11 +25,11 @@ import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.special.Erf;
 import org.junit.jupiter.api.Test;
 import org.ojalgo.TestUtils;
-import org.ojalgo.function.special.ErrorFunction;
 import org.ojalgo.random.Cauchy;
 import org.ojalgo.random.ContinuousDistribution;
 import org.ojalgo.random.Normal;
 import org.ojalgo.random.RandomNumberTest;
+import org.ojalgo.random.RandomUtils;
 import org.ojalgo.random.TDistribution;
 
 public class CompareImplementations {
@@ -72,14 +72,14 @@ public class CompareImplementations {
     @Test
     public void testERF() {
         for (int d = -10; d < 11; d++) {
-            TestUtils.assertEquals(Erf.erf(d), ErrorFunction.erf(d), 0.0000000001);
+            TestUtils.assertEquals(Erf.erf(d), RandomUtils.erf(d), 0.0000000001);
         }
     }
 
     @Test
     public void testERFC() {
         for (int d = -10; d < 11; d++) {
-            TestUtils.assertEquals(Erf.erfc(d), ErrorFunction.erfc(d), 0.0000000001);
+            TestUtils.assertEquals(Erf.erfc(d), RandomUtils.erfc(d), 0.0000000001);
         }
     }
 
@@ -87,7 +87,7 @@ public class CompareImplementations {
     public void testERFI() {
         for (int d = -9; d < 10; d++) {
             double value = d / 10.0;
-            TestUtils.assertEquals(Erf.erfInv(value), ErrorFunction.erfi(value), 0.0000000001);
+            TestUtils.assertEquals(Erf.erfInv(value), RandomUtils.erfi(value), 0.0000000001);
         }
     }
 
