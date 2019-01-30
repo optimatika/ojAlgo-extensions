@@ -19,14 +19,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.optimisation.external;
+package org.ojalgo.optimisation.solver.cplex;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.integer.RelaxedMIPCase;
+import org.ojalgo.optimisation.integer.MIPLIBTheEasySet;
 import org.ojalgo.optimisation.solver.cplex.SolverCPLEX;
 
-public class RelaxedWithCPLEX extends RelaxedMIPCase {
+public class MIPLIBTheEasySetWithCPLEX extends MIPLIBTheEasySet {
 
     @BeforeAll
     public static void configure() {
