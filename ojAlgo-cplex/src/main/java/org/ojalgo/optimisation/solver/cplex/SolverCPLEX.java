@@ -21,8 +21,6 @@
  */
 package org.ojalgo.optimisation.solver.cplex;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -132,12 +130,12 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
         public void configure(final IloCplex cplex, final Options options) {
 
-            cplex.setOut(new OutputStream() {
-
-                @Override
-                public void write(final int b) throws IOException {
-                }
-            });
+            //            cplex.setOut(new OutputStream() {
+            //
+            //                @Override
+            //                public void write(final int b) throws IOException {
+            //                }
+            //            });
 
         }
 
