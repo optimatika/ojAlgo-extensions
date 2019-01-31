@@ -24,7 +24,6 @@
         <!-- <module>ojAlgo-jxl</module> -->
         <!-- <module>ojAlgo-mail</module> -->
         <module>ojAlgo-mosek</module>
-        <!-- <module>ojAlgo-nd4j</module> -->
         <!-- <module>ojAlgo-persistence</module> -->
         <!-- <module>ojAlgo-spark</module> -->
         <!-- <module>ojAlgo-strata</module> -->
