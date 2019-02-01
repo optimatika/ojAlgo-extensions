@@ -13,12 +13,12 @@
         <dependency>
             <groupId>com.opengamma.strata</groupId>
             <artifactId>strata-calc</artifactId>
-            <version>1.7.0</version>
+            <version>2.1.2</version>
         </dependency>
         <dependency>
             <groupId>com.opengamma.strata</groupId>
             <artifactId>strata-pricer</artifactId>
-            <version>1.7.0</version>
+            <version>2.1.2</version>
         </dependency>
     </dependencies>
 </project>
