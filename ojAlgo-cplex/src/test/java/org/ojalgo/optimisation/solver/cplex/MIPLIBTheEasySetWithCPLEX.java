@@ -1,6 +1,5 @@
-
 /*
- * Copyright 1997-2018 Optimatika
+ * Copyright 1997-2019 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +19,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+package org.ojalgo.optimisation.solver.cplex;
 
-public class DummyTestJava {
+import org.junit.jupiter.api.BeforeAll;
+import org.ojalgo.optimisation.ExpressionsBasedModel;
+import org.ojalgo.optimisation.integer.MIPLIBTheEasySet;
+import org.ojalgo.optimisation.solver.cplex.SolverCPLEX;
+
+public class MIPLIBTheEasySetWithCPLEX extends MIPLIBTheEasySet {
+
+    @BeforeAll
+    public static void configure() {
+        ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION);
+    }
 
 }

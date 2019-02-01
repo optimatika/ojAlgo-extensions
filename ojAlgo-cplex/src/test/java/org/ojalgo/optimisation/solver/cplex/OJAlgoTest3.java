@@ -1,4 +1,4 @@
-package org.ojalgo.optimisation.external;
+package org.ojalgo.optimisation.solver.cplex;
 
 import java.math.BigDecimal;
 

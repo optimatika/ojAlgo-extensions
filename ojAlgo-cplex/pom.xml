@@ -11,15 +11,15 @@
     <name>ojAlgo-cplex</name>
     <description>ojAlgo and CPLEX integration</description>
     <properties>
-        <path.installation.cplex>/Users/apete/Applications/IBM</path.installation.cplex> <!-- You have to change this! -->
-        <path.jar.cplex>${path.installation.cplex}/ILOG/CPLEX_Studio_Community1262/cplex/lib/cplex.jar</path.jar.cplex>
-        <path.native.cplex>${path.installation.cplex}/ILOG/CPLEX_Studio_Community1262/cplex/bin/x86-64_osx</path.native.cplex>
+        <path.installation.cplex>/Applications/CPLEX_Studio_Community128/cplex</path.installation.cplex> <!-- You have to change this! -->
+        <path.jar.cplex>${path.installation.cplex}/lib/cplex.jar</path.jar.cplex>
+        <path.native.cplex>${path.installation.cplex}/bin/x86-64_osx</path.native.cplex>
     </properties>
     <dependencies>
         <dependency>
             <groupId>cplex</groupId>
             <artifactId>cplex</artifactId>
-            <version>12.6.2</version>
+            <version>12.8</version>
             <scope>system</scope>
             <systemPath>${path.jar.cplex}</systemPath>
         </dependency>
