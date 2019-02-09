@@ -29,6 +29,7 @@
         <!-- <module>ojAlgo-strata</module> -->
         <module>ojAlgo-unsafe</module>
         <!-- <module>ojAlgo-yahoofinance</module> -->
+        <module>ojAlgo-tensorflow</module>
     </modules>
     <organization>
         <name>Optimatika</name>
