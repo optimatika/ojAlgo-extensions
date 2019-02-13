@@ -25,7 +25,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.integer.RelaxedMIPCase;
 
-public class RelaxedMIPCaseWithCPLEX extends RelaxedMIPCase {
+public class RelaxedMIPCaseWithACM extends RelaxedMIPCase {
 
     @BeforeAll
     public static void configure() {

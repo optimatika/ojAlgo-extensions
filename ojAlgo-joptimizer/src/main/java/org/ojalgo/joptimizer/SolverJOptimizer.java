@@ -172,7 +172,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                 // QP
 
                 Expression compObj = objective.compensate(fixed);
-                final ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toFunction(compObj, numbVars, max, model);
+                final ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toObjectiveFunction(compObj, numbVars, model);
                 request.setF0(objFunc);
 
                 final List<Expression> lowerConstr = model.constraints().filter(expr -> expr.isLowerConstraint()).collect(Collectors.toList());
@@ -187,12 +187,12 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
                     for (int i = 0; i < numbLowerConstr; i++) {
                         Expression compC = lowerConstr.get(0).compensate(fixed);
-                        ConvexMultivariateRealFunction c = SolverJOptimizer.toFunction(compC, numbVars, false, model);
+                        ConvexMultivariateRealFunction c = SolverJOptimizer.toLowerConstraint(compC, numbVars, model);
                         constrs[i] = c;
                     }
                     for (int i = 0; i < numbUpperConstr; i++) {
                         Expression compC = upperConstr.get(0).compensate(fixed);
-                        ConvexMultivariateRealFunction c = SolverJOptimizer.toFunction(compC, numbVars, false, model);
+                        ConvexMultivariateRealFunction c = SolverJOptimizer.toUpperConstraint(compC, numbVars, model);
                         constrs[numbLowerConstr + i] = c;
                     }
 
@@ -220,25 +220,21 @@ public final class SolverJOptimizer implements Optimisation.Solver {
     static final Configurator DEFAULT = new Configurator() {
 
         public void configure(final OptimizationRequest request, final OptimizationRequestHandler handler, final Options options) {
-            // TODO Auto-generated method stub
+
+            if (request instanceof LPOptimizationRequest) {
+                //    ((LPOptimizationRequest) request).setPresolvingDisabled(true);
+            }
+
         }
 
     };
 
-    static ConvexMultivariateRealFunction toFunction(final Expression expression, final int dim, boolean maximisation, final ExpressionsBasedModel model) {
+    private static ConvexMultivariateRealFunction toFunction(final Expression expression, final int dim, boolean negate, final ExpressionsBasedModel model,
+            double constant) {
 
         DenseDoubleMatrix2D p = null;
         DenseDoubleMatrix1D q = null;
-        double r = 0.0;
-
-        boolean negate = maximisation;
-        if (expression.isLowerLimitSet()) {
-            negate = true;
-            r = expression.getAdjustedLowerLimit();
-        } else if (expression.isUpperLimitSet()) {
-            negate = false;
-            r = -expression.getAdjustedUpperLimit();
-        }
+        double r = constant;
 
         if (expression.isAnyQuadraticFactorNonZero()) {
             p = new DenseDoubleMatrix2D(dim, dim);
@@ -269,6 +265,18 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             return new LinearMultivariateRealFunction(q, r);
         }
 
+    }
+
+    static ConvexMultivariateRealFunction toLowerConstraint(final Expression expression, final int dim, final ExpressionsBasedModel model) {
+        return SolverJOptimizer.toFunction(expression, dim, false, model, expression.getAdjustedLowerLimit());
+    }
+
+    static ConvexMultivariateRealFunction toObjectiveFunction(final Expression expression, final int dim, final ExpressionsBasedModel model) {
+        return SolverJOptimizer.toFunction(expression, dim, model.isMaximisation(), model, 0.0);
+    }
+
+    static ConvexMultivariateRealFunction toUpperConstraint(final Expression expression, final int dim, final ExpressionsBasedModel model) {
+        return SolverJOptimizer.toFunction(expression, dim, false, model, -expression.getAdjustedUpperLimit());
     }
 
     private final Optimisation.Options myOptions;
