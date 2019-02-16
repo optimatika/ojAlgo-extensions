@@ -2,6 +2,17 @@
 
 Use [Gurobi](http://www.gurobi.com) from within ojAlgo
 
+```xml
+<!-- https://mvnrepository.com/artifact/org.ojalgo/ojalgo-gurobi -->
+<dependency>
+    <groupId>org.ojalgo</groupId>
+    <artifactId>ojalgo-gurobi</artifactId>
+    <version>X.Y.Z</version>
+</dependency>
+```
+
+
+
 ## Prerequisites
 
 * Basic knowledge of how to use ojAlgo to model and solve optimisation problems

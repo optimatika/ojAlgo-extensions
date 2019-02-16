@@ -29,7 +29,7 @@ public class RelaxedMIPCaseWithMosek extends RelaxedMIPCase {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverMosek.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverMosek.INTEGRATION);
     }
 
 }

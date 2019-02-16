@@ -29,7 +29,7 @@ public class NetlibCaseWithACM extends NetlibCase {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverCommonsMath.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverCommonsMath.INTEGRATION);
     }
 
 }

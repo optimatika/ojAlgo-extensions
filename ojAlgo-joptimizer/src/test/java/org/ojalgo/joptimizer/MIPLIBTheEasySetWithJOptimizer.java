@@ -29,7 +29,7 @@ public class MIPLIBTheEasySetWithJOptimizer extends MIPLIBTheEasySet {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverJOptimizer.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverJOptimizer.INTEGRATION);
     }
 
 }

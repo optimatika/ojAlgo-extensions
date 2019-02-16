@@ -29,7 +29,7 @@ public class RelaxedMIPCaseWithGurobi extends RelaxedMIPCase {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverGurobi.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverGurobi.INTEGRATION);
     }
 
 }

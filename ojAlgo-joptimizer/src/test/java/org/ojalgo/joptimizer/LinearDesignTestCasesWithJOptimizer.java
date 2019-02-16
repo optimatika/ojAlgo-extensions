@@ -29,7 +29,7 @@ public class LinearDesignTestCasesWithJOptimizer extends LinearDesignTestCases {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverJOptimizer.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverJOptimizer.INTEGRATION);
     }
 
 }

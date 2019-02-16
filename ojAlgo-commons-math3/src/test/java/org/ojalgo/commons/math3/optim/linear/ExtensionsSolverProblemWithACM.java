@@ -29,7 +29,7 @@ public class ExtensionsSolverProblemWithACM extends ExtensionsSolverProblem {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverCommonsMath.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverCommonsMath.INTEGRATION);
     }
 
 }

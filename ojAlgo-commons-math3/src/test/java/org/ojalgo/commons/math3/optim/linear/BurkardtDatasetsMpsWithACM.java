@@ -30,7 +30,7 @@ import org.ojalgo.optimisation.linear.BurkardtDatasetsMps;
 public class BurkardtDatasetsMpsWithACM extends BurkardtDatasetsMps {
 
     static {
-        ExpressionsBasedModel.addIntegration(SolverCommonsMath.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverCommonsMath.INTEGRATION);
     }
 
 }

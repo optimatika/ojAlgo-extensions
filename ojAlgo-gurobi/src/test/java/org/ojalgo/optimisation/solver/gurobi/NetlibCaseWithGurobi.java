@@ -29,7 +29,7 @@ public class NetlibCaseWithGurobi extends NetlibCase {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverGurobi.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverGurobi.INTEGRATION);
     }
 
 }

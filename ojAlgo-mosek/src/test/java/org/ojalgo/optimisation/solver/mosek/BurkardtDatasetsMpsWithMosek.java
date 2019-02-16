@@ -32,7 +32,7 @@ public class BurkardtDatasetsMpsWithMosek extends BurkardtDatasetsMps {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverMosek.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverMosek.INTEGRATION);
     }
 
 }

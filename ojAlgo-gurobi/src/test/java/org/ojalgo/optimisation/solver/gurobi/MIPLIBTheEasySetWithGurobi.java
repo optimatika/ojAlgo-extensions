@@ -29,7 +29,7 @@ public class MIPLIBTheEasySetWithGurobi extends MIPLIBTheEasySet {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverGurobi.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverGurobi.INTEGRATION);
     }
 
 }

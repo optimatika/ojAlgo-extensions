@@ -29,7 +29,7 @@ public class NetlibCaseWithCPLEX extends NetlibCase {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverCPLEX.INTEGRATION);
     }
 
 }

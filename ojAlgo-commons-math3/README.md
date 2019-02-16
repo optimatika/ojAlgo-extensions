@@ -2,6 +2,18 @@
 
 Contains classes to convert between ojAlgo and Apache matrix implementations. In particular Apache's matrix instanes can have  their elements supplied directly to ojAlg's matrix decompositions internal storage without allocating intermediate memory. ojAlgo matrix decompositions are typcally perform better.
 
+
+```xml
+<!-- https://mvnrepository.com/artifact/org.ojalgo/ojalgo-commons-math3 -->
+<dependency>
+    <groupId>org.ojalgo</groupId>
+    <artifactId>ojalgo-commons-math3</artifactId>
+    <version>X.Y.Z</version>
+</dependency>
+```
+
+
+
 ## Use the Apache Commons Math LP solver from ojAlgo
 
 ### This is what you need to do

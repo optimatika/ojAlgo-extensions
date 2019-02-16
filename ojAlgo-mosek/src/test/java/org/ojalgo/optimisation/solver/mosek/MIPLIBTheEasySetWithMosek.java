@@ -29,7 +29,7 @@ public class MIPLIBTheEasySetWithMosek extends MIPLIBTheEasySet {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverMosek.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverMosek.INTEGRATION);
     }
 
 }

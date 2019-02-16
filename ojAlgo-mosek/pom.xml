@@ -10,7 +10,8 @@
     <artifactId>ojalgo-mosek</artifactId>
     <name>ojAlgo-mosek</name>
     <properties>
-        <path.installation.mosek>/Users/apete/Applications/mosek</path.installation.mosek> <!-- You have to change this! -->
+        <!-- You have to change this! -->
+        <path.installation.mosek>/Users/apete/Applications/mosek</path.installation.mosek>
         <path.jar.mosek>${path.installation.mosek}/7/tools/platform/osx64x86/bin/mosek.jar</path.jar.mosek>
         <path.native.mosek>${path.installation.mosek}/7/tools/platform/osx64x86/bin</path.native.mosek>
     </properties>

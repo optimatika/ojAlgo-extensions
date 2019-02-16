@@ -32,7 +32,7 @@ public class BurkardtDatasetsMpsWithGurobi extends BurkardtDatasetsMps {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverGurobi.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverGurobi.INTEGRATION);
     }
 
 }

@@ -2,6 +2,18 @@
 
 Use [JOptimizer](http://www.joptimizer.com) from within ojAlgo
 
+
+```xml
+<!-- https://mvnrepository.com/artifact/org.ojalgo/ojalgo-joptimizer -->
+<dependency>
+    <groupId>org.ojalgo</groupId>
+    <artifactId>ojalgo-joptimizer</artifactId>
+    <version>X.Y.Z</version>
+</dependency>
+```
+
+
+
 ## This is what you need to do
 
 * Execute this one line of code:

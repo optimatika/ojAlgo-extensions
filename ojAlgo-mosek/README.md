@@ -1,6 +1,19 @@
 # ojAlgo Mosek integration
 
-Use [Mosek](https://mosek.com) from within ojAlgo
+Use [Mosek](https://www.mosek.com) from within ojAlgo
+
+```xml
+<!-- https://mvnrepository.com/artifact/org.ojalgo/ojalgo-mosek -->
+<dependency>
+    <groupId>org.ojalgo</groupId>
+    <artifactId>ojalgo-mosek</artifactId>
+    <version>X.Y.Z</version>
+</dependency>
+```
+
+
+
+
 
 ## Prerequisites
 
