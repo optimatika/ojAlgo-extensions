@@ -1,7 +1,11 @@
 # ojAlgo Apache Commons Math integration
 
-Contains classes to convert between ojAlgo and Apache matrix implementations. In particular Apache's matrix instanes can have  their elements supplied directly to ojAlg's matrix decompositions internal storage without allocating intermediate memory. ojAlgo matrix decompositions are typcally perform better.
+Contains classes to convert between ojAlgo and Apache matrix implementations. In particular Apache's matrix instanes can have  their elements supplied directly to ojAlg's matrix decompositions internal storage without allocating intermediate memory. ojAlgo matrix decompositions typcally perform better.
 
+
+## Use Commons Math LP solver from ExpressionsBasedModel
+
+* Add this dependency to your project. Here's how to do that using maven:
 
 ```xml
 <!-- https://mvnrepository.com/artifact/org.ojalgo/ojalgo-commons-math3 -->
@@ -12,17 +16,16 @@ Contains classes to convert between ojAlgo and Apache matrix implementations. In
 </dependency>
 ```
 
+* To configure ExpressionsBasedModel to use Commons Math rather than ojAlgo's built-in solvers execute this line of code:
 
-
-## Use the Apache Commons Math LP solver from ojAlgo
-
-### This is what you need to do
-
-* Execute this one line of code:
 ```java
-ExpressionsBasedModel.addIntegration(SolverCommonsMath.INTEGRATION);
+ExpressionsBasedModel.addPreferredSolver(SolverCommonsMath.INTEGRATION);
 ```
-* Construct an [ExpressionsBasedModel](https://github.com/optimatika/ojAlgo/wiki/The-Diet-Problem) as you would normally using ojAlgo.
+* If you only want to use Commons Math when the built-in solvers cannot handle a particular model you should instead do this:
+
+```java
+ExpressionsBasedModel.addFallbackSolver(SolverCommonsMath.INTEGRATION);
+```
 
 ## Changelog
 
