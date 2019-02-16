@@ -2,7 +2,7 @@
 
 Use [CPLEX](https://www.ibm.com/products/ilog-cplex-optimization-studio) from within ojAlgo – use CPLEX as a solver from ExpressionsBasedModel.
 
-When/if ojAlgo's built-in optimisation solvers are not capable of solving your model it is possible to plug in other solvers. CPLEX is one such solver where an integration already exists.
+When/if ojAlgo's built-in optimisation solvers are not capable of solving your model (fast enough) it is possible to plug in other solvers. CPLEX is one such solver where an integration already exists.
 
 ## Prerequisites
 
@@ -33,13 +33,14 @@ When/if ojAlgo's built-in optimisation solvers are not capable of solving your m
 ```
 * When you run your program the JVM property 'java.library.path' must contain the path to the CPLEX binary. In my case the path is: '/Applications/CPLEX_Studio_Community128/cplex/bin/x86-64_osx'
 
-* To tell ExpressionsBasedModel to use CPLEX rather than ojAlgo's built-in solvers execute this line of code:
+* To configure ExpressionsBasedModel to use CPLEX rather than ojAlgo's built-in solvers execute this line of code:
 
 ```java
 ExpressionsBasedModel.addPreferredSolver(SolverCPLEX.INTEGRATION);
 ```
-* If you only want to use CPLEX when the built-in solvers cannot handle the model type you should instead do this:
+* If you only want to use CPLEX when the built-in solvers cannot handle a particular model you should instead do this:
 
 ```java
 ExpressionsBasedModel.addFallbackSolver(SolverCPLEX.INTEGRATION);
 ```
+
