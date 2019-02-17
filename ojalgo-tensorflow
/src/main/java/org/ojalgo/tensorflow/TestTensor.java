@@ -19,18 +19,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.optimisation.solver.cplex;
+package org.ojalgo.tensorflow;
 
-import org.junit.jupiter.api.BeforeAll;
-import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.integer.RelaxedMIPCase;
-import org.ojalgo.optimisation.solver.cplex.SolverCPLEX;
+public class TestTensor {
 
-public class RelaxedMIPCaseWithCPLEX extends RelaxedMIPCase {
-
-    @BeforeAll
-    public static void configure() {
-        ExpressionsBasedModel.addPreferredSolver(SolverCPLEX.INTEGRATION);
+    public TestTensor() {
+        super();
     }
 
 }

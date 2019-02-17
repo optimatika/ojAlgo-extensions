@@ -21,6 +21,8 @@
  */
 package org.ojalgo.optimisation.solver.cplex;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -129,16 +131,23 @@ public final class SolverCPLEX implements Optimisation.Solver {
     static final Configurator DEFAULT = new Configurator() {
 
         public void configure(final IloCplex cplex, final Options options) {
+            if (options.logger_appender != null) {
+                cplex.setOut(new OutputStream() {
 
-            //            cplex.setOut(new OutputStream() {
-            //
-            //                @Override
-            //                public void write(final int b) throws IOException {
-            //                }
-            //            });
+                    @Override
+                    public void write(final int b) throws IOException {
+                        options.logger_appender.print(b);
+                    }
+                });
+            } else {
+                cplex.setOut(new OutputStream() {
 
+                    @Override
+                    public void write(final int b) throws IOException {
+                    }
+                });
+            }
         }
-
     };
 
     static void addLinear(final Expression source, final IloLinearNumExpr destination, final ExpressionsBasedModel model, final List<IloNumVar> variables)

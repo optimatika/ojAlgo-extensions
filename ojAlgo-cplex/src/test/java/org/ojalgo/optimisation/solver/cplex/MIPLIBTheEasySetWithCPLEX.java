@@ -30,7 +30,7 @@ public class MIPLIBTheEasySetWithCPLEX extends MIPLIBTheEasySet {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverCPLEX.INTEGRATION);
     }
 
 }

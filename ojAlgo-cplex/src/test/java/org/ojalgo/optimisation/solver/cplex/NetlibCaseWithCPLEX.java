@@ -23,10 +23,9 @@ package org.ojalgo.optimisation.solver.cplex;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.integer.RelaxedMIPCase;
-import org.ojalgo.optimisation.solver.cplex.SolverCPLEX;
+import org.ojalgo.optimisation.linear.NetlibCase;
 
-public class RelaxedMIPCaseWithCPLEX extends RelaxedMIPCase {
+public class NetlibCaseWithCPLEX extends NetlibCase {
 
     @BeforeAll
     public static void configure() {

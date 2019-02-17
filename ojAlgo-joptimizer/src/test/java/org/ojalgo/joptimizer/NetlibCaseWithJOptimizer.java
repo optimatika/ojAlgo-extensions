@@ -19,18 +19,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.optimisation.solver.cplex;
+package org.ojalgo.joptimizer;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.integer.RelaxedMIPCase;
-import org.ojalgo.optimisation.solver.cplex.SolverCPLEX;
+import org.ojalgo.optimisation.linear.NetlibCase;
 
-public class RelaxedMIPCaseWithCPLEX extends RelaxedMIPCase {
+public class NetlibCaseWithJOptimizer extends NetlibCase {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addPreferredSolver(SolverCPLEX.INTEGRATION);
+        ExpressionsBasedModel.addPreferredSolver(SolverJOptimizer.INTEGRATION);
     }
 
 }
