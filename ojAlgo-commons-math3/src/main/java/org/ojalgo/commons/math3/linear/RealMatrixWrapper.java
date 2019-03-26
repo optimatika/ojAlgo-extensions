@@ -29,6 +29,7 @@ import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.PhysicalStore;
 import org.ojalgo.matrix.store.PrimitiveDenseStore;
 import org.ojalgo.matrix.store.RawStore;
+import org.ojalgo.structure.Access2D;
 
 public abstract class RealMatrixWrapper implements MatrixStore<Double> {
 
@@ -152,6 +153,11 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
 
     public PhysicalStore.Factory<Double, ?> physical() {
         return PrimitiveDenseStore.FACTORY;
+    }
+
+    @Override
+    public final String toString() {
+        return Access2D.toString(this);
     }
 
 }
