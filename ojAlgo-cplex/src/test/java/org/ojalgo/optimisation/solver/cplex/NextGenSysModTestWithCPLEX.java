@@ -19,12 +19,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.tensorflow;
+package org.ojalgo.optimisation.solver.cplex;
 
-public class TestTensor {
+import org.junit.jupiter.api.BeforeAll;
+import org.ojalgo.optimisation.ExpressionsBasedModel;
+import org.ojalgo.optimisation.integer.NextGenSysModTest;
 
-    public TestTensor() {
-        super();
+public class NextGenSysModTestWithCPLEX extends NextGenSysModTest {
+
+    @BeforeAll
+    public static void configure() {
+        ExpressionsBasedModel.addPreferredSolver(SolverCPLEX.INTEGRATION);
     }
 
 }
