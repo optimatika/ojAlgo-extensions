@@ -25,10 +25,10 @@ import java.awt.Color;
 import java.util.List;
 
 import org.jfree.chart.plot.Plot;
-import org.ojalgo.constant.PrimitiveMath;
 import org.ojalgo.finance.portfolio.SimpleAsset;
 import org.ojalgo.finance.portfolio.SimplePortfolio;
 import org.ojalgo.finance.portfolio.simulator.PortfolioSimulator;
+import org.ojalgo.function.constant.PrimitiveMath;
 import org.ojalgo.random.LogNormal;
 import org.ojalgo.random.SampleSet;
 import org.ojalgo.random.process.GeometricBrownianMotion;

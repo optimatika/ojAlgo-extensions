@@ -33,7 +33,7 @@ import org.jfree.data.xy.IntervalXYDataset;
 import org.jfree.data.xy.TableXYDataset;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
-import org.ojalgo.constant.PrimitiveMath;
+import org.ojalgo.function.constant.PrimitiveMath;
 import org.ojalgo.random.ContinuousDistribution;
 import org.ojalgo.random.LogNormal;
 import org.ojalgo.random.RandomNumber;

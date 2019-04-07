@@ -24,7 +24,7 @@ package org.ojalgo.array;
 import java.util.Map.Entry;
 
 import org.ojalgo.TestUtils;
-import org.ojalgo.constant.PrimitiveMath;
+import org.ojalgo.function.constant.PrimitiveMath;
 
 /**
  * LongToNumberMap

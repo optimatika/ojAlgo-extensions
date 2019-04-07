@@ -21,7 +21,7 @@
  */
 package ext.ojalgo.jfree.chart;
 
-import static org.ojalgo.constant.PrimitiveMath.*;
+import static org.ojalgo.function.constant.PrimitiveMath.*;
 
 import java.awt.Shape;
 import java.util.HashMap;

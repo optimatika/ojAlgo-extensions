@@ -22,7 +22,7 @@
 package org.ojalgo.optimisation.solver.gurobi;
 
 import static gurobi.GRB.*;
-import static org.ojalgo.constant.PrimitiveMath.*;
+import static org.ojalgo.function.constant.PrimitiveMath.*;
 
 import java.math.BigDecimal;
 import java.util.List;

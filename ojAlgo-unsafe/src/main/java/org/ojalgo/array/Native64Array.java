@@ -21,7 +21,7 @@
  */
 package org.ojalgo.array;
 
-import org.ojalgo.constant.PrimitiveMath;
+import org.ojalgo.function.constant.PrimitiveMath;
 import org.ojalgo.machine.JavaType;
 import org.ojalgo.type.NativeMemory;
 
