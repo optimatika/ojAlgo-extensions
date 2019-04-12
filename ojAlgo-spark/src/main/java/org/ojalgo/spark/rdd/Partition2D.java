@@ -22,7 +22,7 @@
 package org.ojalgo.spark.rdd;
 
 import org.apache.spark.Partition;
-import org.ojalgo.matrix.store.ElementsConsumer;
+import org.ojalgo.matrix.store.TransformableRegion;
 import org.ojalgo.matrix.store.PhysicalStore;
 import org.ojalgo.structure.Structure2D;
 
@@ -67,8 +67,8 @@ public class Partition2D implements Partition, Structure2D {
         return Structure2D.row(myIndex, myStructure);
     }
 
-    <N extends Number> ElementsConsumer<N> makeConsumerRegion(final ElementsConsumer<N> wholeRegion) {
-        ElementsConsumer<N> retVal = wholeRegion;
+    <N extends Number> TransformableRegion<N> makeConsumerRegion(final TransformableRegion<N> wholeRegion) {
+        TransformableRegion<N> retVal = wholeRegion;
         if (this.index() != 0) {
             retVal = retVal.regionByOffsets(this.row() * BLOCK_SIZE, this.column() * BLOCK_SIZE);
         }
@@ -78,7 +78,7 @@ public class Partition2D implements Partition, Structure2D {
         return retVal;
     }
 
-    <N extends Number> ElementsConsumer<N> makeConsumerRegion(final PhysicalStore.Factory<N, PhysicalStore<N>> factory) {
+    <N extends Number> TransformableRegion<N> makeConsumerRegion(final PhysicalStore.Factory<N, PhysicalStore<N>> factory) {
         return factory.makeZero(myRowsCount, myColumnsCount);
     }
 
