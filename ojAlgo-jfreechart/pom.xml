@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.ojalgo</groupId>
         <artifactId>ojalgo-extensions</artifactId>
-        <version>2.47.3-SNAPSHOT</version>
+        <version>2.47.3</version>
     </parent>
     <artifactId>ojalgo-jfreechart</artifactId>
     <name>ojAlgo-jfreechart</name>
