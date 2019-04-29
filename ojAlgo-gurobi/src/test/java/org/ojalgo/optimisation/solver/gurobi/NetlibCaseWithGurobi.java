@@ -22,9 +22,11 @@
 package org.ojalgo.optimisation.solver.gurobi;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.NetlibCase;
 
+@Disabled
 public class NetlibCaseWithGurobi extends NetlibCase {
 
     @BeforeAll

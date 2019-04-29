@@ -40,7 +40,7 @@ public class TestDownload {
 
         if (rows.size() <= 0) {
             TestUtils.fail("No data!");
-        } else if (rows.size() < 7559) {
+        } else if (rows.size() < 7558) {
             TestUtils.fail("Less data than usual! only got: " + rows.size());
         }
     }

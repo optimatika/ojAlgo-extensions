@@ -22,9 +22,11 @@
 package org.ojalgo.joptimizer;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.integer.RelaxedMIPCase;
 
+@Disabled
 public class RelaxedMIPCaseWithJOptimizer extends RelaxedMIPCase {
 
     @BeforeAll

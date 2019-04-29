@@ -22,10 +22,11 @@
 package org.ojalgo.optimisation.solver.cplex;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.integer.MIPLIBTheEasySet;
-import org.ojalgo.optimisation.solver.cplex.SolverCPLEX;
 
+@Disabled
 public class MIPLIBTheEasySetWithCPLEX extends MIPLIBTheEasySet {
 
     @BeforeAll

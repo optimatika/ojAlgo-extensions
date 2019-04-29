@@ -22,6 +22,7 @@
 package org.ojalgo.joptimizer;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.ojalgo.TestUtils;
 import org.ojalgo.optimisation.Expression;
@@ -38,6 +39,7 @@ import com.joptimizer.functions.PDQuadraticMultivariateRealFunction;
 import com.joptimizer.optimizers.JOptimizer;
 import com.joptimizer.optimizers.OptimizationRequest;
 
+@Disabled
 public class JOptimizerTest {
 
     @BeforeAll

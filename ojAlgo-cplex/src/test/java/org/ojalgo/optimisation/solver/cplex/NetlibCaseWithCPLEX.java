@@ -22,9 +22,11 @@
 package org.ojalgo.optimisation.solver.cplex;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.NetlibCase;
 
+@Disabled
 public class NetlibCaseWithCPLEX extends NetlibCase {
 
     @BeforeAll
