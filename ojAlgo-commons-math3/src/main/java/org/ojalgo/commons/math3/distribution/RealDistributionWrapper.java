@@ -27,13 +27,13 @@ import org.ojalgo.random.RandomNumber;
 
 public final class RealDistributionWrapper<D extends RealDistribution> extends RandomNumber implements ContinuousDistribution {
 
-    public static <D extends RealDistribution> RealDistributionWrapper<D> of(D delegateDistribution) {
-        return new RealDistributionWrapper<D>(delegateDistribution);
+    public static <D extends RealDistribution> RealDistributionWrapper<D> of(final D delegateDistribution) {
+        return new RealDistributionWrapper<>(delegateDistribution);
     }
 
     private final D myDelegate;
 
-    private RealDistributionWrapper(D delegateDistribution) {
+    private RealDistributionWrapper(final D delegateDistribution) {
         super();
         myDelegate = delegateDistribution;
     }
@@ -42,11 +42,11 @@ public final class RealDistributionWrapper<D extends RealDistribution> extends R
         return myDelegate;
     }
 
-    public double getDensity(double value) {
+    public double getDensity(final double value) {
         return myDelegate.density(value);
     }
 
-    public double getDistribution(double value) {
+    public double getDistribution(final double value) {
         return myDelegate.cumulativeProbability(value);
     }
 
@@ -54,7 +54,7 @@ public final class RealDistributionWrapper<D extends RealDistribution> extends R
         return myDelegate.getNumericalMean();
     }
 
-    public double getQuantile(double probability) {
+    public double getQuantile(final double probability) {
         return myDelegate.inverseCumulativeProbability(probability);
     }
 
