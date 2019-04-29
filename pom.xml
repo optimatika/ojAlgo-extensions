@@ -16,20 +16,20 @@
     <modules>
         <!-- <module>ojAlgo-choco</module> -->
         <module>ojAlgo-commons-math3</module>
-        <module>ojAlgo-cplex</module>
+<!--         <module>ojAlgo-cplex</module> -->
         <!-- <module>ojAlgo-deeplearning4j</module> -->
-        <module>ojAlgo-gurobi</module>
+<!--         <module>ojAlgo-gurobi</module> -->
         <!-- <module>ojAlgo-jfreechart</module> -->
-        <module>ojAlgo-joptimizer</module>
+<!--         <module>ojAlgo-joptimizer</module> -->
         <!-- <module>ojAlgo-jxl</module> -->
         <!-- <module>ojAlgo-mail</module> -->
-        <module>ojAlgo-mosek</module>
-        <module>ojAlgo-persistence</module>
+<!--         <module>ojAlgo-mosek</module> -->
+<!--         <module>ojAlgo-persistence</module> -->
         <!-- <module>ojAlgo-spark</module> -->
         <!-- <module>ojAlgo-strata</module> -->
-        <module>ojAlgo-unsafe</module>
-        <module>ojAlgo-yahoofinance</module>
-        <module>ojAlgo-tensorflow</module>
+    <!-- <module>ojAlgo-unsafe</module> -->
+    <!-- <module>ojAlgo-yahoofinance</module> -->
+    <!-- <module>ojAlgo-tensorflow</module> -->
     </modules>
     <organization>
         <name>Optimatika</name>
