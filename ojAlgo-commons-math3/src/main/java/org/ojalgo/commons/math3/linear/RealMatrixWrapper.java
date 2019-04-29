@@ -24,11 +24,11 @@ package org.ojalgo.commons.math3.linear;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.DiagonalMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
-import org.ojalgo.matrix.store.TransformableRegion;
 import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.PhysicalStore;
 import org.ojalgo.matrix.store.PrimitiveDenseStore;
 import org.ojalgo.matrix.store.RawStore;
+import org.ojalgo.matrix.store.TransformableRegion;
 import org.ojalgo.structure.Access2D;
 
 public abstract class RealMatrixWrapper implements MatrixStore<Double> {

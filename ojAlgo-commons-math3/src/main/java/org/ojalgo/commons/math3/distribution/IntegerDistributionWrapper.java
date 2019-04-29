@@ -27,13 +27,13 @@ import org.ojalgo.random.RandomNumber;
 
 public final class IntegerDistributionWrapper<D extends IntegerDistribution> extends RandomNumber implements DiscreteDistribution {
 
-    public static <D extends IntegerDistribution> IntegerDistributionWrapper<D> of(D delegateDistribution) {
-        return new IntegerDistributionWrapper<D>(delegateDistribution);
+    public static <D extends IntegerDistribution> IntegerDistributionWrapper<D> of(final D delegateDistribution) {
+        return new IntegerDistributionWrapper<>(delegateDistribution);
     }
 
     private final D myDelegate;
 
-    private IntegerDistributionWrapper(D delegateDistribution) {
+    private IntegerDistributionWrapper(final D delegateDistribution) {
         super();
         myDelegate = delegateDistribution;
     }
@@ -46,7 +46,7 @@ public final class IntegerDistributionWrapper<D extends IntegerDistribution> ext
         return myDelegate.getNumericalMean();
     }
 
-    public double getProbability(int value) {
+    public double getProbability(final int value) {
         return myDelegate.probability(value);
     }
 

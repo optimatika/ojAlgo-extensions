@@ -47,7 +47,7 @@ import org.ojalgo.structure.Structure1D.IntIndex;
 public final class SolverCommonsMath implements Optimisation.Solver {
 
     @FunctionalInterface
-    public static interface Configurator {
+    public interface Configurator {
 
         void configure(SimplexSolver solver, Optimisation.Options options);
 
@@ -69,7 +69,7 @@ public final class SolverCommonsMath implements Optimisation.Solver {
 
             Variable tmpVariable;
             final List<Variable> variables = model.getVariables();
-            final Set<IntIndex> fixed = model.getFixedVariables();
+            model.getFixedVariables();
 
             final double[] lowerBounds = new double[variables.size()];
             final double[] upperBounds = new double[variables.size()];

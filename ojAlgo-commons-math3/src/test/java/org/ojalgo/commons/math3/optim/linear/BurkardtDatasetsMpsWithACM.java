@@ -21,12 +21,14 @@
  */
 package org.ojalgo.commons.math3.optim.linear;
 
+import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.BurkardtDatasetsMps;
 
 /**
  * @author apete
  */
+@Disabled
 public class BurkardtDatasetsMpsWithACM extends BurkardtDatasetsMps {
 
     static {

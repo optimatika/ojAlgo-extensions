@@ -31,8 +31,17 @@ ExpressionsBasedModel.addFallbackSolver(SolverCommonsMath.INTEGRATION);
 
 ### [Not  yet released]
 
+* ...
+
+### v2.47.3: 2019-04-29
+
 #### Added
 
 * IntegerDistributionWrapper & RealDistributionWrapper that wrap ACM IntegerDistribution & RealDistribution instances turning them into ojAlgo DiscreteDistribution & ContinuousDistribution implementations.
 
+#### Changed
+
+* Changes to be compatible with the ojAlgo v47.1.2
+
 ### v2.47.2: 2018-12-19
+

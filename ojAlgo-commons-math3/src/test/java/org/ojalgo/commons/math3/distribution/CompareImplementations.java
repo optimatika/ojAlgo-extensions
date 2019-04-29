@@ -34,7 +34,7 @@ import org.ojalgo.random.TDistribution;
 
 public class CompareImplementations {
 
-    static void compareDensity(RealDistribution acm, ContinuousDistribution oj) {
+    static void compareDensity(final RealDistribution acm, final ContinuousDistribution oj) {
 
         ContinuousDistribution expected = RealDistributionWrapper.of(acm);
         ContinuousDistribution actual = oj;
@@ -42,7 +42,7 @@ public class CompareImplementations {
         RandomNumberTest.compareDensity(expected, actual);
     }
 
-    static void compareDistribution(RealDistribution acm, ContinuousDistribution oj) {
+    static void compareDistribution(final RealDistribution acm, final ContinuousDistribution oj) {
 
         ContinuousDistribution expected = RealDistributionWrapper.of(acm);
         ContinuousDistribution actual = oj;
@@ -50,7 +50,7 @@ public class CompareImplementations {
         RandomNumberTest.compareDistribution(expected, actual);
     }
 
-    static void compareQuantile(RealDistribution acm, ContinuousDistribution oj) {
+    static void compareQuantile(final RealDistribution acm, final ContinuousDistribution oj) {
 
         ContinuousDistribution expected = RealDistributionWrapper.of(acm);
         ContinuousDistribution actual = oj;

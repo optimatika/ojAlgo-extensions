@@ -22,9 +22,11 @@
 package org.ojalgo.commons.math3.optim.linear;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.integer.MIPLIBTheEasySet;
 
+@Disabled
 public class MIPLIBTheEasySetWithACM extends MIPLIBTheEasySet {
 
     @BeforeAll
