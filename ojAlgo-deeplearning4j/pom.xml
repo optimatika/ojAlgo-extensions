@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.ojalgo</groupId>
         <artifactId>ojalgo-extensions</artifactId>
-        <version>2.47.2</version>
+        <version>2.47.3</version>
     </parent>
     <artifactId>ojalgo-deeplearning4j</artifactId>
     <name>ojAlgo-deeplearning4j</name>

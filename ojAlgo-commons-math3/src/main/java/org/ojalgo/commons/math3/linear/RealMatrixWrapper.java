@@ -1,6 +1,6 @@
 package org.ojalgo.commons.math3.linear;
 /*
- * Copyright 1997-2018 Optimatika
+ * Copyright 1997-2019 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,11 +24,12 @@ package org.ojalgo.commons.math3.linear;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.DiagonalMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
-import org.ojalgo.matrix.store.ElementsConsumer;
+import org.ojalgo.matrix.store.TransformableRegion;
 import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.PhysicalStore;
 import org.ojalgo.matrix.store.PrimitiveDenseStore;
 import org.ojalgo.matrix.store.RawStore;
+import org.ojalgo.structure.Access2D;
 
 public abstract class RealMatrixWrapper implements MatrixStore<Double> {
 
@@ -46,7 +47,7 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
             return RawStore.FACTORY;
         }
 
-        public void supplyTo(final ElementsConsumer<Double> receiver) {
+        public void supplyTo(final TransformableRegion<Double> receiver) {
 
             final int limRows = (int) Math.min(myArray2DRow.getRowDimension(), receiver.countRows());
             final int limCols = (int) Math.min(myArray2DRow.getColumnDimension(), receiver.countColumns());
@@ -66,7 +67,7 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
             super(delegate);
         }
 
-        public void supplyTo(final ElementsConsumer<Double> receiver) {
+        public void supplyTo(final TransformableRegion<Double> receiver) {
 
             final long limRows = Math.min(this.countRows(), receiver.countRows());
             final long limCols = Math.min(this.countColumns(), receiver.countColumns());
@@ -105,7 +106,7 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
             return row + 1;
         }
 
-        public void supplyTo(final ElementsConsumer<Double> receiver) {
+        public void supplyTo(final TransformableRegion<Double> receiver) {
 
             receiver.reset();
 
@@ -152,6 +153,11 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
 
     public PhysicalStore.Factory<Double, ?> physical() {
         return PrimitiveDenseStore.FACTORY;
+    }
+
+    @Override
+    public final String toString() {
+        return Access2D.toString(this);
     }
 
 }

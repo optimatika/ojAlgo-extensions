@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2018 Optimatika
+ * Copyright 1997-2019 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,10 +25,10 @@ import java.awt.Color;
 import java.util.List;
 
 import org.jfree.chart.plot.Plot;
-import org.ojalgo.constant.PrimitiveMath;
 import org.ojalgo.finance.portfolio.SimpleAsset;
 import org.ojalgo.finance.portfolio.SimplePortfolio;
 import org.ojalgo.finance.portfolio.simulator.PortfolioSimulator;
+import org.ojalgo.function.constant.PrimitiveMath;
 import org.ojalgo.random.LogNormal;
 import org.ojalgo.random.SampleSet;
 import org.ojalgo.random.process.GeometricBrownianMotion;

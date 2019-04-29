@@ -1,4 +1,6 @@
 # ojAlgo-extensions
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-extensions/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-extensions/)
+
 
 Each of the modules below depend on ojAlgo (possibly ojAlgo-finance) and typically one 3:d party library.
 

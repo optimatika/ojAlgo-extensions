@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2018 Optimatika
+ * Copyright 1997-2019 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,12 +34,14 @@ import org.ojalgo.structure.Access1D;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
 
+import com.joptimizer.exception.InfeasibleProblemException;
 import com.joptimizer.exception.JOptimizerException;
 import com.joptimizer.functions.ConvexMultivariateRealFunction;
 import com.joptimizer.functions.LinearMultivariateRealFunction;
 import com.joptimizer.functions.PSDQuadraticMultivariateRealFunction;
 import com.joptimizer.optimizers.LPOptimizationRequest;
 import com.joptimizer.optimizers.LPPrimalDualMethod;
+import com.joptimizer.optimizers.NewtonUnconstrained;
 import com.joptimizer.optimizers.OptimizationRequest;
 import com.joptimizer.optimizers.OptimizationRequestHandler;
 import com.joptimizer.optimizers.OptimizationResponse;
@@ -88,22 +90,25 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                     .collect(Collectors.toList());
             final int numbEquals = equalities.size();
 
-            final DenseDoubleMatrix2D A = new DenseDoubleMatrix2D(numbEquals, numbVars);
-            final DenseDoubleMatrix1D b = new DenseDoubleMatrix1D(numbEquals);
+            if (numbEquals > 0) {
 
-            for (int i = 0; i < numbEquals; i++) {
-                final Expression constr = equalities.get(i).compensate(fixed);
+                final DenseDoubleMatrix2D A = new DenseDoubleMatrix2D(numbEquals, numbVars);
+                final DenseDoubleMatrix1D b = new DenseDoubleMatrix1D(numbEquals);
 
-                for (final IntIndex key : constr.getLinearKeySet()) {
-                    final int freeIndex = model.indexOfFreeVariable(key);
-                    A.set(i, freeIndex, constr.getAdjustedLinearFactor(key));
+                for (int i = 0; i < numbEquals; i++) {
+                    final Expression constr = equalities.get(i).compensate(fixed);
+
+                    for (final IntIndex key : constr.getLinearKeySet()) {
+                        final int freeIndex = model.indexOfFreeVariable(key);
+                        A.set(i, freeIndex, constr.getAdjustedLinearFactor(key));
+                    }
+
+                    b.set(i, constr.getAdjustedLowerLimit());
                 }
 
-                b.set(i, constr.getAdjustedLowerLimit());
+                request.setA(A);
+                request.setB(b);
             }
-
-            request.setA(A);
-            request.setB(b);
 
             if (reqLP != null) {
                 // LP
@@ -166,9 +171,33 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             } else {
                 // QP
 
-                final ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toFunction(objective.compensate(fixed), numbVars, false, model);
-
+                Expression compObj = objective.compensate(fixed);
+                final ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toObjectiveFunction(compObj, numbVars, model);
                 request.setF0(objFunc);
+
+                final List<Expression> lowerConstr = model.constraints().filter(expr -> expr.isLowerConstraint()).collect(Collectors.toList());
+                final int numbLowerConstr = lowerConstr.size();
+
+                final List<Expression> upperConstr = model.constraints().filter(expr -> expr.isUpperConstraint()).collect(Collectors.toList());
+                final int numbUpperConstr = upperConstr.size();
+
+                if ((numbLowerConstr + numbUpperConstr) > 0) {
+
+                    ConvexMultivariateRealFunction[] constrs = new ConvexMultivariateRealFunction[numbLowerConstr + numbUpperConstr];
+
+                    for (int i = 0; i < numbLowerConstr; i++) {
+                        Expression compC = lowerConstr.get(0).compensate(fixed);
+                        ConvexMultivariateRealFunction c = SolverJOptimizer.toLowerConstraint(compC, numbVars, model);
+                        constrs[i] = c;
+                    }
+                    for (int i = 0; i < numbUpperConstr; i++) {
+                        Expression compC = upperConstr.get(0).compensate(fixed);
+                        ConvexMultivariateRealFunction c = SolverJOptimizer.toUpperConstraint(compC, numbVars, model);
+                        constrs[numbLowerConstr + i] = c;
+                    }
+
+                    request.setFi(constrs);
+                }
 
             }
 
@@ -191,23 +220,32 @@ public final class SolverJOptimizer implements Optimisation.Solver {
     static final Configurator DEFAULT = new Configurator() {
 
         public void configure(final OptimizationRequest request, final OptimizationRequestHandler handler, final Options options) {
-            // TODO Auto-generated method stub
+
+            if (request instanceof LPOptimizationRequest) {
+                //    ((LPOptimizationRequest) request).setPresolvingDisabled(true);
+            }
+
         }
 
     };
 
-    static ConvexMultivariateRealFunction toFunction(final Expression expression, final int dim, final boolean negate, final ExpressionsBasedModel model) {
+    private static ConvexMultivariateRealFunction toFunction(final Expression expression, final int dim, boolean negate, final ExpressionsBasedModel model,
+            double constant) {
 
         DenseDoubleMatrix2D p = null;
         DenseDoubleMatrix1D q = null;
-        final double r = 0.0;
+        double r = constant;
 
         if (expression.isAnyQuadraticFactorNonZero()) {
             p = new DenseDoubleMatrix2D(dim, dim);
 
             for (final IntRowColumn key : expression.getQuadraticKeySet()) {
                 final double adjusted = expression.getAdjustedQuadraticFactor(key);
-                p.set(model.indexOfFreeVariable(key.row), model.indexOfFreeVariable(key.column), negate ? -adjusted : adjusted);
+                double d = negate ? -adjusted : adjusted;
+                int rowIndex = model.indexOfFreeVariable(key.row);
+                int colIndex = model.indexOfFreeVariable(key.column);
+                p.set(rowIndex, colIndex, p.get(rowIndex, colIndex) + d);
+                p.set(colIndex, rowIndex, p.get(colIndex, rowIndex) + d);
             }
 
         }
@@ -229,8 +267,19 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
     }
 
-    private final Optimisation.Options myOptions;
+    static ConvexMultivariateRealFunction toLowerConstraint(final Expression expression, final int dim, final ExpressionsBasedModel model) {
+        return SolverJOptimizer.toFunction(expression, dim, false, model, expression.getAdjustedLowerLimit());
+    }
 
+    static ConvexMultivariateRealFunction toObjectiveFunction(final Expression expression, final int dim, final ExpressionsBasedModel model) {
+        return SolverJOptimizer.toFunction(expression, dim, model.isMaximisation(), model, 0.0);
+    }
+
+    static ConvexMultivariateRealFunction toUpperConstraint(final Expression expression, final int dim, final ExpressionsBasedModel model) {
+        return SolverJOptimizer.toFunction(expression, dim, false, model, -expression.getAdjustedUpperLimit());
+    }
+
+    private final Optimisation.Options myOptions;
     private final OptimizationRequest myRequest;
 
     SolverJOptimizer(final OptimizationRequest request, final Optimisation.Options options) {
@@ -241,35 +290,47 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
     public Result solve(final Result kickStarter) {
 
-        //  myOptimizationRequest.setInitialPoint(new double[] { 0.2, 0.2 });
+        final OptimizationRequestHandler handler = myRequest instanceof LPOptimizationRequest ? new LPPrimalDualMethod() : new NewtonUnconstrained(true);
 
-        final OptimizationRequestHandler tmpHandler = myRequest instanceof LPOptimizationRequest ? new LPPrimalDualMethod() : null;
-
-        if (myRequest instanceof LPOptimizationRequest) {
-            ((LPOptimizationRequest) myRequest).setPresolvingDisabled(true);
-        }
-
-        DEFAULT.configure(myRequest, tmpHandler, myOptions);
+        DEFAULT.configure(myRequest, handler, myOptions);
         final Optional<Configurator> optional = myOptions.getConfigurator(Configurator.class);
         if (optional.isPresent()) {
-            optional.get().configure(myRequest, tmpHandler, myOptions);
+            optional.get().configure(myRequest, handler, myOptions);
         }
 
-        // myOptimizer.setOptimizationRequest(myOptimizationRequest);
-        tmpHandler.setOptimizationRequest(myRequest);
+        Optimisation.State retState = Optimisation.State.UNEXPLORED;
+        Access1D<Double> retSolution = null;
+
+        if (kickStarter != null) {
+            retState = kickStarter.getState();
+            myRequest.setInitialPoint(kickStarter.toRawCopy1D());
+        }
+
+        handler.setOptimizationRequest(myRequest);
+
         try {
 
-            tmpHandler.optimize();
+            handler.optimize();
+
+            final OptimizationResponse response = handler.getOptimizationResponse();
+
+            retState = Optimisation.State.OPTIMAL;
+            retSolution = Access1D.wrap(response.getSolution());
+
+        } catch (final InfeasibleProblemException exception) {
+
+            retState = Optimisation.State.INFEASIBLE;
+
         } catch (final JOptimizerException exception) {
 
-            exception.printStackTrace();
+            retState = Optimisation.State.FAILED;
+
+        } finally {
+
+            if ((retSolution == null) && (kickStarter != null)) {
+                retSolution = Access1D.wrap(kickStarter.toRawCopy1D());
+            }
         }
-
-        final OptimizationResponse response = tmpHandler.getOptimizationResponse();
-
-        final State retState = Optimisation.State.OPTIMAL;
-        // final double retValue = response.getValue();
-        final Access1D<Double> retSolution = Access1D.wrap(response.getSolution());
 
         return new Optimisation.Result(retState, retSolution);
     }

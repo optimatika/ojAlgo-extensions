@@ -5,13 +5,14 @@
     <parent>
         <groupId>org.ojalgo</groupId>
         <artifactId>ojalgo-extensions</artifactId>
-        <version>2.47.2</version>
+        <version>2.47.3</version>
     </parent>
     <artifactId>ojalgo-gurobi</artifactId>
     <name>ojAlgo-gurobi</name>
     <description>ojAlgo and GUROBI integration</description>
     <properties>
-        <path.installation.gurobi>/Library/gurobi751</path.installation.gurobi> <!-- You have to change this! -->
+        <!-- You have to change this! -->
+        <path.installation.gurobi>/Library/gurobi751</path.installation.gurobi>
         <path.jar.gurobi>${path.installation.gurobi}/mac64/lib/gurobi.jar</path.jar.gurobi>
         <path.native.gurobi>${path.installation.gurobi}/mac64/bin</path.native.gurobi>
     </properties>
