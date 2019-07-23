@@ -16,15 +16,15 @@
     <modules>
         <!-- <module>ojAlgo-choco</module> -->
         <module>ojAlgo-commons-math3</module>
-<!--         <module>ojAlgo-cplex</module> -->
+        <module>ojAlgo-cplex</module>
         <!-- <module>ojAlgo-deeplearning4j</module> -->
-<!--         <module>ojAlgo-gurobi</module> -->
+        <module>ojAlgo-gurobi</module>
         <!-- <module>ojAlgo-jfreechart</module> -->
-<!--         <module>ojAlgo-joptimizer</module> -->
+        <module>ojAlgo-joptimizer</module>
         <!-- <module>ojAlgo-jxl</module> -->
         <!-- <module>ojAlgo-mail</module> -->
-<!--         <module>ojAlgo-mosek</module> -->
-<!--         <module>ojAlgo-persistence</module> -->
+        <module>ojAlgo-mosek</module>
+        <!-- <module>ojAlgo-persistence</module> -->
         <!-- <module>ojAlgo-spark</module> -->
         <!-- <module>ojAlgo-strata</module> -->
     <!-- <module>ojAlgo-unsafe</module> -->
@@ -61,8 +61,8 @@
     </issueManagement>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <ojalgo.version>47.1.2</ojalgo.version>
-        <ojalgo-finance.version>2.1.0</ojalgo-finance.version>
+        <ojalgo.version>47.3.0-SNAPSHOT</ojalgo.version>
+        <ojalgo-finance.version>2.1.1-SNAPSHOT</ojalgo-finance.version>
         <junit.jupiter.version>5.4.2</junit.jupiter.version>
     </properties>
     <dependencies>
