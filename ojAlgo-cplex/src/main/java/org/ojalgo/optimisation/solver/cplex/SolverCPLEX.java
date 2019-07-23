@@ -178,7 +178,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
     static IloNumExpr buildExpression(final ExpressionsBasedModel model, final Expression expression, final IloCplex solver, final List<IloNumVar> variables)
             throws IloException {
 
-        if (expression.isFunctionCompound()) {
+        if (expression.isFunctionQuadratic()) {
 
             final IloLQNumExpr tmpIloLQNumExpr = solver.lqNumExpr();
 
@@ -187,7 +187,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
             return tmpIloLQNumExpr;
 
-        } else if (expression.isFunctionQuadratic()) {
+        } else if (expression.isFunctionPureQuadratic()) {
 
             final IloQuadNumExpr tmpIloQuadNumExpr = solver.quadNumExpr();
 

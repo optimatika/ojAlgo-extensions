@@ -71,7 +71,7 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         }
 
         @Override
-        DenseArray<Double> make(final long size) {
+        public DenseArray<Double> makeDenseArray(final long size) {
             return new Native32Array(size);
         }
 
@@ -105,7 +105,7 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         }
 
         @Override
-        DenseArray<Double> make(final long size) {
+        public DenseArray<Double> makeDenseArray(final long size) {
             return new Native64Array(size);
         }
 
@@ -121,7 +121,7 @@ public abstract class OffHeapArray extends DenseArray<Double> {
 
     private final long myCount;
 
-    OffHeapArray(DenseArray.Factory<Double> factory, final long count) {
+    OffHeapArray(final DenseArray.Factory<Double> factory, final long count) {
 
         super(factory);
 

@@ -22,8 +22,8 @@
 package org.ojalgo.spark.rdd;
 
 import org.apache.spark.Partition;
-import org.ojalgo.matrix.store.TransformableRegion;
 import org.ojalgo.matrix.store.PhysicalStore;
+import org.ojalgo.matrix.store.TransformableRegion;
 import org.ojalgo.structure.Structure2D;
 
 public class Partition2D implements Partition, Structure2D {
@@ -79,7 +79,7 @@ public class Partition2D implements Partition, Structure2D {
     }
 
     <N extends Number> TransformableRegion<N> makeConsumerRegion(final PhysicalStore.Factory<N, PhysicalStore<N>> factory) {
-        return factory.makeZero(myRowsCount, myColumnsCount);
+        return factory.make(myRowsCount, myColumnsCount);
     }
 
 }

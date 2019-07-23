@@ -39,7 +39,7 @@ public class SegmentedArrayTest extends ArrayTests {
 
         final long tmpCount = Long.MAX_VALUE;
 
-        final BasicArray<Double> tmpArray = new BasicArray.Factory<>(Primitive64Array.FACTORY).makeZero(tmpCount);
+        final BasicArray<Double> tmpArray = new BasicArray.Factory<>(Primitive64Array.FACTORY).make(tmpCount);
 
         this.doTestGetSet(tmpArray);
 
