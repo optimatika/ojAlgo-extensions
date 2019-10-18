@@ -30,6 +30,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.ojalgo.matrix.PrimitiveMatrix;
+import org.ojalgo.scalar.Scalar;
 import org.ojalgo.type.TypeUtils;
 
 import ext.ojalgo.jexcel.database.Column;
@@ -186,7 +187,7 @@ public class InMemorySpreadsheet implements Spreadsheet {
         this.goHome();
         for (int i = FIRST; i < tmpRowDim; i++) {
             for (int j = FIRST; j < tmpColDim; j++) {
-                retVal[i][j] = this.getNumberCellValue().doubleValue();
+                retVal[i][j] = Scalar.doubleValue(this.getNumberCellValue());
                 this.goToNextColumn();
             }
             this.goToFirstColumnOnNextRow();
@@ -195,7 +196,7 @@ public class InMemorySpreadsheet implements Spreadsheet {
         return PrimitiveMatrix.FACTORY.rows(retVal);
     }
 
-    public Number getNumberCellValue() {
+    public Comparable<?> getNumberCellValue() {
 
         final Cell tmpCell = this.getCell();
         final CellType tmpType = tmpCell.getType();
@@ -308,11 +309,11 @@ public class InMemorySpreadsheet implements Spreadsheet {
         }
     }
 
-    public void setNumberCellValue(final Number aCellValue) {
+    public void setNumberCellValue(final Comparable<?> aCellValue) {
         this.setNumberCellValue(aCellValue, null);
     }
 
-    public void setNumberCellValue(final Number aCellValue, final String aPattern) {
+    public void setNumberCellValue(final Comparable<?> aCellValue, final String aPattern) {
 
         if (aCellValue != null) {
 
@@ -321,25 +322,25 @@ public class InMemorySpreadsheet implements Spreadsheet {
                 final DisplayFormat tmpDisplayFormat = new NumberFormat(aPattern);
                 final CellFormat tmpCellFormat = new WritableCellFormat(tmpDisplayFormat);
 
-                this.setCell(new jxl.write.Number(myColumn, myRow, aCellValue.doubleValue(), tmpCellFormat));
+                this.setCell(new jxl.write.Number(myColumn, myRow, Scalar.doubleValue(aCellValue), tmpCellFormat));
 
             } else {
 
-                this.setCell(new jxl.write.Number(myColumn, myRow, aCellValue.doubleValue()));
+                this.setCell(new jxl.write.Number(myColumn, myRow, Scalar.doubleValue(aCellValue)));
             }
         }
     }
 
-    public void setNumberColumnValues(final List<Number> someColumnValues) {
-        for (final Number tmpNumber : someColumnValues) {
-            this.setCell(new jxl.write.Number(myColumn, myRow, tmpNumber.doubleValue()));
+    public void setNumberColumnValues(final List<Comparable<?>> someColumnValues) {
+        for (final Comparable<?> tmpNumber : someColumnValues) {
+            this.setCell(new jxl.write.Number(myColumn, myRow, Scalar.doubleValue(tmpNumber)));
             this.goToNextRow();
         }
     }
 
-    public void setNumberRowValues(final List<Number> someRowValues) {
-        for (final Number tmpNumber : someRowValues) {
-            this.setCell(new jxl.write.Number(myColumn, myRow, tmpNumber.doubleValue()));
+    public void setNumberRowValues(final List<Comparable<?>> someRowValues) {
+        for (final Comparable<?> tmpNumber : someRowValues) {
+            this.setCell(new jxl.write.Number(myColumn, myRow, Scalar.doubleValue(tmpNumber)));
             this.goToNextColumn();
         }
     }

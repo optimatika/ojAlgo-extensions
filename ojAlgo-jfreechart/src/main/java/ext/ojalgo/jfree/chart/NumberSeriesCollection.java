@@ -31,6 +31,7 @@ import org.jfree.data.xy.TableXYDataset;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
+import org.ojalgo.scalar.Scalar;
 import org.ojalgo.series.NumberSeries;
 
 /**
@@ -61,12 +62,12 @@ public abstract class NumberSeriesCollection extends AbstractSeriesData<Number, 
 
         final XYSeries tmpSeries = new XYSeries(aSeries.getName(), true, false);
 
-        Number tmpKey;
-        Number tmpValue;
-        for (final Map.Entry<? extends Number, ? extends Number> tmpEntry : aSeries.entrySet()) {
+        Comparable<?> tmpKey;
+        Comparable<?> tmpValue;
+        for (final Map.Entry<? extends Comparable<?>, ? extends Comparable<?>> tmpEntry : aSeries.entrySet()) {
             tmpKey = tmpEntry.getKey();
             tmpValue = tmpEntry.getValue();
-            tmpSeries.add(tmpKey, tmpValue);
+            tmpSeries.add(Scalar.doubleValue(tmpKey), Scalar.doubleValue(tmpValue));
         }
 
         myCollection.addSeries(tmpSeries);

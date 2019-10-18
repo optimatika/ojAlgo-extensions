@@ -35,7 +35,7 @@ import org.ojalgo.random.LogNormal;
 
 public abstract class AbstractSeriesData<K, V, B extends AbstractSeriesData<K, V, B>> extends JFreeChartBuilder<B> {
 
-    static final class NumberWithRange extends Number {
+    static final class NumberWithRange extends Number implements Comparable<NumberWithRange> {
 
         public final double high;
         public final double low;
@@ -102,6 +102,10 @@ public abstract class AbstractSeriesData<K, V, B extends AbstractSeriesData<K, V
         public String toString() {
             // TODO Auto-generated method stub
             return low + " <= " + value + " <= " + high;
+        }
+
+        public int compareTo(NumberWithRange o) {
+            return Double.compare(value, o.value);
         }
 
     }

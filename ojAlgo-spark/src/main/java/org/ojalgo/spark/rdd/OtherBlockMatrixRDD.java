@@ -34,7 +34,7 @@ import scala.collection.Seq;
 import scala.reflect.ClassManifestFactory$;
 import scala.reflect.ClassTag;
 
-public abstract class OtherBlockMatrixRDD<N extends Number> extends RDD<MatrixStore<N>> {
+public abstract class OtherBlockMatrixRDD<N extends Comparable<N>> extends RDD<MatrixStore<N>> {
 
     @SuppressWarnings({ "unused", "rawtypes" })
     private static final ClassTag<MatrixStore> CLASS_TAG = ClassManifestFactory$.MODULE$.fromClass(MatrixStore.class);

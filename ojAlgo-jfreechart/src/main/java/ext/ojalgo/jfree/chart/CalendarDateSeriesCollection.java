@@ -37,6 +37,7 @@ import org.ojalgo.function.constant.PrimitiveMath;
 import org.ojalgo.random.ContinuousDistribution;
 import org.ojalgo.random.LogNormal;
 import org.ojalgo.random.RandomNumber;
+import org.ojalgo.scalar.Scalar;
 import org.ojalgo.series.CalendarDateSeries;
 import org.ojalgo.series.CoordinationSet;
 import org.ojalgo.type.CalendarDate;
@@ -124,11 +125,11 @@ public abstract class CalendarDateSeriesCollection extends AbstractSeriesData<Ca
         final String tmpName = aSeries.getName();
 
         final TimeSeries tmpSeries = new TimeSeries(tmpName);
-        for (final Entry<CalendarDate, ? extends Number> tmpEntry : aSeries.entrySet()) {
+        for (final Entry<CalendarDate, ?> tmpEntry : aSeries.entrySet()) {
             final CalendarDate tmpKey = tmpEntry.getKey();
             final FixedMillisecond tmpPeriod = new FixedMillisecond(tmpKey.millis);
-            final Number tmpValue = tmpEntry.getValue();
-            final TimeSeriesDataItem tmpItem = new TimeSeriesDataItem(tmpPeriod, tmpValue);
+            final Comparable<?> tmpValue = (Comparable<?>) tmpEntry.getValue();
+            final TimeSeriesDataItem tmpItem = new TimeSeriesDataItem(tmpPeriod, Scalar.doubleValue(tmpValue));
             tmpSeries.add(tmpItem);
         }
         myCollection.addSeries(tmpSeries);

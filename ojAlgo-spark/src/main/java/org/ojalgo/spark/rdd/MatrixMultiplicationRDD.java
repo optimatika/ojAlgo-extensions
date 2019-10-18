@@ -31,7 +31,7 @@ import scala.collection.Iterator;
 import scala.collection.Seq;
 import scala.reflect.ClassTag;
 
-public final class MatrixMultiplicationRDD<N extends Number> extends OtherBlockMatrixRDD<N> {
+public final class MatrixMultiplicationRDD<N extends Comparable<N>> extends OtherBlockMatrixRDD<N> {
 
     public MatrixMultiplicationRDD(final OtherBlockMatrixRDD<N> left, final OtherBlockMatrixRDD<N> right) {
         super(left, null);

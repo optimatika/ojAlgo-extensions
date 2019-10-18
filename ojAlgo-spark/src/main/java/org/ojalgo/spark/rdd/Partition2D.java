@@ -67,7 +67,7 @@ public class Partition2D implements Partition, Structure2D {
         return Structure2D.row(myIndex, myStructure);
     }
 
-    <N extends Number> TransformableRegion<N> makeConsumerRegion(final TransformableRegion<N> wholeRegion) {
+    <N extends Comparable<N>> TransformableRegion<N> makeConsumerRegion(final TransformableRegion<N> wholeRegion) {
         TransformableRegion<N> retVal = wholeRegion;
         if (this.index() != 0) {
             retVal = retVal.regionByOffsets(this.row() * BLOCK_SIZE, this.column() * BLOCK_SIZE);
@@ -78,7 +78,7 @@ public class Partition2D implements Partition, Structure2D {
         return retVal;
     }
 
-    <N extends Number> TransformableRegion<N> makeConsumerRegion(final PhysicalStore.Factory<N, PhysicalStore<N>> factory) {
+    <N extends Comparable<N>> TransformableRegion<N> makeConsumerRegion(final PhysicalStore.Factory<N, PhysicalStore<N>> factory) {
         return factory.make(myRowsCount, myColumnsCount);
     }
 

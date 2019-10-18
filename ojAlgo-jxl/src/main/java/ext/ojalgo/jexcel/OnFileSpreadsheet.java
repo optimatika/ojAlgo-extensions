@@ -72,7 +72,7 @@ public class OnFileSpreadsheet implements Spreadsheet {
         return myCurrent.getMatrixSheetValue();
     }
 
-    public Number getNumberCellValue() {
+    public Comparable<?> getNumberCellValue() {
         return myCurrent.getNumberCellValue();
     }
 
@@ -147,19 +147,19 @@ public class OnFileSpreadsheet implements Spreadsheet {
         myCurrent.setMatrixSheetValue(aSheetValue);
     }
 
-    public void setNumberCellValue(final Number aCellValue) {
+    public void setNumberCellValue(final Comparable<?> aCellValue) {
         myCurrent.setNumberCellValue(aCellValue);
     }
 
-    public void setNumberCellValue(final Number aCellValue, final String aPattern) {
+    public void setNumberCellValue(final Comparable<?> aCellValue, final String aPattern) {
         myCurrent.setNumberCellValue(aCellValue, aPattern);
     }
 
-    public void setNumberColumnValues(final List<Number> someColumnValues) {
+    public void setNumberColumnValues(final List<Comparable<?>> someColumnValues) {
         myCurrent.setNumberColumnValues(someColumnValues);
     }
 
-    public void setNumberRowValues(final List<Number> someRowValues) {
+    public void setNumberRowValues(final List<Comparable<?>> someRowValues) {
         myCurrent.setNumberRowValues(someRowValues);
     }
 

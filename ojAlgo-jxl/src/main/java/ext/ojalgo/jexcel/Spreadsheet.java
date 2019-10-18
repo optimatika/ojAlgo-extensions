@@ -44,7 +44,7 @@ public interface Spreadsheet {
 
     PrimitiveMatrix getMatrixSheetValue();
 
-    Number getNumberCellValue();
+    Comparable<?> getNumberCellValue();
 
     String[] getSheetNames();
 
@@ -76,13 +76,13 @@ public interface Spreadsheet {
 
     void setMatrixSheetValue(PrimitiveMatrix aSheetValue);
 
-    void setNumberCellValue(Number aCellValue);
+    void setNumberCellValue(Comparable<?> aCellValue);
 
-    void setNumberCellValue(Number aCellValue, String aPattern);
+    void setNumberCellValue(Comparable<?> aCellValue, String aPattern);
 
-    void setNumberColumnValues(List<Number> someColumnValues);
+    void setNumberColumnValues(List<Comparable<?>> someColumnValues);
 
-    void setNumberRowValues(List<Number> someRowValues);
+    void setNumberRowValues(List<Comparable<?>> someRowValues);
 
     void setStringCellValue(String aCellValue);
 

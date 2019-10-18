@@ -1,0 +1,21 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.ojalgo</groupId>
+        <artifactId>ojalgo-extensions</artifactId>
+        <version>2.47.3</version>
+    </parent>
+    <artifactId>ojalgo-weka</artifactId>
+    <name>ojAlgo-weka</name>
+    <description>Waikato Environment for Knowledge Analysis (WEKA)</description>
+    <dependencies>
+        <!-- https://mvnrepository.com/artifact/nz.ac.waikato.cms.weka/weka-dev -->
+        <dependency>
+            <groupId>nz.ac.waikato.cms.weka</groupId>
+            <artifactId>weka-dev</artifactId>
+            <version>3.9.3</version>
+        </dependency>
+    </dependencies>
+</project>

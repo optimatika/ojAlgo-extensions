@@ -63,7 +63,7 @@ public abstract class AdaptingSpreadsheet<T> implements Spreadsheet {
         return mySpreadsheet.getMatrixSheetValue();
     }
 
-    public Number getNumberCellValue() {
+    public Comparable<?> getNumberCellValue() {
         return mySpreadsheet.getNumberCellValue();
     }
 
@@ -133,19 +133,19 @@ public abstract class AdaptingSpreadsheet<T> implements Spreadsheet {
         mySpreadsheet.setMatrixSheetValue(aSheetValue);
     }
 
-    public void setNumberCellValue(final Number aCellValue) {
+    public void setNumberCellValue(final Comparable<?> aCellValue) {
         mySpreadsheet.setNumberCellValue(aCellValue);
     }
 
-    public void setNumberCellValue(final Number aCellValue, final String aPattern) {
+    public void setNumberCellValue(final Comparable<?> aCellValue, final String aPattern) {
         mySpreadsheet.setNumberCellValue(aCellValue, aPattern);
     }
 
-    public void setNumberColumnValues(final List<Number> someColumnValues) {
+    public void setNumberColumnValues(final List<Comparable<?>> someColumnValues) {
         mySpreadsheet.setNumberColumnValues(someColumnValues);
     }
 
-    public void setNumberRowValues(final List<Number> someRowValues) {
+    public void setNumberRowValues(final List<Comparable<?>> someRowValues) {
         mySpreadsheet.setNumberRowValues(someRowValues);
     }
 
