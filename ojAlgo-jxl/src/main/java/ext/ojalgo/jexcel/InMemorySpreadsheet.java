@@ -29,7 +29,7 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
 
-import org.ojalgo.matrix.PrimitiveMatrix;
+import org.ojalgo.matrix.Primitive64Matrix;
 import org.ojalgo.scalar.Scalar;
 import org.ojalgo.type.TypeUtils;
 
@@ -168,7 +168,7 @@ public class InMemorySpreadsheet implements Spreadsheet {
         }
     }
 
-    public PrimitiveMatrix getMatrixSheetValue() {
+    public Primitive64Matrix getMatrixSheetValue() {
 
         this.goHome();
         while (this.getCell() instanceof NumberCell) {
@@ -193,7 +193,7 @@ public class InMemorySpreadsheet implements Spreadsheet {
             this.goToFirstColumnOnNextRow();
         }
 
-        return PrimitiveMatrix.FACTORY.rows(retVal);
+        return Primitive64Matrix.FACTORY.rows(retVal);
     }
 
     public Comparable<?> getNumberCellValue() {
@@ -292,7 +292,7 @@ public class InMemorySpreadsheet implements Spreadsheet {
         }
     }
 
-    public void setMatrixSheetValue(final PrimitiveMatrix aSheetValue) {
+    public void setMatrixSheetValue(final Primitive64Matrix aSheetValue) {
 
         this.goHome();
 

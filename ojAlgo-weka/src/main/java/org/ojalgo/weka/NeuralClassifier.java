@@ -24,7 +24,7 @@ package org.ojalgo.weka;
 import org.ojalgo.ann.ArtificialNeuralNetwork;
 import org.ojalgo.ann.NetworkBuilder;
 import org.ojalgo.array.Primitive64Array;
-import org.ojalgo.matrix.store.PrimitiveDenseStore;
+import org.ojalgo.matrix.store.Primitive64Store;
 
 import weka.classifiers.Classifier;
 import weka.core.Attribute;
@@ -40,7 +40,7 @@ public class NeuralClassifier implements Classifier, CapabilitiesHandler {
     private Primitive64Array myInput;
     private ArtificialNeuralNetwork myNetwork;
     private int myNumberOfAttributes;
-    private PrimitiveDenseStore myOutput;
+    private Primitive64Store myOutput;
 
     public NeuralClassifier() {
         super();
@@ -56,7 +56,7 @@ public class NeuralClassifier implements Classifier, CapabilitiesHandler {
         int numberOfOutputs = myClassAttribute.numValues();
 
         myInput = Primitive64Array.make(numberOfInputs);
-        myOutput = PrimitiveDenseStore.FACTORY.make(numberOfOutputs, 1);
+        myOutput = Primitive64Store.FACTORY.make(numberOfOutputs, 1);
 
         NetworkBuilder builder = ArtificialNeuralNetwork.builder(numberOfInputs, (numberOfInputs + numberOfOutputs) / 2, numberOfOutputs)
                 .activators(ArtificialNeuralNetwork.Activator.TANH, ArtificialNeuralNetwork.Activator.SOFTMAX)

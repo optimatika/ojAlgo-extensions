@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
-import org.ojalgo.matrix.PrimitiveMatrix;
+import org.ojalgo.matrix.Primitive64Matrix;
 
 import ext.ojalgo.jexcel.database.Table;
 import jxl.Workbook;
@@ -68,7 +68,7 @@ public class OnFileSpreadsheet implements Spreadsheet {
         return myCurrent.getDateCellValue();
     }
 
-    public PrimitiveMatrix getMatrixSheetValue() {
+    public Primitive64Matrix getMatrixSheetValue() {
         return myCurrent.getMatrixSheetValue();
     }
 
@@ -143,7 +143,7 @@ public class OnFileSpreadsheet implements Spreadsheet {
         myCurrent.setDateRowValues(someRowValues);
     }
 
-    public void setMatrixSheetValue(final PrimitiveMatrix aSheetValue) {
+    public void setMatrixSheetValue(final Primitive64Matrix aSheetValue) {
         myCurrent.setMatrixSheetValue(aSheetValue);
     }
 

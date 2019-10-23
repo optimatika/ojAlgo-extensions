@@ -25,7 +25,7 @@ import java.io.File;
 import java.util.Date;
 import java.util.List;
 
-import org.ojalgo.matrix.PrimitiveMatrix;
+import org.ojalgo.matrix.Primitive64Matrix;
 
 import ext.ojalgo.jexcel.database.Table;
 
@@ -42,7 +42,7 @@ public interface Spreadsheet {
 
     Date getDateCellValue();
 
-    PrimitiveMatrix getMatrixSheetValue();
+    Primitive64Matrix getMatrixSheetValue();
 
     Comparable<?> getNumberCellValue();
 
@@ -74,7 +74,7 @@ public interface Spreadsheet {
 
     void setDateRowValues(List<Date> someRowValues);
 
-    void setMatrixSheetValue(PrimitiveMatrix aSheetValue);
+    void setMatrixSheetValue(Primitive64Matrix aSheetValue);
 
     void setNumberCellValue(Comparable<?> aCellValue);
 
