@@ -152,7 +152,7 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         this.set(index, value.doubleValue());
     }
 
-    public void fillOne(final long index, final NullaryFunction<Double> supplier) {
+    public void fillOne(final long index, final NullaryFunction<?> supplier) {
         this.set(index, supplier.doubleValue());
     }
 
@@ -213,7 +213,7 @@ public abstract class OffHeapArray extends DenseArray<Double> {
     }
 
     @Override
-    protected void fill(final long first, final long limit, final long step, final NullaryFunction<Double> supplier) {
+    protected void fill(final long first, final long limit, final long step, final NullaryFunction<?> supplier) {
         for (long i = first; i < limit; i += step) {
             this.set(i, supplier.doubleValue());
         }
