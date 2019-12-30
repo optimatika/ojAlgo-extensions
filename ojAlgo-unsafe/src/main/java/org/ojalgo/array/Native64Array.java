@@ -44,7 +44,15 @@ final class Native64Array extends OffHeapArray {
         return NativeMemory.getDouble(myPointer, index);
     }
 
+    public float floatValue(final long index) {
+        return (float) NativeMemory.getDouble(myPointer, index);
+    }
+
     public void set(final long index, final double value) {
+        NativeMemory.setDouble(myPointer, index, value);
+    }
+
+    public void set(final long index, final float value) {
         NativeMemory.setDouble(myPointer, index, value);
     }
 

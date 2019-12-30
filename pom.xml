@@ -63,7 +63,7 @@
     </issueManagement>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <ojalgo.version>48.0.0-SNAPSHOT</ojalgo.version>
+        <ojalgo.version>48.0.1-SNAPSHOT</ojalgo.version>
         <ojalgo-finance.version>2.1.1-SNAPSHOT</ojalgo-finance.version>
         <junit.jupiter.version>5.5.1</junit.jupiter.version>
     </properties>
