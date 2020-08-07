@@ -11,11 +11,11 @@
     <name>ojAlgo-weka</name>
     <description>Waikato Environment for Knowledge Analysis (WEKA)</description>
     <dependencies>
-        <!-- https://mvnrepository.com/artifact/nz.ac.waikato.cms.weka/weka-dev -->
+        <!-- https://mvnrepository.com/artifact/nz.ac.waikato.cms.weka/weka-stable -->
         <dependency>
             <groupId>nz.ac.waikato.cms.weka</groupId>
-            <artifactId>weka-dev</artifactId>
-            <version>3.9.4</version>
+            <artifactId>weka-stable</artifactId>
+            <version>3.8.4</version>
         </dependency>
     </dependencies>
 </project>

@@ -31,14 +31,13 @@ import org.ojalgo.array.Primitive64Array;
 import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.Primitive64Store;
 
-import weka.classifiers.Classifier;
+import weka.classifiers.AbstractClassifier;
 import weka.core.Attribute;
 import weka.core.Capabilities;
-import weka.core.CapabilitiesHandler;
 import weka.core.Instance;
 import weka.core.Instances;
 
-public class NeuralClassifier implements Classifier, CapabilitiesHandler {
+public class NeuralClassifier2 extends AbstractClassifier {
 
     private Attribute myClassAttribute;
     private int myClassIndex;
@@ -48,7 +47,7 @@ public class NeuralClassifier implements Classifier, CapabilitiesHandler {
     private int myNumberOfAttributes;
     private Primitive64Store myOutput;
 
-    public NeuralClassifier() {
+    public NeuralClassifier2() {
         super();
     }
 
