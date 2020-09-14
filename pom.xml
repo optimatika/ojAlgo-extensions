@@ -14,7 +14,6 @@
     <url>http://ojalgo.org</url>
     <description>Extensions to oj! Algorithms with 3:d party dependencies</description>
     <modules>
-        <module>ojAlgo-choco</module>
         <module>ojAlgo-commons-math3</module>
         <module>ojAlgo-cplex</module>
         <module>ojAlgo-deeplearning4j</module>
@@ -26,12 +25,10 @@
         <module>ojAlgo-mosek</module>
         <module>ojAlgo-persistence</module>
         <module>ojAlgo-spark</module>
-        <module>ojAlgo-strata</module>
         <module>ojAlgo-unsafe</module>
         <module>ojAlgo-yahoofinance</module>
         <module>ojAlgo-tensorflow</module>
         <module>ojAlgo-weka</module>
-        <module>ojalgo-commons-math4</module>
     </modules>
     <organization>
         <name>Optimatika</name>
