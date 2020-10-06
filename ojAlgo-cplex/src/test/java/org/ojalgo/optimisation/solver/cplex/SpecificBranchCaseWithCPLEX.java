@@ -23,13 +23,12 @@ package org.ojalgo.optimisation.solver.cplex;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.integer.MIPLIBTheEasySet;
+import org.ojalgo.optimisation.integer.SpecificBranchCase;
 
-public class MIPLIBTheEasySetWithCPLEX extends MIPLIBTheEasySet {
+public class SpecificBranchCaseWithCPLEX extends SpecificBranchCase {
 
     @BeforeAll
     public static void configure() {
         ExpressionsBasedModel.addPreferredSolver(SolverCPLEX.INTEGRATION);
     }
-
 }
