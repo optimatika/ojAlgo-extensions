@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2019 Optimatika
+ * Copyright 1997-2020 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,8 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
 
-import org.ojalgo.matrix.PrimitiveMatrix;
+import org.ojalgo.matrix.Primitive64Matrix;
+import org.ojalgo.scalar.Scalar;
 import org.ojalgo.type.TypeUtils;
 
 import ext.ojalgo.jexcel.database.Column;
@@ -167,7 +168,7 @@ public class InMemorySpreadsheet implements Spreadsheet {
         }
     }
 
-    public PrimitiveMatrix getMatrixSheetValue() {
+    public Primitive64Matrix getMatrixSheetValue() {
 
         this.goHome();
         while (this.getCell() instanceof NumberCell) {
@@ -186,16 +187,16 @@ public class InMemorySpreadsheet implements Spreadsheet {
         this.goHome();
         for (int i = FIRST; i < tmpRowDim; i++) {
             for (int j = FIRST; j < tmpColDim; j++) {
-                retVal[i][j] = this.getNumberCellValue().doubleValue();
+                retVal[i][j] = Scalar.doubleValue(this.getNumberCellValue());
                 this.goToNextColumn();
             }
             this.goToFirstColumnOnNextRow();
         }
 
-        return PrimitiveMatrix.FACTORY.rows(retVal);
+        return Primitive64Matrix.FACTORY.rows(retVal);
     }
 
-    public Number getNumberCellValue() {
+    public Comparable<?> getNumberCellValue() {
 
         final Cell tmpCell = this.getCell();
         final CellType tmpType = tmpCell.getType();
@@ -291,7 +292,7 @@ public class InMemorySpreadsheet implements Spreadsheet {
         }
     }
 
-    public void setMatrixSheetValue(final PrimitiveMatrix aSheetValue) {
+    public void setMatrixSheetValue(final Primitive64Matrix aSheetValue) {
 
         this.goHome();
 
@@ -308,11 +309,11 @@ public class InMemorySpreadsheet implements Spreadsheet {
         }
     }
 
-    public void setNumberCellValue(final Number aCellValue) {
+    public void setNumberCellValue(final Comparable<?> aCellValue) {
         this.setNumberCellValue(aCellValue, null);
     }
 
-    public void setNumberCellValue(final Number aCellValue, final String aPattern) {
+    public void setNumberCellValue(final Comparable<?> aCellValue, final String aPattern) {
 
         if (aCellValue != null) {
 
@@ -321,25 +322,25 @@ public class InMemorySpreadsheet implements Spreadsheet {
                 final DisplayFormat tmpDisplayFormat = new NumberFormat(aPattern);
                 final CellFormat tmpCellFormat = new WritableCellFormat(tmpDisplayFormat);
 
-                this.setCell(new jxl.write.Number(myColumn, myRow, aCellValue.doubleValue(), tmpCellFormat));
+                this.setCell(new jxl.write.Number(myColumn, myRow, Scalar.doubleValue(aCellValue), tmpCellFormat));
 
             } else {
 
-                this.setCell(new jxl.write.Number(myColumn, myRow, aCellValue.doubleValue()));
+                this.setCell(new jxl.write.Number(myColumn, myRow, Scalar.doubleValue(aCellValue)));
             }
         }
     }
 
-    public void setNumberColumnValues(final List<Number> someColumnValues) {
-        for (final Number tmpNumber : someColumnValues) {
-            this.setCell(new jxl.write.Number(myColumn, myRow, tmpNumber.doubleValue()));
+    public void setNumberColumnValues(final List<Comparable<?>> someColumnValues) {
+        for (final Comparable<?> tmpNumber : someColumnValues) {
+            this.setCell(new jxl.write.Number(myColumn, myRow, Scalar.doubleValue(tmpNumber)));
             this.goToNextRow();
         }
     }
 
-    public void setNumberRowValues(final List<Number> someRowValues) {
-        for (final Number tmpNumber : someRowValues) {
-            this.setCell(new jxl.write.Number(myColumn, myRow, tmpNumber.doubleValue()));
+    public void setNumberRowValues(final List<Comparable<?>> someRowValues) {
+        for (final Comparable<?> tmpNumber : someRowValues) {
+            this.setCell(new jxl.write.Number(myColumn, myRow, Scalar.doubleValue(tmpNumber)));
             this.goToNextColumn();
         }
     }

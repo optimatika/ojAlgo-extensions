@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2019 Optimatika
+ * Copyright 1997-2020 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,8 +35,8 @@ import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.ojalgo.function.constant.PrimitiveMath;
 import org.ojalgo.random.ContinuousDistribution;
-import org.ojalgo.random.LogNormal;
-import org.ojalgo.random.RandomNumber;
+import org.ojalgo.random.Distribution;
+import org.ojalgo.scalar.Scalar;
 import org.ojalgo.series.CalendarDateSeries;
 import org.ojalgo.series.CoordinationSet;
 import org.ojalgo.type.CalendarDate;
@@ -60,8 +60,8 @@ public abstract class CalendarDateSeriesCollection extends AbstractSeriesData<Ca
                 return ((NumberWithRange) tmpVal).high;
             } else
 
-            if (tmpVal instanceof LogNormal) {
-                return ((LogNormal) tmpVal).getUpperConfidenceQuantile(CalendarDateSeriesCollection.this.getConfidence());
+            if (tmpVal instanceof ContinuousDistributionWrapper) {
+                return ((ContinuousDistributionWrapper) tmpVal).getUpperConfidenceQuantile(CalendarDateSeriesCollection.this.getConfidence());
             } else if (tmpVal instanceof ContinuousDistribution) {
                 final double tmpProbability = PrimitiveMath.ONE - ((PrimitiveMath.ONE - CalendarDateSeriesCollection.this.getConfidence()) / PrimitiveMath.TWO);
                 return ((ContinuousDistribution) tmpVal).getQuantile(tmpProbability);
@@ -78,8 +78,8 @@ public abstract class CalendarDateSeriesCollection extends AbstractSeriesData<Ca
                 return ((NumberWithRange) tmpVal).low;
             } else
 
-            if (tmpVal instanceof LogNormal) {
-                return ((LogNormal) tmpVal).getLowerConfidenceQuantile(CalendarDateSeriesCollection.this.getConfidence());
+            if (tmpVal instanceof ContinuousDistributionWrapper) {
+                return ((ContinuousDistributionWrapper) tmpVal).getLowerConfidenceQuantile(CalendarDateSeriesCollection.this.getConfidence());
             } else if (tmpVal instanceof ContinuousDistribution) {
                 final double tmpProbability = (PrimitiveMath.ONE - CalendarDateSeriesCollection.this.getConfidence()) / PrimitiveMath.TWO;
                 return ((ContinuousDistribution) tmpVal).getQuantile(tmpProbability);
@@ -96,11 +96,11 @@ public abstract class CalendarDateSeriesCollection extends AbstractSeriesData<Ca
                 return ((NumberWithRange) tmpVal).value;
             } else
 
-            if (tmpVal instanceof LogNormal) {
+            if (tmpVal instanceof ContinuousDistributionWrapper) {
                 //return ((LogNormal) tmpVal).getGeometricMean();
                 return Double.NaN;
-            } else if (tmpVal instanceof RandomNumber) {
-                return ((RandomNumber) tmpVal).getExpected();
+            } else if (tmpVal instanceof Distribution) {
+                return ((Distribution) tmpVal).getExpected();
                 //return Double.NaN;
             } else {
                 return tmpVal;
@@ -124,12 +124,20 @@ public abstract class CalendarDateSeriesCollection extends AbstractSeriesData<Ca
         final String tmpName = aSeries.getName();
 
         final TimeSeries tmpSeries = new TimeSeries(tmpName);
-        for (final Entry<CalendarDate, ? extends Number> tmpEntry : aSeries.entrySet()) {
+        for (final Entry<CalendarDate, ?> tmpEntry : aSeries.entrySet()) {
             final CalendarDate tmpKey = tmpEntry.getKey();
             final FixedMillisecond tmpPeriod = new FixedMillisecond(tmpKey.millis);
-            final Number tmpValue = tmpEntry.getValue();
-            final TimeSeriesDataItem tmpItem = new TimeSeriesDataItem(tmpPeriod, tmpValue);
-            tmpSeries.add(tmpItem);
+            final Comparable<?> tmpValue = (Comparable<?>) tmpEntry.getValue();
+            if (tmpValue instanceof Number) {
+                final TimeSeriesDataItem tmpItem = new TimeSeriesDataItem(tmpPeriod, (Number) tmpValue);
+                tmpSeries.add(tmpItem);
+            } else if (tmpValue instanceof ContinuousDistribution) {
+                final TimeSeriesDataItem tmpItem = new TimeSeriesDataItem(tmpPeriod, new ContinuousDistributionWrapper((ContinuousDistribution) tmpValue));
+                tmpSeries.add(tmpItem);
+            } else {
+                final TimeSeriesDataItem tmpItem = new TimeSeriesDataItem(tmpPeriod, Scalar.doubleValue(tmpValue));
+                tmpSeries.add(tmpItem);
+            }
         }
         myCollection.addSeries(tmpSeries);
 

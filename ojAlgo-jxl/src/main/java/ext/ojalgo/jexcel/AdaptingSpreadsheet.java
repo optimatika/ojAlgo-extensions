@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2019 Optimatika
+ * Copyright 1997-2020 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@ import java.io.File;
 import java.util.Date;
 import java.util.List;
 
-import org.ojalgo.matrix.PrimitiveMatrix;
+import org.ojalgo.matrix.Primitive64Matrix;
 
 import ext.ojalgo.jexcel.database.Table;
 
@@ -59,11 +59,11 @@ public abstract class AdaptingSpreadsheet<T> implements Spreadsheet {
         return mySpreadsheet.getDateCellValue();
     }
 
-    public PrimitiveMatrix getMatrixSheetValue() {
+    public Primitive64Matrix getMatrixSheetValue() {
         return mySpreadsheet.getMatrixSheetValue();
     }
 
-    public Number getNumberCellValue() {
+    public Comparable<?> getNumberCellValue() {
         return mySpreadsheet.getNumberCellValue();
     }
 
@@ -129,23 +129,23 @@ public abstract class AdaptingSpreadsheet<T> implements Spreadsheet {
         mySpreadsheet.setDateRowValues(someRowValues);
     }
 
-    public void setMatrixSheetValue(final PrimitiveMatrix aSheetValue) {
+    public void setMatrixSheetValue(final Primitive64Matrix aSheetValue) {
         mySpreadsheet.setMatrixSheetValue(aSheetValue);
     }
 
-    public void setNumberCellValue(final Number aCellValue) {
+    public void setNumberCellValue(final Comparable<?> aCellValue) {
         mySpreadsheet.setNumberCellValue(aCellValue);
     }
 
-    public void setNumberCellValue(final Number aCellValue, final String aPattern) {
+    public void setNumberCellValue(final Comparable<?> aCellValue, final String aPattern) {
         mySpreadsheet.setNumberCellValue(aCellValue, aPattern);
     }
 
-    public void setNumberColumnValues(final List<Number> someColumnValues) {
+    public void setNumberColumnValues(final List<Comparable<?>> someColumnValues) {
         mySpreadsheet.setNumberColumnValues(someColumnValues);
     }
 
-    public void setNumberRowValues(final List<Number> someRowValues) {
+    public void setNumberRowValues(final List<Comparable<?>> someRowValues) {
         mySpreadsheet.setNumberRowValues(someRowValues);
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2019 Optimatika
+ * Copyright 1997-2020 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +34,7 @@ import scala.collection.Seq;
 import scala.reflect.ClassManifestFactory$;
 import scala.reflect.ClassTag;
 
-public abstract class OtherBlockMatrixRDD<N extends Number> extends RDD<MatrixStore<N>> {
+public abstract class OtherBlockMatrixRDD<N extends Comparable<N>> extends RDD<MatrixStore<N>> {
 
     @SuppressWarnings({ "unused", "rawtypes" })
     private static final ClassTag<MatrixStore> CLASS_TAG = ClassManifestFactory$.MODULE$.fromClass(MatrixStore.class);

@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2015 Optimatika
+ * Copyright 1997-2020 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -71,7 +71,7 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         }
 
         @Override
-        DenseArray<Double> make(final long size) {
+        public DenseArray<Double> makeDenseArray(final long size) {
             return new Native32Array(size);
         }
 
@@ -105,7 +105,7 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         }
 
         @Override
-        DenseArray<Double> make(final long size) {
+        public DenseArray<Double> makeDenseArray(final long size) {
             return new Native64Array(size);
         }
 
@@ -121,7 +121,7 @@ public abstract class OffHeapArray extends DenseArray<Double> {
 
     private final long myCount;
 
-    OffHeapArray(DenseArray.Factory<Double> factory, final long count) {
+    OffHeapArray(final DenseArray.Factory<Double> factory, final long count) {
 
         super(factory);
 
@@ -132,8 +132,8 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         this.set(index, this.doubleValue(index) + addend);
     }
 
-    public void add(final long index, final Number addend) {
-        this.add(index, addend.doubleValue());
+    public void add(final long index, final Comparable<?> addend) {
+        this.add(index, Scalar.doubleValue(addend));
     }
 
     public long count() {
@@ -152,7 +152,7 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         this.set(index, value.doubleValue());
     }
 
-    public void fillOne(final long index, final NullaryFunction<Double> supplier) {
+    public void fillOne(final long index, final NullaryFunction<?> supplier) {
         this.set(index, supplier.doubleValue());
     }
 
@@ -177,8 +177,8 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         this.fillAll(PrimitiveMath.ZERO);
     }
 
-    public void set(final long index, final Number value) {
-        this.set(index, value.doubleValue());
+    public void set(final long index, final Comparable<?> value) {
+        this.set(index, Scalar.doubleValue(value));
     }
 
     public void visitOne(final long index, final VoidFunction<Double> visitor) {
@@ -213,7 +213,7 @@ public abstract class OffHeapArray extends DenseArray<Double> {
     }
 
     @Override
-    protected void fill(final long first, final long limit, final long step, final NullaryFunction<Double> supplier) {
+    protected void fill(final long first, final long limit, final long step, final NullaryFunction<?> supplier) {
         for (long i = first; i < limit; i += step) {
             this.set(i, supplier.doubleValue());
         }

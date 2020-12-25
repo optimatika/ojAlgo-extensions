@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2019 Optimatika
+ * Copyright 1997-2020 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -19,12 +19,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.strata;
+package org.ojalgo.optimisation.solver.cplex;
 
-public class TestVectorPricing {
+import org.junit.jupiter.api.BeforeAll;
+import org.ojalgo.optimisation.ExpressionsBasedModel;
+import org.ojalgo.optimisation.integer.SpecificBranchCase;
 
-    public TestVectorPricing() {
-        super();
+public class SpecificBranchCaseWithCPLEX extends SpecificBranchCase {
+
+    @BeforeAll
+    public static void configure() {
+        ExpressionsBasedModel.addPreferredSolver(SolverCPLEX.INTEGRATION);
     }
-
 }

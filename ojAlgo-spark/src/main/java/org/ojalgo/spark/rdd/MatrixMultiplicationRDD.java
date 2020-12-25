@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2019 Optimatika
+ * Copyright 1997-2020 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@ import scala.collection.Iterator;
 import scala.collection.Seq;
 import scala.reflect.ClassTag;
 
-public final class MatrixMultiplicationRDD<N extends Number> extends OtherBlockMatrixRDD<N> {
+public final class MatrixMultiplicationRDD<N extends Comparable<N>> extends OtherBlockMatrixRDD<N> {
 
     public MatrixMultiplicationRDD(final OtherBlockMatrixRDD<N> left, final OtherBlockMatrixRDD<N> right) {
         super(left, null);

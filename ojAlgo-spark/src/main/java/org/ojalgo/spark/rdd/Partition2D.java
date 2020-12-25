@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2019 Optimatika
+ * Copyright 1997-2020 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,8 +22,8 @@
 package org.ojalgo.spark.rdd;
 
 import org.apache.spark.Partition;
-import org.ojalgo.matrix.store.TransformableRegion;
 import org.ojalgo.matrix.store.PhysicalStore;
+import org.ojalgo.matrix.store.TransformableRegion;
 import org.ojalgo.structure.Structure2D;
 
 public class Partition2D implements Partition, Structure2D {
@@ -67,7 +67,7 @@ public class Partition2D implements Partition, Structure2D {
         return Structure2D.row(myIndex, myStructure);
     }
 
-    <N extends Number> TransformableRegion<N> makeConsumerRegion(final TransformableRegion<N> wholeRegion) {
+    <N extends Comparable<N>> TransformableRegion<N> makeConsumerRegion(final TransformableRegion<N> wholeRegion) {
         TransformableRegion<N> retVal = wholeRegion;
         if (this.index() != 0) {
             retVal = retVal.regionByOffsets(this.row() * BLOCK_SIZE, this.column() * BLOCK_SIZE);
@@ -78,8 +78,8 @@ public class Partition2D implements Partition, Structure2D {
         return retVal;
     }
 
-    <N extends Number> TransformableRegion<N> makeConsumerRegion(final PhysicalStore.Factory<N, PhysicalStore<N>> factory) {
-        return factory.makeZero(myRowsCount, myColumnsCount);
+    <N extends Comparable<N>> TransformableRegion<N> makeConsumerRegion(final PhysicalStore.Factory<N, PhysicalStore<N>> factory) {
+        return factory.make(myRowsCount, myColumnsCount);
     }
 
 }

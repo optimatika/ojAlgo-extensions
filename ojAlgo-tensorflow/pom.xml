@@ -11,6 +11,6 @@
   <dependencies><dependency>
     <groupId>org.tensorflow</groupId>
     <artifactId>tensorflow</artifactId>
-    <version>1.13.0-rc0</version>
+    <version>1.15.0</version>
 </dependency></dependencies>
 </project>

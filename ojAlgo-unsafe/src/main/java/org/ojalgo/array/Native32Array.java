@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2019 Optimatika
+ * Copyright 1997-2020 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -44,8 +44,16 @@ final class Native32Array extends OffHeapArray {
         return NativeMemory.getFloat(myPointer, index);
     }
 
+    public float floatValue(final long index) {
+        return NativeMemory.getFloat(myPointer, index);
+    }
+
     public void set(final long index, final double value) {
         NativeMemory.setFloat(myPointer, index, (float) value);
+    }
+
+    public void set(final long index, final float value) {
+        NativeMemory.setFloat(myPointer, index, value);
     }
 
 }

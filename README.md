@@ -1,6 +1,17 @@
-# ojAlgo-extensions
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-extensions/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-extensions/)
+# Arcived
 
+ojAlgo-extensions has been archived. Each of the modules have been moved to a repository of its own (nothing is discarded). The most important ones are:
+
+- https://github.com/optimatika/ojAlgo-commons-math3
+- https://github.com/optimatika/ojAlgo-cplex
+- https://github.com/optimatika/ojAlgo-gurobi
+- https://github.com/optimatika/ojAlgo-mosek
+- https://github.com/optimatika/ojAlgo-joptimizer
+- https://github.com/optimatika/ojAlgo-unsafe
+- https://github.com/optimatika/ojAlgo-jfreechart
+- https://github.com/optimatika/ojAlgo-yahoofinance
+
+# ojAlgo-extensions
 
 Each of the modules below depend on ojAlgo (possibly ojAlgo-finance) and typically one 3:d party library.
 

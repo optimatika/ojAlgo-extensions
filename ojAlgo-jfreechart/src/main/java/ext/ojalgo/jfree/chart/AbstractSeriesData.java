@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2019 Optimatika
+ * Copyright 1997-2020 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,11 +31,56 @@ import java.util.Set;
 import org.jfree.data.xy.IntervalXYDataset;
 import org.jfree.data.xy.TableXYDataset;
 import org.jfree.data.xy.XYDataset;
+import org.ojalgo.random.ContinuousDistribution;
 import org.ojalgo.random.LogNormal;
+import org.ojalgo.type.ComparableNumber;
 
 public abstract class AbstractSeriesData<K, V, B extends AbstractSeriesData<K, V, B>> extends JFreeChartBuilder<B> {
 
-    static final class NumberWithRange extends Number {
+    static final class ContinuousDistributionWrapper extends Number implements ComparableNumber<ContinuousDistributionWrapper> {
+
+        private final ContinuousDistribution myDistribution;
+
+        ContinuousDistributionWrapper(ContinuousDistribution distribution) {
+            super();
+            myDistribution = distribution;
+        }
+
+        public int compareTo(ContinuousDistributionWrapper other) {
+            return Double.compare(this.doubleValue(), other.doubleValue());
+        }
+
+        @Override
+        public double doubleValue() {
+            return myDistribution.getExpected();
+        }
+
+        @Override
+        public float floatValue() {
+            return (float) myDistribution.getExpected();
+        }
+
+        @Override
+        public int intValue() {
+            return (int) myDistribution.getExpected();
+        }
+
+        @Override
+        public long longValue() {
+            return (long) myDistribution.getExpected();
+        }
+
+        public double getLowerConfidenceQuantile(final double confidence) {
+            return myDistribution.getQuantile((ONE - confidence) / TWO);
+        }
+
+        public double getUpperConfidenceQuantile(final double confidence) {
+            return myDistribution.getQuantile(ONE - ((ONE - confidence) / TWO));
+        }
+
+    }
+
+    static final class NumberWithRange extends Number implements ComparableNumber<NumberWithRange> {
 
         public final double high;
         public final double low;
@@ -76,6 +121,10 @@ public abstract class AbstractSeriesData<K, V, B extends AbstractSeriesData<K, V
             low = ZERO;
             value = ZERO;
             high = ZERO;
+        }
+
+        public int compareTo(NumberWithRange o) {
+            return Double.compare(value, o.value);
         }
 
         @Override

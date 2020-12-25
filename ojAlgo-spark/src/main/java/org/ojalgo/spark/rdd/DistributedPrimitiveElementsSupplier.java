@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2019 Optimatika
+ * Copyright 1997-2020 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +34,7 @@ import org.ojalgo.matrix.store.TransformableRegion;
 import org.ojalgo.matrix.store.ElementsSupplier;
 import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.PhysicalStore.Factory;
-import org.ojalgo.matrix.store.PrimitiveDenseStore;
+import org.ojalgo.matrix.store.Primitive64Store;
 import org.ojalgo.structure.Access2D;
 
 import scala.reflect.ClassManifestFactory$;
@@ -137,8 +137,8 @@ public class DistributedPrimitiveElementsSupplier implements ElementsSupplier<Do
         return ElementsSupplier.super.operateOnMatching(left, operator);
     }
 
-    public Factory<Double, PrimitiveDenseStore> physical() {
-        return PrimitiveDenseStore.FACTORY;
+    public Factory<Double, Primitive64Store> physical() {
+        return Primitive64Store.FACTORY;
     }
 
     public void supplyTo(final TransformableRegion<Double> receiver) {

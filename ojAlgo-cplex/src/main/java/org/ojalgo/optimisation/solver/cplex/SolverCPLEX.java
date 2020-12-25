@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2015 Optimatika
+ * Copyright 1997-2020 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -178,7 +178,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
     static IloNumExpr buildExpression(final ExpressionsBasedModel model, final Expression expression, final IloCplex solver, final List<IloNumVar> variables)
             throws IloException {
 
-        if (expression.isFunctionCompound()) {
+        if (expression.isFunctionQuadratic()) {
 
             final IloLQNumExpr tmpIloLQNumExpr = solver.lqNumExpr();
 
@@ -187,7 +187,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
             return tmpIloLQNumExpr;
 
-        } else if (expression.isFunctionQuadratic()) {
+        } else if (expression.isFunctionPureQuadratic()) {
 
             final IloQuadNumExpr tmpIloQuadNumExpr = solver.quadNumExpr();
 

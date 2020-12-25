@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2019 Optimatika
+ * Copyright 1997-2020 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@ import java.io.File;
 import java.util.Date;
 import java.util.List;
 
-import org.ojalgo.matrix.PrimitiveMatrix;
+import org.ojalgo.matrix.Primitive64Matrix;
 
 import ext.ojalgo.jexcel.database.Table;
 
@@ -42,9 +42,9 @@ public interface Spreadsheet {
 
     Date getDateCellValue();
 
-    PrimitiveMatrix getMatrixSheetValue();
+    Primitive64Matrix getMatrixSheetValue();
 
-    Number getNumberCellValue();
+    Comparable<?> getNumberCellValue();
 
     String[] getSheetNames();
 
@@ -74,15 +74,15 @@ public interface Spreadsheet {
 
     void setDateRowValues(List<Date> someRowValues);
 
-    void setMatrixSheetValue(PrimitiveMatrix aSheetValue);
+    void setMatrixSheetValue(Primitive64Matrix aSheetValue);
 
-    void setNumberCellValue(Number aCellValue);
+    void setNumberCellValue(Comparable<?> aCellValue);
 
-    void setNumberCellValue(Number aCellValue, String aPattern);
+    void setNumberCellValue(Comparable<?> aCellValue, String aPattern);
 
-    void setNumberColumnValues(List<Number> someColumnValues);
+    void setNumberColumnValues(List<Comparable<?>> someColumnValues);
 
-    void setNumberRowValues(List<Number> someRowValues);
+    void setNumberRowValues(List<Comparable<?>> someRowValues);
 
     void setStringCellValue(String aCellValue);
 

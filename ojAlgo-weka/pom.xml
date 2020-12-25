@@ -7,18 +7,15 @@
         <artifactId>ojalgo-extensions</artifactId>
         <version>2.47.3</version>
     </parent>
-    <artifactId>ojalgo-strata</artifactId>
-    <name>ojAlgo-strata</name>
+    <artifactId>ojalgo-weka</artifactId>
+    <name>ojAlgo-weka</name>
+    <description>Waikato Environment for Knowledge Analysis (WEKA)</description>
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/nz.ac.waikato.cms.weka/weka-stable -->
         <dependency>
-            <groupId>com.opengamma.strata</groupId>
-            <artifactId>strata-calc</artifactId>
-            <version>2.1.2</version>
-        </dependency>
-        <dependency>
-            <groupId>com.opengamma.strata</groupId>
-            <artifactId>strata-pricer</artifactId>
-            <version>2.1.2</version>
+            <groupId>nz.ac.waikato.cms.weka</groupId>
+            <artifactId>weka-stable</artifactId>
+            <version>3.8.5</version>
         </dependency>
     </dependencies>
 </project>

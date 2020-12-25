@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2019 Optimatika
+ * Copyright 1997-2020 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,19 +25,19 @@ import org.ojalgo.type.context.TypeContext;
 
 import ext.ojalgo.jexcel.Spreadsheet;
 
-public final class NumberColumn extends Column<Number> {
+public final class NumberColumn extends Column<Comparable<?>> {
 
-    public NumberColumn(final String aName, final TypeContext<Number> aContext) {
+    public NumberColumn(final String aName, final TypeContext<Comparable<?>> aContext) {
         super(aName, aContext);
     }
 
     @Override
-    public Number getCellValue(final Spreadsheet aSheet) {
+    public Comparable<?> getCellValue(final Spreadsheet aSheet) {
         return aSheet.getNumberCellValue();
     }
 
     @Override
-    public void setCellValue(final Spreadsheet aSheet, final Number aCellValue) {
+    public void setCellValue(final Spreadsheet aSheet, final Comparable<?> aCellValue) {
         aSheet.setNumberCellValue(aCellValue);
     }
 

@@ -26,6 +26,7 @@ import java.lang.reflect.Field;
 import sun.misc.Cleaner;
 import sun.misc.Unsafe;
 
+@SuppressWarnings("restriction")
 public abstract class NativeMemory {
 
     static final long SIZE_BYTE = Unsafe.ARRAY_BYTE_INDEX_SCALE;
@@ -144,11 +145,11 @@ public abstract class NativeMemory {
 
     static long allocate(final Object owner, final long bytes) {
 
-        final long tmpPointer = UNSAFE.allocateMemory(bytes);
+        final long pointer = UNSAFE.allocateMemory(bytes);
 
-        Cleaner.create(owner, () -> UNSAFE.freeMemory(tmpPointer));
+        Cleaner.create(owner, () -> UNSAFE.freeMemory(pointer));
 
-        return tmpPointer;
+        return pointer;
     }
 
 }
