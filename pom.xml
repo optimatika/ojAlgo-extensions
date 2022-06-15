@@ -20,7 +20,6 @@
         <module>ojAlgo-jfreechart</module>
         <module>ojAlgo-joptimizer</module>
         <module>ojAlgo-mosek</module>
-        <module>ojAlgo-persistence</module>
         <module>ojAlgo-spark</module>
         <module>ojAlgo-unsafe</module>
         <module>ojAlgo-yahoofinance</module>
