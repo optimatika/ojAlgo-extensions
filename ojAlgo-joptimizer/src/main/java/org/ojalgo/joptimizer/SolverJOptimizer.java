@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,10 +22,13 @@
 package org.ojalgo.joptimizer;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.WriterAppender;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
@@ -52,21 +55,22 @@ import cern.colt.matrix.impl.DenseDoubleMatrix2D;
 public final class SolverJOptimizer implements Optimisation.Solver {
 
     @FunctionalInterface
-    public static interface Configurator {
+    public interface Configurator {
 
-        void configure(final OptimizationRequest request, final OptimizationRequestHandler handler, final Optimisation.Options options);
+        void configure(OptimizationRequest request, OptimizationRequestHandler handler, Optimisation.Options options);
 
     }
 
-    static final class Integration extends ExpressionsBasedModel.Integration<SolverJOptimizer> {
+    public static final class Integration extends ExpressionsBasedModel.Integration<SolverJOptimizer> {
 
         Integration() {
             super();
         }
 
+        @Override
         public SolverJOptimizer build(final ExpressionsBasedModel model) {
 
-            final boolean max = model.isMaximisation();
+            boolean max = model.getOptimisationSense() == Optimisation.Sense.MAX;
 
             OptimizationRequest request;
             LPOptimizationRequest reqLP;
@@ -79,28 +83,30 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                 request = reqLP;
             }
 
-            final List<Variable> variables = model.getFreeVariables();
-            final int numbVars = variables.size();
+            List<Variable> variables = model.getFreeVariables();
+            int numbVars = variables.size();
 
-            final Set<IntIndex> fixed = model.getFixedVariables();
+            Set<IntIndex> fixed = model.getFixedVariables();
 
-            final Expression objective = model.objective();
+            Expression objective = model.objective();
 
-            final List<Expression> equalities = model.constraints().filter(expr -> expr.isEqualityConstraint() && !expr.isAnyQuadraticFactorNonZero())
+            List<Expression> equalities = model.constraints().filter(expr -> expr.isEqualityConstraint() && !expr.isAnyQuadraticFactorNonZero())
                     .collect(Collectors.toList());
-            final int numbEquals = equalities.size();
+            int numbEquals = equalities.size();
 
             if (numbEquals > 0) {
 
-                final DenseDoubleMatrix2D A = new DenseDoubleMatrix2D(numbEquals, numbVars);
-                final DenseDoubleMatrix1D b = new DenseDoubleMatrix1D(numbEquals);
+                DenseDoubleMatrix2D A = new DenseDoubleMatrix2D(numbEquals, numbVars);
+                DenseDoubleMatrix1D b = new DenseDoubleMatrix1D(numbEquals);
 
                 for (int i = 0; i < numbEquals; i++) {
-                    final Expression constr = equalities.get(i).compensate(fixed);
+                    Expression constr = equalities.get(i).compensate(fixed);
 
-                    for (final IntIndex key : constr.getLinearKeySet()) {
-                        final int freeIndex = model.indexOfFreeVariable(key);
-                        A.set(i, freeIndex, constr.getAdjustedLinearFactor(key));
+                    for (IntIndex key : constr.getLinearKeySet()) {
+                        int freeIndex = model.indexOfFreeVariable(key);
+                        if (freeIndex >= 0) {
+                            A.set(i, freeIndex, constr.getAdjustedLinearFactor(key));
+                        }
                     }
 
                     b.set(i, constr.getAdjustedLowerLimit());
@@ -113,48 +119,64 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             if (reqLP != null) {
                 // LP
 
-                final DenseDoubleMatrix1D c = new DenseDoubleMatrix1D(numbVars);
-                final DenseDoubleMatrix1D lb = new DenseDoubleMatrix1D(numbVars);
-                final DenseDoubleMatrix1D ub = new DenseDoubleMatrix1D(numbVars);
+                DenseDoubleMatrix1D c = new DenseDoubleMatrix1D(numbVars);
+                DenseDoubleMatrix1D lb = new DenseDoubleMatrix1D(numbVars);
+                DenseDoubleMatrix1D ub = new DenseDoubleMatrix1D(numbVars);
 
-                for (int i = 0; i < numbVars; i++) {
-                    final double cost = objective.getAdjustedLinearFactor(i);
-                    c.setQuick(i, max ? -cost : cost);
-                    final Variable var = variables.get(i);
-                    final double low = var.getUnadjustedLowerLimit();
-                    lb.setQuick(i, Double.isFinite(low) ? low : LPPrimalDualMethod.DEFAULT_MIN_LOWER_BOUND);
-                    final double upp = var.getUnadjustedUpperLimit();
-                    ub.setQuick(i, Double.isFinite(upp) ? upp : LPPrimalDualMethod.DEFAULT_MAX_UPPER_BOUND);
+                lb.assign(LPPrimalDualMethod.DEFAULT_MIN_LOWER_BOUND);
+                ub.assign(LPPrimalDualMethod.DEFAULT_MAX_UPPER_BOUND);
+
+                for (IntIndex key : objective.getLinearKeySet()) {
+
+                    int freeIndex = model.indexOfFreeVariable(key);
+
+                    if (freeIndex >= 0) {
+
+                        Variable var = model.getVariable(key);
+
+                        double cost = objective.getAdjustedLinearFactor(freeIndex);
+                        c.setQuick(freeIndex, max ? -cost : cost);
+
+                        double low = var.getUnadjustedLowerLimit();
+                        lb.setQuick(freeIndex, Double.isFinite(low) ? low : LPPrimalDualMethod.DEFAULT_MIN_LOWER_BOUND);
+
+                        double upp = var.getUnadjustedUpperLimit();
+                        ub.setQuick(freeIndex, Double.isFinite(upp) ? upp : LPPrimalDualMethod.DEFAULT_MAX_UPPER_BOUND);
+                    }
                 }
 
-                final List<Expression> lowIneq = model.constraints().filter(expr -> expr.isLowerConstraint() && !expr.isAnyQuadraticFactorNonZero())
+                List<Expression> lowIneq = model.constraints().filter(expr -> expr.isLowerConstraint() && !expr.isAnyQuadraticFactorNonZero())
                         .collect(Collectors.toList());
-                final int numbLowIneq = lowIneq.size();
+                int numbLowIneq = lowIneq.size();
 
-                final List<Expression> uppIneq = model.constraints().filter(expr -> expr.isUpperConstraint() && !expr.isAnyQuadraticFactorNonZero())
+                List<Expression> uppIneq = model.constraints().filter(expr -> expr.isUpperConstraint() && !expr.isAnyQuadraticFactorNonZero())
                         .collect(Collectors.toList());
-                final int numbUppIneq = uppIneq.size();
+                int numbUppIneq = uppIneq.size();
 
-                final DenseDoubleMatrix2D G = new DenseDoubleMatrix2D(numbLowIneq + numbUppIneq, numbVars);
-                final DenseDoubleMatrix1D h = new DenseDoubleMatrix1D(numbLowIneq + numbUppIneq);
+                DenseDoubleMatrix2D G = new DenseDoubleMatrix2D(numbLowIneq + numbUppIneq, numbVars);
+                DenseDoubleMatrix1D h = new DenseDoubleMatrix1D(numbLowIneq + numbUppIneq);
 
                 for (int i = 0; i < numbLowIneq; i++) {
-                    final Expression constr = lowIneq.get(i).compensate(fixed);
+                    Expression constr = lowIneq.get(i).compensate(fixed);
 
-                    for (final IntIndex key : constr.getLinearKeySet()) {
-                        final int freeIndex = model.indexOfFreeVariable(key);
-                        G.set(i, freeIndex, -constr.getAdjustedLinearFactor(key));
+                    for (IntIndex key : constr.getLinearKeySet()) {
+                        int freeIndex = model.indexOfFreeVariable(key);
+                        if (freeIndex >= 0) {
+                            G.set(i, freeIndex, -constr.getAdjustedLinearFactor(key));
+                        }
                     }
 
                     h.set(i, -constr.getAdjustedLowerLimit());
                 }
 
                 for (int i = 0; i < numbUppIneq; i++) {
-                    final Expression constr = uppIneq.get(i).compensate(fixed);
+                    Expression constr = uppIneq.get(i).compensate(fixed);
 
-                    for (final IntIndex key : constr.getLinearKeySet()) {
-                        final int freeIndex = model.indexOfFreeVariable(key);
-                        G.set(numbLowIneq + i, freeIndex, constr.getAdjustedLinearFactor(key));
+                    for (IntIndex key : constr.getLinearKeySet()) {
+                        int freeIndex = model.indexOfFreeVariable(key);
+                        if (freeIndex >= 0) {
+                            G.set(numbLowIneq + i, freeIndex, constr.getAdjustedLinearFactor(key));
+                        }
                     }
 
                     h.set(numbLowIneq + i, constr.getAdjustedUpperLimit());
@@ -172,16 +194,16 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                 // QP
 
                 Expression compObj = objective.compensate(fixed);
-                final ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toObjectiveFunction(compObj, numbVars, model);
+                ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toObjectiveFunction(compObj, numbVars, model);
                 request.setF0(objFunc);
 
-                final List<Expression> lowerConstr = model.constraints().filter(expr -> expr.isLowerConstraint()).collect(Collectors.toList());
-                final int numbLowerConstr = lowerConstr.size();
+                List<Expression> lowerConstr = model.constraints().filter(Expression::isLowerConstraint).collect(Collectors.toList());
+                int numbLowerConstr = lowerConstr.size();
 
-                final List<Expression> upperConstr = model.constraints().filter(expr -> expr.isUpperConstraint()).collect(Collectors.toList());
-                final int numbUpperConstr = upperConstr.size();
+                List<Expression> upperConstr = model.constraints().filter(Expression::isUpperConstraint).collect(Collectors.toList());
+                int numbUpperConstr = upperConstr.size();
 
-                if ((numbLowerConstr + numbUpperConstr) > 0) {
+                if (numbLowerConstr + numbUpperConstr > 0) {
 
                     ConvexMultivariateRealFunction[] constrs = new ConvexMultivariateRealFunction[numbLowerConstr + numbUpperConstr];
 
@@ -204,6 +226,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             return new SolverJOptimizer(request, model.options);
         }
 
+        @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
             return !model.isAnyVariableInteger();
         }
@@ -217,20 +240,24 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
     public static final SolverJOptimizer.Integration INTEGRATION = new Integration();
 
-    static final Configurator DEFAULT = new Configurator() {
+    static final Configurator DEFAULT = (request, handler, options) -> {
 
-        public void configure(final OptimizationRequest request, final OptimizationRequestHandler handler, final Options options) {
+        PatternLayout layout = new PatternLayout("%d{ISO8601} [%t] %-5p %c %x - %m%n");
 
-            if (request instanceof LPOptimizationRequest) {
-                //    ((LPOptimizationRequest) request).setPresolvingDisabled(true);
-            }
+        Logger rootLogger = Logger.getRootLogger();
+        rootLogger.setLevel(Level.DEBUG);
+        if (options.logger_appender != null) {
+            options.logger_appender.getPrintStream().ifPresent(a -> rootLogger.addAppender(new WriterAppender(layout, a)));
+        }
 
+        if (request instanceof LPOptimizationRequest) {
+            ((LPOptimizationRequest) request).setPresolvingDisabled(true);
         }
 
     };
 
-    private static ConvexMultivariateRealFunction toFunction(final Expression expression, final int dim, boolean negate, final ExpressionsBasedModel model,
-            double constant) {
+    private static ConvexMultivariateRealFunction toFunction(final Expression expression, final int dim, final boolean negate,
+            final ExpressionsBasedModel model, final double constant) {
 
         DenseDoubleMatrix2D p = null;
         DenseDoubleMatrix1D q = null;
@@ -239,8 +266,8 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         if (expression.isAnyQuadraticFactorNonZero()) {
             p = new DenseDoubleMatrix2D(dim, dim);
 
-            for (final IntRowColumn key : expression.getQuadraticKeySet()) {
-                final double adjusted = expression.getAdjustedQuadraticFactor(key);
+            for (IntRowColumn key : expression.getQuadraticKeySet()) {
+                double adjusted = expression.getAdjustedQuadraticFactor(key);
                 double d = negate ? -adjusted : adjusted;
                 int rowIndex = model.indexOfFreeVariable(key.row);
                 int colIndex = model.indexOfFreeVariable(key.column);
@@ -253,17 +280,16 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         if (expression.isAnyLinearFactorNonZero()) {
             q = new DenseDoubleMatrix1D(dim);
 
-            for (final IntIndex key : expression.getLinearKeySet()) {
-                final double adjusted = expression.getAdjustedLinearFactor(key);
+            for (IntIndex key : expression.getLinearKeySet()) {
+                double adjusted = expression.getAdjustedLinearFactor(key);
                 q.set(model.indexOfFreeVariable(key.index), negate ? -adjusted : adjusted);
             }
         }
 
         if (p != null) {
             return new PSDQuadraticMultivariateRealFunction(p, q, r);
-        } else {
-            return new LinearMultivariateRealFunction(q, r);
         }
+        return new LinearMultivariateRealFunction(q, r);
 
     }
 
@@ -272,7 +298,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
     }
 
     static ConvexMultivariateRealFunction toObjectiveFunction(final Expression expression, final int dim, final ExpressionsBasedModel model) {
-        return SolverJOptimizer.toFunction(expression, dim, model.isMaximisation(), model, 0.0);
+        return SolverJOptimizer.toFunction(expression, dim, model.getOptimisationSense() == Optimisation.Sense.MAX, model, 0.0);
     }
 
     static ConvexMultivariateRealFunction toUpperConstraint(final Expression expression, final int dim, final ExpressionsBasedModel model) {
@@ -288,23 +314,21 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         myOptions = options;
     }
 
+    @Override
     public Result solve(final Result kickStarter) {
 
-        final OptimizationRequestHandler handler = myRequest instanceof LPOptimizationRequest ? new LPPrimalDualMethod() : new NewtonUnconstrained(true);
+        OptimizationRequestHandler handler = myRequest instanceof LPOptimizationRequest ? new LPPrimalDualMethod() : new NewtonUnconstrained(true);
 
         DEFAULT.configure(myRequest, handler, myOptions);
-        final Optional<Configurator> optional = myOptions.getConfigurator(Configurator.class);
-        if (optional.isPresent()) {
-            optional.get().configure(myRequest, handler, myOptions);
-        }
+        myOptions.getConfigurator(Configurator.class).ifPresent(c -> c.configure(myRequest, handler, myOptions));
 
         Optimisation.State retState = Optimisation.State.UNEXPLORED;
         Access1D<Double> retSolution = null;
 
-        if (kickStarter != null) {
-            retState = kickStarter.getState();
-            myRequest.setInitialPoint(kickStarter.toRawCopy1D());
-        }
+        //        if (kickStarter != null && kickStarter.getState().isFeasible()) {
+        //            retState = kickStarter.getState();
+        //            myRequest.setInitialPoint(kickStarter.toRawCopy1D());
+        //        }
 
         handler.setOptimizationRequest(myRequest);
 
@@ -312,22 +336,30 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
             handler.optimize();
 
-            final OptimizationResponse response = handler.getOptimizationResponse();
+            OptimizationResponse response = handler.getOptimizationResponse();
 
             retState = Optimisation.State.OPTIMAL;
             retSolution = Access1D.wrap(response.getSolution());
 
-        } catch (final InfeasibleProblemException exception) {
+        } catch (InfeasibleProblemException cause) {
+
+            if (myOptions.logger_appender != null) {
+                myOptions.logger_appender.print(cause.toString());
+            }
 
             retState = Optimisation.State.INFEASIBLE;
 
-        } catch (final JOptimizerException exception) {
+        } catch (JOptimizerException cause) {
+
+            if (myOptions.logger_appender != null) {
+                myOptions.logger_appender.print(cause.toString());
+            }
 
             retState = Optimisation.State.FAILED;
 
         } finally {
 
-            if ((retSolution == null) && (kickStarter != null)) {
+            if (retSolution == null && kickStarter != null) {
                 retSolution = Access1D.wrap(kickStarter.toRawCopy1D());
             }
         }
