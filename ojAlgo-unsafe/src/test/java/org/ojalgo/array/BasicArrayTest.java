@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2016 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +47,7 @@ public abstract class BasicArrayTest extends Object {
     }
 
     public void testHugeSparse() {
-        this.doTest(SparseArray.factory(Primitive64Array.FACTORY, Long.MAX_VALUE).initial(COUNT).make());
+        this.doTest(SparseArray.factory(Primitive64Array.FACTORY).initial(COUNT).make());
     }
 
     public void testNative32() {
@@ -75,8 +75,7 @@ public abstract class BasicArrayTest extends Object {
     }
 
     public void testSparse() {
-        final long count = COUNT;
-        this.doTest(SparseArray.factory(Primitive64Array.FACTORY, count).initial(DenseCapacityStrategy.capacity(count)).make());
+        this.doTest(SparseArray.factory(Primitive64Array.FACTORY).initial(DenseCapacityStrategy.capacity((long) COUNT)).make());
     }
 
     abstract void doTest(final BasicArray<Double> array);

@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -217,18 +217,6 @@ public abstract class OffHeapArray extends DenseArray<Double> {
         for (long i = first; i < limit; i += step) {
             this.set(i, supplier.doubleValue());
         }
-    }
-
-    @Override
-    protected boolean isSmall(final long first, final long limit, final long step, final double comparedTo) {
-
-        boolean retVal = true;
-
-        for (long i = first; retVal && (i < limit); i += step) {
-            retVal &= PrimitiveScalar.isSmall(comparedTo, this.doubleValue(i));
-        }
-
-        return retVal;
     }
 
     @Override

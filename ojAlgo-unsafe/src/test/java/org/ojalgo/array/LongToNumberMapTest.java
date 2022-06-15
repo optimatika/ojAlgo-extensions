@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2016 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@ package org.ojalgo.array;
 import java.util.Map.Entry;
 
 import org.ojalgo.TestUtils;
-import org.ojalgo.function.constant.PrimitiveMath;
+import org.ojalgo.function.special.PowerOf2;
 
 /**
  * LongToNumberMap
@@ -38,10 +38,10 @@ public class LongToNumberMapTest extends ArrayTests {
     }
 
     public void testAlignCapacity() {
-        TestUtils.assertEquals(1, 1L << PrimitiveMath.powerOf2Larger(-1L));
-        TestUtils.assertEquals(16, 1L << PrimitiveMath.powerOf2Larger(16L));
-        TestUtils.assertEquals(512, 1L << PrimitiveMath.powerOf2Larger(365L));
-        TestUtils.assertEquals(16_384, 1L << PrimitiveMath.powerOf2Larger(16_384L));
+        TestUtils.assertEquals(1, 1L << PowerOf2.powerOf2Larger(-1L));
+        TestUtils.assertEquals(16, 1L << PowerOf2.powerOf2Larger(16L));
+        TestUtils.assertEquals(512, 1L << PowerOf2.powerOf2Larger(365L));
+        TestUtils.assertEquals(16_384, 1L << PowerOf2.powerOf2Larger(16_384L));
     }
 
     public void testSubmap() {
