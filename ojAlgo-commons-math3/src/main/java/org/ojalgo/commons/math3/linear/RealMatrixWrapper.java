@@ -1,6 +1,5 @@
-package org.ojalgo.commons.math3.linear;
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +19,7 @@ package org.ojalgo.commons.math3.linear;
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+package org.ojalgo.commons.math3.linear;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.DiagonalMatrix;
@@ -31,6 +31,11 @@ import org.ojalgo.matrix.store.RawStore;
 import org.ojalgo.matrix.store.TransformableRegion;
 import org.ojalgo.structure.Access2D;
 
+/**
+ * Wraps any {@link RealMatrix} implementation and turns it into an ojAlgo {@link MatrixStore}.
+ *
+ * @author apete
+ */
 public abstract class RealMatrixWrapper implements MatrixStore<Double> {
 
     static final class Array2DRowWrapper extends RealMatrixWrapper {
@@ -49,8 +54,8 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
 
         public void supplyTo(final TransformableRegion<Double> receiver) {
 
-            final int limRows = (int) Math.min(myArray2DRow.getRowDimension(), receiver.countRows());
-            final int limCols = (int) Math.min(myArray2DRow.getColumnDimension(), receiver.countColumns());
+            int limRows = Math.min(myArray2DRow.getRowDimension(), receiver.getRowDim());
+            int limCols = Math.min(myArray2DRow.getColumnDimension(), receiver.getColDim());
 
             for (int i = 0; i < limRows; i++) {
                 for (int j = 0; j < limCols; j++) {
@@ -69,11 +74,11 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
 
         public void supplyTo(final TransformableRegion<Double> receiver) {
 
-            final long limRows = Math.min(this.countRows(), receiver.countRows());
-            final long limCols = Math.min(this.countColumns(), receiver.countColumns());
+            int limRows = Math.min(this.getRowDim(), receiver.getRowDim());
+            int limCols = Math.min(this.getColDim(), receiver.getColDim());
 
-            for (long j = 0L; j < limCols; j++) {
-                for (long i = 0L; i < limRows; i++) {
+            for (int j = 0; j < limCols; j++) {
+                for (int i = 0; i < limRows; i++) {
                     receiver.set(i, j, this.doubleValue(i, j));
                 }
             }
@@ -110,7 +115,7 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
 
             receiver.reset();
 
-            final double[] diagonal = myDiagonal.getDataRef();
+            double[] diagonal = myDiagonal.getDataRef();
             for (int ij = 0; ij < diagonal.length; ij++) {
                 receiver.set(ij, ij, diagonal[ij]);
             }
@@ -148,7 +153,7 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
     }
 
     public Double get(final long row, final long col) {
-        return myRealMatrix.getEntry((int) row, (int) col);
+        return Double.valueOf(this.doubleValue(row, col));
     }
 
     public PhysicalStore.Factory<Double, ?> physical() {
@@ -156,7 +161,7 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
     }
 
     @Override
-    public final String toString() {
+    public String toString() {
         return Access2D.toString(this);
     }
 

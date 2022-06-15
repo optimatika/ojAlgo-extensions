@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -109,7 +109,7 @@ public class CompareImplementations {
         for (int d = 0; d < densityDegrees.length; d++) {
             int degreesOfFreedom = densityDegrees[d];
             org.apache.commons.math3.distribution.TDistribution acm = new org.apache.commons.math3.distribution.TDistribution(degreesOfFreedom);
-            TDistribution oj = TDistribution.make(degreesOfFreedom);
+            TDistribution oj = TDistribution.of(degreesOfFreedom);
             CompareImplementations.compareDensity(acm, oj);
         }
 
@@ -117,7 +117,7 @@ public class CompareImplementations {
         for (int d = 0; d < distributionDegrees.length; d++) {
             int degreesOfFreedom = distributionDegrees[d];
             org.apache.commons.math3.distribution.TDistribution acm = new org.apache.commons.math3.distribution.TDistribution(degreesOfFreedom);
-            TDistribution oj = TDistribution.make(degreesOfFreedom);
+            TDistribution oj = TDistribution.of(degreesOfFreedom);
             CompareImplementations.compareDistribution(acm, oj);
         }
 
@@ -125,7 +125,7 @@ public class CompareImplementations {
         for (int d = 0; d < quantileDegrees.length; d++) {
             int degreesOfFreedom = quantileDegrees[d];
             org.apache.commons.math3.distribution.TDistribution acm = new org.apache.commons.math3.distribution.TDistribution(degreesOfFreedom);
-            TDistribution oj = TDistribution.make(degreesOfFreedom);
+            TDistribution oj = TDistribution.of(degreesOfFreedom);
             CompareImplementations.compareQuantile(acm, oj);
         }
 

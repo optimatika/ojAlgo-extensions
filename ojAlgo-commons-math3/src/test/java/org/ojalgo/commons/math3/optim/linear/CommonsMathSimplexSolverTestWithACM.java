@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,14 +24,14 @@ package org.ojalgo.commons.math3.optim.linear;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.ExtensionsSolverProblem;
+import org.ojalgo.optimisation.linear.CommonsMathSimplexSolverTest;
 
 @Disabled
-public class ExtensionsSolverProblemWithACM extends ExtensionsSolverProblem {
+public class CommonsMathSimplexSolverTestWithACM extends CommonsMathSimplexSolverTest {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addPreferredSolver(SolverCommonsMath.INTEGRATION);
+        ExpressionsBasedModel.addIntegration(SolverCommonsMath.INTEGRATION);
     }
 
 }

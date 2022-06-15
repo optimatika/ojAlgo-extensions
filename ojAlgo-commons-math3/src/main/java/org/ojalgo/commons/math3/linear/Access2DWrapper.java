@@ -1,13 +1,40 @@
+/*
+ * Copyright 1997-2022 Optimatika
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package org.ojalgo.commons.math3.linear;
 
 import org.apache.commons.math3.exception.NotStrictlyPositiveException;
 import org.apache.commons.math3.exception.OutOfRangeException;
 import org.apache.commons.math3.linear.AbstractRealMatrix;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.RealMatrix;
 import org.ojalgo.matrix.store.RawStore;
 import org.ojalgo.structure.Access2D;
 import org.ojalgo.structure.Mutate2D;
 
+/**
+ * Wraps essentially any ojAlgo 2D data structure and turns it into a {@link RealMatrix}.
+ *
+ * @author apete
+ */
 public class Access2DWrapper extends AbstractRealMatrix {
 
     public static Access2DWrapper of(final Access2D<?> delegate) {
@@ -28,7 +55,7 @@ public class Access2DWrapper extends AbstractRealMatrix {
 
     @Override
     public Access2DWrapper createMatrix(final int rowDimension, final int columnDimension) throws NotStrictlyPositiveException {
-        return new Access2DWrapper(RawStore.FACTORY.makeZero(rowDimension, columnDimension));
+        return new Access2DWrapper(RawStore.FACTORY.make(rowDimension, columnDimension));
     }
 
     @Override
