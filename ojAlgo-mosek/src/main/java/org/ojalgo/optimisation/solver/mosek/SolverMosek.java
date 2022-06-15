@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,9 +51,9 @@ import mosek.Task;
 public final class SolverMosek implements Optimisation.Solver {
 
     @FunctionalInterface
-    public static interface Configurator {
+    public interface Configurator {
 
-        void configure(final Env environment, final Task task, final Optimisation.Options options);
+        void configure(Env environment, Task task, Optimisation.Options options);
 
     }
 
@@ -78,27 +78,27 @@ public final class SolverMosek implements Optimisation.Solver {
 
         public SolverMosek build(final ExpressionsBasedModel model) {
 
-            final List<Variable> tmpFreeVariables = model.getFreeVariables();
-            final Set<IntIndex> tmpFixedVariables = model.getFixedVariables();
+            List<Variable> tmpFreeVariables = model.getFreeVariables();
+            Set<IntIndex> tmpFixedVariables = model.getFixedVariables();
 
-            final List<Expression> tmpConstraints = model.constraints().collect(Collectors.toList());
+            List<Expression> tmpConstraints = model.constraints().collect(Collectors.toList());
 
-            final int tmpNumberOfVariables = tmpFreeVariables.size();
-            final int tmpNumberOfConstraints = tmpConstraints.size();
+            int tmpNumberOfVariables = tmpFreeVariables.size();
+            int tmpNumberOfConstraints = tmpConstraints.size();
 
-            final SolverMosek retVal = INTEGRATION.makeSolver(tmpNumberOfConstraints, tmpNumberOfVariables, model.options);
+            SolverMosek retVal = INTEGRATION.makeSolver(tmpNumberOfConstraints, tmpNumberOfVariables, model.options);
 
             for (int v = 0; v < tmpNumberOfVariables; v++) {
-                final Variable tmpVariable = tmpFreeVariables.get(v);
+                Variable tmpVariable = tmpFreeVariables.get(v);
                 retVal.putVariable(v, tmpVariable);
             }
 
             for (int c = 0; c < tmpNumberOfConstraints; c++) {
-                final Expression tmpConstraint = tmpConstraints.get(c).compensate(tmpFixedVariables);
+                Expression tmpConstraint = tmpConstraints.get(c).compensate(tmpFixedVariables);
                 retVal.putConstraint(c, tmpConstraint, model);
             }
 
-            final Expression tmpObjective = model.objective().compensate(tmpFixedVariables);
+            Expression tmpObjective = model.objective().compensate(tmpFixedVariables);
             retVal.putObjective(tmpObjective, model);
 
             retVal.setSolutionType(model);
@@ -111,7 +111,7 @@ public final class SolverMosek implements Optimisation.Solver {
         }
 
         @Override
-        protected final void finalize() throws Throwable {
+        protected void finalize() throws Throwable {
 
             if (myEnvironment != null) {
                 myEnvironment.dispose();
@@ -135,7 +135,7 @@ public final class SolverMosek implements Optimisation.Solver {
 
         SolverMosek makeSolver(final int numberOfConstraints, final int numberOfVariables, final Optimisation.Options options) {
 
-            final Task tmpTask = new Task(myEnvironment, numberOfConstraints, numberOfVariables);
+            Task tmpTask = new Task(myEnvironment, numberOfConstraints, numberOfVariables);
 
             tmpTask.appendcons(numberOfConstraints);
             tmpTask.appendvars(numberOfVariables);
@@ -153,19 +153,16 @@ public final class SolverMosek implements Optimisation.Solver {
 
     public static final SolverMosek.Integration INTEGRATION = new Integration();
 
-    static final Configurator DEFAULT = new Configurator() {
+    static final Configurator DEFAULT = (environment, task, options) -> {
 
-        public void configure(final Env environment, final Task task, final Options options) {
+        task.putdouparam(Env.dparam.mio_max_time, options.time_abort);
 
-            task.putdouparam(Env.dparam.mio_max_time, options.time_abort);
+        Class<? extends Solver> loggerSolver = options.logger_solver;
 
-            final Class<? extends Solver> loggerSolver = options.logger_solver;
-
-            if ((loggerSolver != null) && loggerSolver.isAssignableFrom(SolverMosek.class)) {
-                task.putintparam(Env.iparam.log, 1);
-            } else {
-                task.putintparam(Env.iparam.log, 0);
-            }
+        if (loggerSolver != null && loggerSolver.isAssignableFrom(SolverMosek.class)) {
+            task.putintparam(Env.iparam.log, 1);
+        } else {
+            task.putintparam(Env.iparam.log, 0);
         }
     };
 
@@ -194,25 +191,25 @@ public final class SolverMosek implements Optimisation.Solver {
 
     public Result solve(final Result kickStarter) {
 
-        final int tmpNumberOfVariables = myTask.getnumvar();
+        int tmpNumberOfVariables = myTask.getnumvar();
 
         Optimisation.State tmpSate = Optimisation.State.FAILED;
         double tmpValue = Double.NaN;
-        final double[] tmpSolution = new double[tmpNumberOfVariables];
+        double[] tmpSolution = new double[tmpNumberOfVariables];
 
         try {
 
-            final Env tmpEnvironment = INTEGRATION.getEnvironment();
+            Env tmpEnvironment = INTEGRATION.getEnvironment();
 
             DEFAULT.configure(tmpEnvironment, myTask, myOptions);
-            final Optional<Configurator> optional = myOptions.getConfigurator(Configurator.class);
+            Optional<Configurator> optional = myOptions.getConfigurator(Configurator.class);
             if (optional.isPresent()) {
                 optional.get().configure(tmpEnvironment, myTask, myOptions);
             }
 
             if (myTask.optimize() == rescode.ok) {
 
-                final solsta[] tmpSolverState = new solsta[1];
+                solsta[] tmpSolverState = new solsta[1];
                 myTask.getsolsta(mySolutionType, tmpSolverState);
 
                 myTask.getxx(mySolutionType, tmpSolution);
@@ -235,7 +232,7 @@ public final class SolverMosek implements Optimisation.Solver {
                 }
             }
 
-        } catch (final Exception xcptn) {
+        } catch (Exception xcptn) {
             throw xcptn;
         }
 
@@ -253,36 +250,32 @@ public final class SolverMosek implements Optimisation.Solver {
     boundkey getBoundKey(final Optimisation.Constraint modelEntity) {
 
         if (modelEntity.getLowerLimit() != null) {
-            if (modelEntity.getUpperLimit() != null) {
-                if (modelEntity.getLowerLimit().compareTo(modelEntity.getUpperLimit()) == 0) {
-                    return boundkey.fx;
-                } else {
-                    return boundkey.ra;
-                }
-            } else {
+            if (modelEntity.getUpperLimit() == null) {
                 return boundkey.lo;
             }
-        } else {
-            if (modelEntity.getUpperLimit() != null) {
-                return boundkey.up;
-            } else {
-                return boundkey.fr;
+            if (modelEntity.getLowerLimit().compareTo(modelEntity.getUpperLimit()) == 0) {
+                return boundkey.fx;
             }
+            return boundkey.ra;
         }
+        if (modelEntity.getUpperLimit() != null) {
+            return boundkey.up;
+        }
+        return boundkey.fr;
     }
 
     void putConstraint(final int index, final Expression constraint, final ExpressionsBasedModel model) {
 
-        final Set<IntIndex> tmpLinearFactorKeys = constraint.getLinearKeySet();
-        final int tmpLinearSize = tmpLinearFactorKeys.size();
+        Set<IntIndex> tmpLinearFactorKeys = constraint.getLinearKeySet();
+        int tmpLinearSize = tmpLinearFactorKeys.size();
         if (tmpLinearSize > 0) {
 
-            final int[] tmpCols = new int[tmpLinearSize];
-            final double[] tmpVals = new double[tmpLinearSize];
+            int[] tmpCols = new int[tmpLinearSize];
+            double[] tmpVals = new double[tmpLinearSize];
 
             int i = 0;
-            for (final IntIndex tmpKey : tmpLinearFactorKeys) {
-                final int tmpRow = tmpKey.index;
+            for (IntIndex tmpKey : tmpLinearFactorKeys) {
+                int tmpRow = tmpKey.index;
                 if (tmpRow >= 0) {
                     tmpCols[i] = tmpRow;
                     tmpVals[i] = constraint.getAdjustedLinearFactor(tmpKey);
@@ -295,19 +288,19 @@ public final class SolverMosek implements Optimisation.Solver {
             myTask.putarow(index, tmpCols, tmpVals);
         }
 
-        final Set<IntRowColumn> tmpQuadraticFactorKeys = constraint.getQuadraticKeySet();
-        final int tmpQuadraticSize = tmpQuadraticFactorKeys.size();
+        Set<IntRowColumn> tmpQuadraticFactorKeys = constraint.getQuadraticKeySet();
+        int tmpQuadraticSize = tmpQuadraticFactorKeys.size();
         if (tmpQuadraticSize > 0) {
 
-            final int[] tmpRows = new int[tmpQuadraticSize];
-            final int[] tmpCols = new int[tmpQuadraticSize];
-            final double[] tmpVals = new double[tmpQuadraticSize];
+            int[] tmpRows = new int[tmpQuadraticSize];
+            int[] tmpCols = new int[tmpQuadraticSize];
+            double[] tmpVals = new double[tmpQuadraticSize];
 
             int i = 0;
-            for (final IntRowColumn tmpKey : tmpQuadraticFactorKeys) {
-                final int tmpRow = tmpKey.row;
-                final int tmpCol = tmpKey.column;
-                if ((tmpRow >= 0) && (tmpCol >= 0)) {
+            for (IntRowColumn tmpKey : tmpQuadraticFactorKeys) {
+                int tmpRow = tmpKey.row;
+                int tmpCol = tmpKey.column;
+                if (tmpRow >= 0 && tmpCol >= 0) {
                     if (tmpRow == tmpCol) {
                         tmpRows[i] = tmpRow;
                         tmpCols[i] = tmpCol;
@@ -327,25 +320,25 @@ public final class SolverMosek implements Optimisation.Solver {
             myTask.putqconk(index, tmpRows, tmpCols, tmpVals);
         }
 
-        final boundkey tmpBoundType = this.getBoundKey(constraint);
-        final double tmpLowerBound = constraint.getAdjustedLowerLimit();
-        final double tmpUpperBound = constraint.getAdjustedUpperLimit();
+        boundkey tmpBoundType = this.getBoundKey(constraint);
+        double tmpLowerBound = constraint.getAdjustedLowerLimit();
+        double tmpUpperBound = constraint.getAdjustedUpperLimit();
 
         myTask.putconbound(index, tmpBoundType, tmpLowerBound, tmpUpperBound);
     }
 
     void putObjective(final Expression objective, final ExpressionsBasedModel model) {
 
-        final Set<IntIndex> tmpLinearFactorKeys = objective.getLinearKeySet();
-        final int tmpLinearSize = tmpLinearFactorKeys.size();
+        Set<IntIndex> tmpLinearFactorKeys = objective.getLinearKeySet();
+        int tmpLinearSize = tmpLinearFactorKeys.size();
         if (tmpLinearSize > 0) {
 
-            final int[] tmpRows = new int[tmpLinearSize];
-            final double[] tmpVals = new double[tmpLinearSize];
+            int[] tmpRows = new int[tmpLinearSize];
+            double[] tmpVals = new double[tmpLinearSize];
 
             int i = 0;
-            for (final IntIndex tmpKey : tmpLinearFactorKeys) {
-                final int tmpRow = tmpKey.index;
+            for (IntIndex tmpKey : tmpLinearFactorKeys) {
+                int tmpRow = tmpKey.index;
                 if (tmpRow >= 0) {
                     tmpRows[i] = tmpRow;
                     tmpVals[i] = objective.getAdjustedLinearFactor(tmpKey);
@@ -358,19 +351,19 @@ public final class SolverMosek implements Optimisation.Solver {
             myTask.putclist(tmpRows, tmpVals);
         }
 
-        final Set<IntRowColumn> tmpQuadraticFactorKeys = objective.getQuadraticKeySet();
-        final int tmpQuadraticSize = tmpQuadraticFactorKeys.size();
+        Set<IntRowColumn> tmpQuadraticFactorKeys = objective.getQuadraticKeySet();
+        int tmpQuadraticSize = tmpQuadraticFactorKeys.size();
         if (tmpQuadraticSize > 0) {
 
-            final int[] tmpRows = new int[tmpQuadraticSize];
-            final int[] tmpCols = new int[tmpQuadraticSize];
-            final double[] tmpVals = new double[tmpQuadraticSize];
+            int[] tmpRows = new int[tmpQuadraticSize];
+            int[] tmpCols = new int[tmpQuadraticSize];
+            double[] tmpVals = new double[tmpQuadraticSize];
 
             int i = 0;
-            for (final IntRowColumn tmpKey : tmpQuadraticFactorKeys) {
-                final int tmpRow = tmpKey.row;
-                final int tmpCol = tmpKey.column;
-                if ((tmpRow >= 0) && (tmpCol >= 0)) {
+            for (IntRowColumn tmpKey : tmpQuadraticFactorKeys) {
+                int tmpRow = tmpKey.row;
+                int tmpCol = tmpKey.column;
+                if (tmpRow >= 0 && tmpCol >= 0) {
                     if (tmpRow == tmpCol) {
                         tmpRows[i] = tmpRow;
                         tmpCols[i] = tmpCol;
@@ -390,22 +383,22 @@ public final class SolverMosek implements Optimisation.Solver {
             myTask.putqobj(tmpRows, tmpCols, tmpVals);
         }
 
-        myTask.putobjsense(model.isMinimisation() ? objsense.minimize : objsense.maximize);
+        myTask.putobjsense(model.getOptimisationSense() == Optimisation.Sense.MIN ? objsense.minimize : objsense.maximize);
     }
 
     void putVariable(final int index, final Variable variable) {
 
-        final boundkey boundType = this.getBoundKey(variable);
-        final double lowerBound = variable.getUnadjustedLowerLimit();
-        final double upperBound = variable.getUnadjustedUpperLimit();
-        final variabletype variableType = variable.isInteger() ? variabletype.type_int : variabletype.type_cont;
+        boundkey boundType = this.getBoundKey(variable);
+        double lowerBound = variable.getUnadjustedLowerLimit();
+        double upperBound = variable.getUnadjustedUpperLimit();
+        variabletype variableType = variable.isInteger() ? variabletype.type_int : variabletype.type_cont;
 
         myTask.putvarbound(index, boundType, lowerBound, upperBound);
         myTask.putvartype(index, variableType);
     }
 
     void setSolutionType(final ExpressionsBasedModel model) {
-        mySolutionType = model.isAnyVariableInteger() ? soltype.itg : (model.isAnyExpressionQuadratic() ? soltype.itr : soltype.bas);
+        mySolutionType = model.isAnyVariableInteger() ? soltype.itg : model.isAnyExpressionQuadratic() ? soltype.itr : soltype.bas;
     }
 
 }
