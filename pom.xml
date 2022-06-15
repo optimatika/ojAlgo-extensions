@@ -22,8 +22,6 @@
         <module>ojAlgo-mosek</module>
         <module>ojAlgo-unsafe</module>
         <module>ojAlgo-yahoofinance</module>
-        <module>ojAlgo-tensorflow</module>
-        <module>ojAlgo-weka</module>
     </modules>
     <organization>
         <name>Optimatika</name>
