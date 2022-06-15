@@ -19,7 +19,6 @@
         <module>ojAlgo-gurobi</module>
         <module>ojAlgo-jfreechart</module>
         <module>ojAlgo-joptimizer</module>
-        <module>ojAlgo-mail</module>
         <module>ojAlgo-mosek</module>
         <module>ojAlgo-persistence</module>
         <module>ojAlgo-spark</module>
