@@ -27,9 +27,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.ojalgo.array.Primitive64Array;
-import org.ojalgo.netio.BasicLogger.Printer;
+import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.netio.CharacterRing;
-import org.ojalgo.netio.CharacterRing.PrinterBuffer;
+import org.ojalgo.netio.CharacterRing.RingLogger;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
@@ -60,7 +60,7 @@ public final class SolverMosek implements Optimisation.Solver {
     static final class Integration extends ExpressionsBasedModel.Integration<SolverMosek> {
 
         private final Env myEnvironment = new Env();
-        private final PrinterBuffer myLog = new CharacterRing().asPrinter();
+        private final RingLogger myLog = CharacterRing.newRingLogger();
         private final Stream myStream = new Stream() {
 
             @Override
@@ -125,7 +125,7 @@ public final class SolverMosek implements Optimisation.Solver {
             return true;
         }
 
-        void flushLog(final Printer target) {
+        void flushLog(final BasicLogger target) {
             myLog.flush(target);
         }
 

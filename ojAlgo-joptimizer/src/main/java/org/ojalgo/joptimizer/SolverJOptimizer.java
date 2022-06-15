@@ -247,7 +247,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         Logger rootLogger = Logger.getRootLogger();
         rootLogger.setLevel(Level.DEBUG);
         if (options.logger_appender != null) {
-            options.logger_appender.getPrintStream().ifPresent(a -> rootLogger.addAppender(new WriterAppender(layout, a)));
+            options.logger_appender.asWriter().ifPresent(a -> rootLogger.addAppender(new WriterAppender(layout, a)));
         }
 
         if (request instanceof LPOptimizationRequest) {
