@@ -16,7 +16,6 @@
     <modules>
         <module>ojAlgo-commons-math3</module>
         <module>ojAlgo-cplex</module>
-        <module>ojAlgo-deeplearning4j</module>
         <module>ojAlgo-gurobi</module>
         <module>ojAlgo-jfreechart</module>
         <module>ojAlgo-joptimizer</module>
