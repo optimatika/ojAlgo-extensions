@@ -57,48 +57,6 @@
         <ojalgo-finance.version>2.1.1-SNAPSHOT</ojalgo-finance.version>
         <junit.jupiter.version>5.8.2</junit.jupiter.version>
     </properties>
-    <dependencies>
-        <dependency>
-            <groupId>org.ojalgo</groupId>
-            <artifactId>ojalgo</artifactId>
-            <version>${ojalgo.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.ojalgo</groupId>
-            <artifactId>ojalgo</artifactId>
-            <version>${ojalgo.version}</version>
-            <classifier>tests</classifier>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit.jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-            <version>${junit.jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.ojalgo</groupId>
-                <artifactId>ojalgo-finance</artifactId>
-                <version>${ojalgo-finance.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
