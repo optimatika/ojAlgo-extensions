@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.ojalgo</groupId>
     <artifactId>ojalgo-extensions</artifactId>
     <!-- The major version digit corresponds to the pom structure version -->
     <!-- The minor version digit corresponds to the major version of ojAlgo -->
     <!-- The patch version digit corresponds to the major version of ojAlgo-finance -->
-    <version>2.47.3</version>
+    <version>3.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>ojAlgo-extensions</name>
     <url>http://ojalgo.org</url>
@@ -54,7 +52,6 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <ojalgo.version>51.3.0</ojalgo.version>
-        <ojalgo-finance.version>2.1.1-SNAPSHOT</ojalgo-finance.version>
         <junit.jupiter.version>5.8.2</junit.jupiter.version>
     </properties>
     <distributionManagement>
@@ -157,8 +154,7 @@
                     </includes>
                     <excludedGroups>slow,unstable</excludedGroups>
                 </configuration>
-                <dependencies>
-                </dependencies>
+                <dependencies></dependencies>
             </plugin>
         </plugins>
     </build>
