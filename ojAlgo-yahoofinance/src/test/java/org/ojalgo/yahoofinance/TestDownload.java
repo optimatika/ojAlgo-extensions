@@ -26,7 +26,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.ojAlgo.yahoofinance.YahooFinanceDataSource;
 import org.ojalgo.TestUtils;
-import org.ojalgo.data.domain.finance.series.DatePrice;
+import org.ojalgo.data.domain.finance.series.YahooParser;
 import org.ojalgo.type.CalendarDateUnit;
 
 public class TestDownload {
@@ -34,9 +34,9 @@ public class TestDownload {
     @Test
     public void testYahooDailyAAPL() {
 
-        final YahooFinanceDataSource dataSource = YahooFinanceDataSource.of("AAPL", CalendarDateUnit.DAY);
+        YahooFinanceDataSource dataSource = YahooFinanceDataSource.of("AAPL", CalendarDateUnit.DAY);
 
-        final List<DatePrice> rows = dataSource.getHistoricalPrices();
+        List<YahooParser.Data> rows = dataSource.getHistoricalPrices();
 
         if (rows.size() <= 0) {
             TestUtils.fail("No data!");
@@ -48,9 +48,9 @@ public class TestDownload {
     @Test
     public void testYahooMonthlyAAPL() {
 
-        final YahooFinanceDataSource dataSource = YahooFinanceDataSource.of("AAPL", CalendarDateUnit.MONTH);
+        YahooFinanceDataSource dataSource = YahooFinanceDataSource.of("AAPL", CalendarDateUnit.MONTH);
 
-        final List<DatePrice> rows = dataSource.getHistoricalPrices();
+        List<YahooParser.Data> rows = dataSource.getHistoricalPrices();
 
         if (rows.size() <= 0) {
             TestUtils.fail("No data!");
@@ -62,9 +62,9 @@ public class TestDownload {
     @Test
     public void testYahooWeeklyAAPL() {
 
-        final YahooFinanceDataSource dataSource = YahooFinanceDataSource.of("AAPL", CalendarDateUnit.WEEK);
+        YahooFinanceDataSource dataSource = YahooFinanceDataSource.of("AAPL", CalendarDateUnit.WEEK);
 
-        final List<DatePrice> rows = dataSource.getHistoricalPrices();
+        List<YahooParser.Data> rows = dataSource.getHistoricalPrices();
 
         if (rows.size() <= 0) {
             TestUtils.fail("No data!");

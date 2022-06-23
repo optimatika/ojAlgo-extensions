@@ -27,14 +27,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.ojalgo.array.Primitive64Array;
 import org.ojalgo.data.domain.finance.series.DatePrice;
 import org.ojalgo.data.domain.finance.series.FinanceData;
 import org.ojalgo.data.domain.finance.series.YahooParser;
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.series.BasicSeries;
+import org.ojalgo.series.SimpleSeries;
 import org.ojalgo.type.CalendarDate;
 import org.ojalgo.type.CalendarDateUnit;
+import org.ojalgo.type.PrimitiveNumber;
 
 import yahoofinance.YahooFinance;
 import yahoofinance.histquotes.Interval;
@@ -46,7 +47,7 @@ import yahoofinance.histquotes.Interval;
  *
  * @author apete
  */
-public final class YahooFinanceDataSource implements FinanceData {
+public final class YahooFinanceDataSource implements FinanceData<YahooParser.Data> {
 
     public static YahooFinanceDataSource of(final String symbol, final CalendarDateUnit resolution) {
         return new YahooFinanceDataSource(symbol, resolution);
@@ -64,7 +65,7 @@ public final class YahooFinanceDataSource implements FinanceData {
     }
 
     @Override
-    public List<DatePrice> getHistoricalPrices() {
+    public List<YahooParser.Data> getHistoricalPrices() {
 
         Calendar from = Calendar.getInstance();
         from.add(Calendar.YEAR, -30);
@@ -100,9 +101,9 @@ public final class YahooFinanceDataSource implements FinanceData {
     }
 
     @Override
-    public BasicSeries<LocalDate, Double> getPriceSeries() {
+    public BasicSeries<LocalDate, PrimitiveNumber> getPriceSeries() {
 
-        BasicSeries<LocalDate, Double> retVal = BasicSeries.LOCAL_DATE.build(Primitive64Array.FACTORY);
+        BasicSeries<LocalDate, PrimitiveNumber> retVal = new SimpleSeries<>();
 
         LocalDate adjusted;
         for (DatePrice datePrice : this.getHistoricalPrices()) {
