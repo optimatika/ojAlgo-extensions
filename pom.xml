@@ -49,7 +49,6 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <version.org.ojalgo>51.4.0</version.org.ojalgo>
-        <version.org.jfree>1.5.3</version.org.jfree>
         <version.org.junit.jupiter>5.8.2</version.org.junit.jupiter>
     </properties>
     <distributionManagement>
@@ -97,6 +96,7 @@
                             <failOnError>false</failOnError>
                             <quiet>true</quiet>
                             <serialwarn>false</serialwarn>
+                            <source>8</source>
                         </configuration>
                         <goals>
                             <goal>jar</goal>
@@ -185,7 +185,12 @@
             <dependency>
                 <groupId>org.jfree</groupId>
                 <artifactId>jfreechart</artifactId>
-                <version>${version.org.jfree}</version>
+                <version>1.5.3</version>
+            </dependency>
+            <dependency>
+                <groupId>com.joptimizer</groupId>
+                <artifactId>joptimizer</artifactId>
+                <version>5.0.0</version>
             </dependency>
             <dependency>
                 <groupId>org.ojalgo</groupId>
