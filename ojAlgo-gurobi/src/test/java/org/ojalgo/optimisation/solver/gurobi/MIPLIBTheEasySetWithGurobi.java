@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,8 @@ public class MIPLIBTheEasySetWithGurobi extends MIPLIBTheEasySet {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addPreferredSolver(SolverGurobi.INTEGRATION);
+        ExpressionsBasedModel.addIntegration(SolverGurobi.INTEGRATION);
+        // ExpressionsBasedModel.addPreferredSolver(SolverGurobi.newInstantCloudIntegration(InstantCloudAPIConfig.ACCESSKEY, InstantCloudAPIConfig.SECRET));
     }
 
 }

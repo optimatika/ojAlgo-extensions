@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2016 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -75,7 +75,7 @@ public class Array1DTest extends ArrayTests {
         for (int i = 0; i < tmpAll.countRows(); i++) {
 
             final Array1D<Double> tmpSlice = tmpAll.sliceRow(i, 0);
-            final Array1D<Double> tmpCopy = tmpSlice.copy(); // Will result in a different (Java's built-in) sorting algorthm
+            final Array1D<Double> tmpCopy = tmpSlice.collect(Array1D.PRIMITIVE64); // Will result in a different (Java's built-in) sorting algorthm
 
             if (tmpAscending) {
                 tmpSlice.sortAscending();

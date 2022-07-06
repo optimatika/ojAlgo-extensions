@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,17 +21,15 @@
  */
 package org.ojalgo.commons.math3.optim.linear;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.linear.NetlibCase;
+import org.ojalgo.optimisation.linear.CuteNetlibCase;
 
 @Disabled
-public class NetlibCaseWithACM extends NetlibCase {
+public class NetlibCaseWithACM extends CuteNetlibCase {
 
-    @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addPreferredSolver(SolverCommonsMath.INTEGRATION);
+        ExpressionsBasedModel.addIntegration(SolverCommonsMath.INTEGRATION);
     }
 
 }

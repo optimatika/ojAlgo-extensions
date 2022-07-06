@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,11 @@ import org.apache.commons.math3.distribution.IntegerDistribution;
 import org.ojalgo.random.DiscreteDistribution;
 import org.ojalgo.random.RandomNumber;
 
+/**
+ * Wraps any Apache {@link IntegerDistribution} and turns it into an ojAlgo {@link DiscreteDistribution}.
+ *
+ * @author apete
+ */
 public final class IntegerDistributionWrapper<D extends IntegerDistribution> extends RandomNumber implements DiscreteDistribution {
 
     public static <D extends IntegerDistribution> IntegerDistributionWrapper<D> of(final D delegateDistribution) {

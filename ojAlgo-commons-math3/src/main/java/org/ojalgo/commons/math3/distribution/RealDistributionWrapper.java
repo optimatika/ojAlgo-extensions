@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,11 @@ import org.apache.commons.math3.distribution.RealDistribution;
 import org.ojalgo.random.ContinuousDistribution;
 import org.ojalgo.random.RandomNumber;
 
+/**
+ * Wraps any Apache {@link RealDistribution} and turns it into an ojAlgo {@link ContinuousDistribution}.
+ *
+ * @author apete
+ */
 public final class RealDistributionWrapper<D extends RealDistribution> extends RandomNumber implements ContinuousDistribution {
 
     public static <D extends RealDistribution> RealDistributionWrapper<D> of(final D delegateDistribution) {
@@ -42,6 +47,7 @@ public final class RealDistributionWrapper<D extends RealDistribution> extends R
         return myDelegate;
     }
 
+    @Override
     public double getDensity(final double value) {
         return myDelegate.density(value);
     }

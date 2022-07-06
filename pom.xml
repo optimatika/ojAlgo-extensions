@@ -1,14 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.ojalgo</groupId>
     <artifactId>ojalgo-extensions</artifactId>
-    <!-- The major version digit corresponds to the pom structure version -->
-    <!-- The minor version digit corresponds to the major version of ojAlgo -->
-    <!-- The patch version digit corresponds to the major version of ojAlgo-finance -->
-    <version>2.47.3</version>
+    <version>3.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>ojAlgo-extensions</name>
     <url>http://ojalgo.org</url>
@@ -16,19 +11,12 @@
     <modules>
         <module>ojAlgo-commons-math3</module>
         <module>ojAlgo-cplex</module>
-        <module>ojAlgo-deeplearning4j</module>
         <module>ojAlgo-gurobi</module>
         <module>ojAlgo-jfreechart</module>
         <module>ojAlgo-joptimizer</module>
-        <module>ojAlgo-jxl</module>
-        <module>ojAlgo-mail</module>
         <module>ojAlgo-mosek</module>
-        <module>ojAlgo-persistence</module>
-        <module>ojAlgo-spark</module>
         <module>ojAlgo-unsafe</module>
         <module>ojAlgo-yahoofinance</module>
-        <module>ojAlgo-tensorflow</module>
-        <module>ojAlgo-weka</module>
     </modules>
     <organization>
         <name>Optimatika</name>
@@ -60,52 +48,9 @@
     </issueManagement>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <ojalgo.version>48.3.2</ojalgo.version>
-        <ojalgo-finance.version>2.1.1-SNAPSHOT</ojalgo-finance.version>
-        <junit.jupiter.version>5.7.0</junit.jupiter.version>
+        <version.org.ojalgo>51.4.0</version.org.ojalgo>
+        <version.org.junit.jupiter>5.8.2</version.org.junit.jupiter>
     </properties>
-    <dependencies>
-        <dependency>
-            <groupId>org.ojalgo</groupId>
-            <artifactId>ojalgo</artifactId>
-            <version>${ojalgo.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.ojalgo</groupId>
-            <artifactId>ojalgo</artifactId>
-            <version>${ojalgo.version}</version>
-            <classifier>tests</classifier>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit.jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-            <version>${junit.jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.ojalgo</groupId>
-                <artifactId>ojalgo-finance</artifactId>
-                <version>${ojalgo-finance.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -121,7 +66,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.10.1</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -143,7 +88,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>3.4.0</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -151,6 +96,7 @@
                             <failOnError>false</failOnError>
                             <quiet>true</quiet>
                             <serialwarn>false</serialwarn>
+                            <source>8</source>
                         </configuration>
                         <goals>
                             <goal>jar</goal>
@@ -161,7 +107,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.6</version>
+                <version>3.0.1</version>
                 <executions>
                     <execution>
                         <id>sign-artifacts</id>
@@ -175,7 +121,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>3.2.2</version>
                 <configuration>
                     <archive>
                         <manifest>
@@ -188,7 +134,7 @@
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.8</version>
+                <version>1.6.13</version>
                 <extensions>true</extensions>
                 <configuration>
                     <serverId>ossrh</serverId>
@@ -206,9 +152,73 @@
                     </includes>
                     <excludedGroups>slow,unstable</excludedGroups>
                 </configuration>
-                <dependencies>
-                </dependencies>
+                <dependencies></dependencies>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.2.7</version>
+                <configuration>
+                    <flattenMode>oss</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.jfree</groupId>
+                <artifactId>jfreechart</artifactId>
+                <version>1.5.3</version>
+            </dependency>
+            <dependency>
+                <groupId>com.joptimizer</groupId>
+                <artifactId>joptimizer</artifactId>
+                <version>5.0.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ojalgo</groupId>
+                <artifactId>ojalgo</artifactId>
+                <version>${version.org.ojalgo}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ojalgo</groupId>
+                <artifactId>ojalgo</artifactId>
+                <version>${version.org.ojalgo}</version>
+                <classifier>tests</classifier>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>${version.org.junit.jupiter}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>${version.org.junit.jupiter}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-params</artifactId>
+                <version>${version.org.junit.jupiter}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

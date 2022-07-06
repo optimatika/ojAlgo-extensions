@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,6 @@ import java.io.File;
 
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.MathProgSysModel;
 
 public class ExampleMosek {
 
@@ -34,9 +33,8 @@ public class ExampleMosek {
     public static void main(final String[] args) {
 
         final File tmpFile = new File(PATH_TO_FILE);
-        final MathProgSysModel tmpMPS = MathProgSysModel.make(tmpFile);
 
-        final ExpressionsBasedModel tmpModel = tmpMPS.getExpressionsBasedModel();
+        final ExpressionsBasedModel tmpModel = ExpressionsBasedModel.parse(tmpFile);
 
         // Essentially this is what you need to do to "integrate" Mosek with ojAlgo
         ExpressionsBasedModel.addIntegration(SolverMosek.INTEGRATION);

@@ -1,7 +1,14 @@
 # ojAlgo Apache Commons Math integration
+[![Build Status](https://github.com/optimatika/ojAlgo-commons-math3/actions/workflows/maven.yml/badge.svg)](https://github.com/optimatika/ojAlgo-commons-math3/actions/workflows/maven.yml)
+[![CodeQL](https://github.com/optimatika/ojAlgo-commons-math3/workflows/CodeQL/badge.svg)](https://github.com/optimatika/ojAlgo-commons-math3/actions/workflows/codeql.yml)
+[![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/optimatika/ojAlgo-commons-math3.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/optimatika/ojAlgo-commons-math3/context:java) 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-commons-math3/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-commons-math3/)
 
-Contains classes to convert between ojAlgo and Apache matrix implementations. In particular Apache's matrix instanes can have  their elements supplied directly to ojAlg's matrix decompositions internal storage without allocating intermediate memory. ojAlgo matrix decompositions typcally perform better.
+Interoperability between ojAlgo and Apache Commons Math (ACM)
 
+- Classes to convert between ojAlgo and ACM matrix implementations. In particular Apache's matrix instanes can have  their elements supplied directly to ojAlg's matrix decompositions internal storage without allocating intermediate memory. ojAlgo matrix decompositions typcally perform better.
+- Use Apache's `SimplexSolver` with ojAlgo's `ExpressionsBasedModel`. Read this before you do: https://www.ojalgo.org/2021/10/pure-java-lp-solver-benchmark/
+- Drop-in replacement for Apache's `SimplexSolver`...
 
 ## Use Commons Math LP solver from ExpressionsBasedModel
 
@@ -19,29 +26,40 @@ Contains classes to convert between ojAlgo and Apache matrix implementations. In
 * To configure ExpressionsBasedModel to use Commons Math rather than ojAlgo's built-in solvers execute this line of code:
 
 ```java
-ExpressionsBasedModel.addPreferredSolver(SolverCommonsMath.INTEGRATION);
-```
-* If you only want to use Commons Math when the built-in solvers cannot handle a particular model you should instead do this:
-
-```java
-ExpressionsBasedModel.addFallbackSolver(SolverCommonsMath.INTEGRATION);
+ExpressionsBasedModel.addIntegration(SolverCommonsMath.INTEGRATION);
 ```
 
 ## Changelog
 
+Added / Changed / Deprecated / Fixed / Removed / Security
+
 ### [Not  yet released]
 
-* ...
+- ...
 
-### v2.47.3: 2019-04-29
+### [3.2.0] - 2022-05-16
 
 #### Added
 
-* IntegerDistributionWrapper & RealDistributionWrapper that wrap ACM IntegerDistribution & RealDistribution instances turning them into ojAlgo DiscreteDistribution & ContinuousDistribution implementations.
+- `LinearOptimizerEBM`, a drop-in replacement to `org.apache.commons.math3.optim.linear.SimplexSolver` and/or the deprecated `org.apache.commons.math3.optimization.linear.SimplexSolver`.
+
+### [3.1.0] - 2021-10-27
+
+### [3.0.0] - 2021-03-24
+
+### [2.47.3] - 2019-04-29
+
+#### Added
+
+- `IntegerDistributionWrapper` & `RealDistributionWrapper` that wrap ACM `IntegerDistribution` & `RealDistribution` instances turning them into ojAlgo `DiscreteDistribution` & `ContinuousDistribution` implementations.
 
 #### Changed
 
-* Changes to be compatible with the ojAlgo v47.1.2
+- Changes to be compatible with ojAlgo v47.1.2
 
-### v2.47.2: 2018-12-19
+### [2.47.2] - 2018-12-19
+
+### [1.0.0] - 2017-09-27
+
+- Initial release
 

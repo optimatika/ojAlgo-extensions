@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +22,15 @@
 package org.ojalgo.optimisation.solver.cplex;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.integer.SpecificBranchCase;
 
+@Disabled
 public class SpecificBranchCaseWithCPLEX extends SpecificBranchCase {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addPreferredSolver(SolverCPLEX.INTEGRATION);
+        ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,14 +24,15 @@ package org.ojalgo.optimisation.solver.gurobi;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.linear.NetlibCase;
+import org.ojalgo.optimisation.linear.CuteNetlibCase;
 
 @Disabled
-public class NetlibCaseWithGurobi extends NetlibCase {
+public class NetlibCaseWithGurobi extends CuteNetlibCase {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addPreferredSolver(SolverGurobi.INTEGRATION);
+        ExpressionsBasedModel.addIntegration(SolverGurobi.INTEGRATION);
+        // ExpressionsBasedModel.addPreferredSolver(SolverGurobi.newInstantCloudIntegration(InstantCloudAPIConfig.ACCESSKEY, InstantCloudAPIConfig.SECRET));
     }
 
 }

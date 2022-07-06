@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,8 @@
  */
 package org.ojalgo.optimisation.solver.cplex;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +31,7 @@ import java.util.stream.Collectors;
 
 import org.ojalgo.array.Primitive64Array;
 import org.ojalgo.netio.CharacterRing;
-import org.ojalgo.netio.CharacterRing.PrinterBuffer;
+import org.ojalgo.netio.CharacterRing.RingLogger;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
@@ -45,12 +47,13 @@ import ilog.concert.IloNumVar;
 import ilog.concert.IloNumVarType;
 import ilog.concert.IloQuadNumExpr;
 import ilog.cplex.IloCplex;
+import ilog.cplex.IloCplex.IntParam;
 import ilog.cplex.IloCplex.Status;
 
 public final class SolverCPLEX implements Optimisation.Solver {
 
     @FunctionalInterface
-    public static interface Configurator {
+    public interface Configurator {
 
         void configure(final IloCplex cplex, final Optimisation.Options options);
 
@@ -58,13 +61,16 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverCPLEX> {
 
-        private final PrinterBuffer myLog = new CharacterRing().asPrinter();
+        private final RingLogger myLog = CharacterRing.newRingLogger();
 
         Integration() {
             super();
         }
 
+        @Override
         public SolverCPLEX build(final ExpressionsBasedModel model) {
+
+            boolean mip = model.isAnyVariableInteger();
 
             final SolverCPLEX retVal = new SolverCPLEX(model.options);
             final IloCplex delegateSolver = retVal.getDelegateSolver();
@@ -79,10 +85,16 @@ public final class SolverCPLEX implements Optimisation.Solver {
                 for (final Variable var : freeModVars) {
 
                     IloNumVarType type = IloNumVarType.Float;
-                    if (var.isBinary()) {
-                        type = IloNumVarType.Bool;
-                    } else if (var.isInteger()) {
-                        type = IloNumVarType.Int;
+                    if (mip) {
+                        // When relaxing the MIP property of the model
+                        // the individual variables maintain the 'info' that
+                        // they where modelled as integer/binary.
+                        // This is because of how the ojAlgo IntegerSolver works.
+                        if (var.isBinary()) {
+                            type = IloNumVarType.Bool;
+                        } else if (var.isInteger()) {
+                            type = IloNumVarType.Int;
+                        }
                     }
 
                     double unadjustedLowerLimit = var.getUnadjustedLowerLimit();
@@ -100,7 +112,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
                 final IloNumExpr solObj = SolverCPLEX.buildExpression(model, modObj, delegateSolver, retVal.getDelegateVariables());
 
-                if (model.isMaximisation()) {
+                if (model.getOptimisationSense() == Optimisation.Sense.MAX) {
                     delegateSolver.addMaximize(solObj);
                 } else {
                     delegateSolver.addMinimize(solObj);
@@ -113,6 +125,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
             return retVal;
         }
 
+        @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
             return true; // CPLEX can handle anything/everything ExpressionsBasedModel can model.
         }
@@ -126,25 +139,33 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
     public static final SolverCPLEX.Integration INTEGRATION = new Integration();
 
-    static final Configurator DEFAULT = new Configurator() {
+    static final Configurator DEFAULT = (cplex, options) -> {
 
-        public void configure(final IloCplex cplex, final Options options) {
-            //            if (options.logger_appender != null) {
-            //                cplex.setOut(new OutputStream() {
-            //
-            //                    @Override
-            //                    public void write(final int b) throws IOException {
-            //                        options.logger_appender.print(b);
-            //                    }
-            //                });
-            //            } else {
-            //                cplex.setOut(new OutputStream() {
-            //
-            //                    @Override
-            //                    public void write(final int b) throws IOException {
-            //                    }
-            //                });
-            //            }
+        if (options.logger_appender != null) {
+            try {
+                cplex.setParam(IntParam.MIPDisplay, 5);
+            } catch (IloException cause) {
+                throw new RuntimeException(cause);
+            }
+            try {
+                cplex.setParam(IntParam.MIPInterval, 5);
+            } catch (IloException cause) {
+                throw new RuntimeException(cause);
+            }
+            cplex.setOut(new OutputStream() {
+
+                @Override
+                public void write(final int b) throws IOException {
+                    options.logger_appender.print((char) b);
+                }
+            });
+        } else {
+            cplex.setOut(new OutputStream() {
+
+                @Override
+                public void write(final int b) throws IOException {
+                }
+            });
         }
     };
 
@@ -169,7 +190,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
             final int freeRow = model.indexOfFreeVariable(key.row);
             final int freeCol = model.indexOfFreeVariable(key.column);
 
-            if ((freeRow >= 0) && (freeCol >= 0)) {
+            if (freeRow >= 0 && freeCol >= 0) {
                 destination.addTerm(source.getAdjustedQuadraticFactor(key), variables.get(freeRow), variables.get(freeCol));
             }
         }
@@ -187,7 +208,8 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
             return tmpIloLQNumExpr;
 
-        } else if (expression.isFunctionPureQuadratic()) {
+        }
+        if (expression.isFunctionPureQuadratic()) {
 
             final IloQuadNumExpr tmpIloQuadNumExpr = solver.quadNumExpr();
 
@@ -195,7 +217,8 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
             return tmpIloQuadNumExpr;
 
-        } else if (expression.isFunctionLinear()) {
+        }
+        if (expression.isFunctionLinear()) {
 
             final IloLinearNumExpr tmpIloLinearNumExpr = solver.linearNumExpr();
 
@@ -245,6 +268,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
         myDelegateVariables = new ArrayList<>();
     }
 
+    @Override
     public void dispose() {
 
         Solver.super.dispose();
@@ -254,13 +278,14 @@ public final class SolverCPLEX implements Optimisation.Solver {
         }
     }
 
+    @Override
     public Result solve(final Result kickStarter) {
 
         try {
 
             final List<IloNumVar> solVariables = this.getDelegateVariables();
 
-            Optimisation.State retState = Optimisation.State.UNEXPLORED;
+            Optimisation.State retState;
             double retValue = Double.NaN;
             final Primitive64Array retSolution = Primitive64Array.make(solVariables.size());
 
@@ -311,23 +336,29 @@ public final class SolverCPLEX implements Optimisation.Solver {
     Optimisation.State translate(final IloCplex.Status status) {
         if (status.equals(Status.Bounded)) {
             return State.VALID;
-        } else if (status.equals(Status.Error)) {
-            return State.FAILED;
-        } else if (status.equals(Status.Feasible)) {
-            return State.FEASIBLE;
-        } else if (status.equals(Status.Infeasible)) {
-            return State.INFEASIBLE;
-        } else if (status.equals(Status.InfeasibleOrUnbounded)) {
-            return State.INVALID;
-        } else if (status.equals(Status.Optimal)) {
-            return State.OPTIMAL;
-        } else if (status.equals(Status.Unbounded)) {
-            return State.UNBOUNDED;
-        } else if (status.equals(Status.Unknown)) {
-            return State.UNEXPLORED;
-        } else {
+        }
+        if (status.equals(Status.Error)) {
             return State.FAILED;
         }
+        if (status.equals(Status.Feasible)) {
+            return State.FEASIBLE;
+        }
+        if (status.equals(Status.Infeasible)) {
+            return State.INFEASIBLE;
+        }
+        if (status.equals(Status.InfeasibleOrUnbounded)) {
+            return State.INVALID;
+        }
+        if (status.equals(Status.Optimal)) {
+            return State.OPTIMAL;
+        }
+        if (status.equals(Status.Unbounded)) {
+            return State.UNBOUNDED;
+        }
+        if (status.equals(Status.Unknown)) {
+            return State.UNEXPLORED;
+        }
+        return State.FAILED;
     }
 
 }

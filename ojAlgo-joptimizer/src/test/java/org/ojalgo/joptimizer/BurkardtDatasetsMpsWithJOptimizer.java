@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2020 Optimatika
+ * Copyright 1997-2022 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,15 +26,12 @@ import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.BurkardtDatasetsMps;
 
-/**
- * @author apete
- */
 @Disabled
 public class BurkardtDatasetsMpsWithJOptimizer extends BurkardtDatasetsMps {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addPreferredSolver(SolverJOptimizer.INTEGRATION);
+        ExpressionsBasedModel.addIntegration(SolverJOptimizer.INTEGRATION);
     }
 
 }
