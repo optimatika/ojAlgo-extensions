@@ -193,6 +193,11 @@
                 <version>5.0.0</version>
             </dependency>
             <dependency>
+                <groupId>com.yahoofinance-api</groupId>
+                <artifactId>YahooFinanceAPI</artifactId>
+                <version>3.17.0</version>
+            </dependency>
+            <dependency>
                 <groupId>org.ojalgo</groupId>
                 <artifactId>ojalgo</artifactId>
                 <version>${version.org.ojalgo}</version>
