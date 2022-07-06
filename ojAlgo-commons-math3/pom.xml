@@ -9,7 +9,7 @@
     <artifactId>ojalgo-commons-math3</artifactId>
     <name>ojAlgo-commons-math3</name>
     <description>ojAlgo Apache Commons Math integration</description>
-    <version>3.2.1-SNAPSHOT</version>
+    <version>3.2.1</version>
     <properties></properties>
     <dependencies>
         <dependency>
