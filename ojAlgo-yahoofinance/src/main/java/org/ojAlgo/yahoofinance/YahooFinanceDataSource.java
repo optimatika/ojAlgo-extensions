@@ -44,6 +44,7 @@ import yahoofinance.histquotes.Interval;
  * <ul>
  * <li>https://financequotes-api.com
  * <li>https://github.com/sstrickx/yahoofinance-api
+ * </ul>
  *
  * @author apete
  */
