@@ -1,67 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.ojalgo</groupId>
+    <parent>
+        <groupId>org.ojalgo</groupId>
+        <artifactId>ojalgo-extensions</artifactId>
+        <version>3.0.0-SNAPSHOT</version>
+    </parent>
     <artifactId>ojalgo-commons-math3</artifactId>
-    <version>3.2.1-SNAPSHOT</version>
     <name>ojAlgo-commons-math3</name>
-    <description>ojAlgo and Apache Commons Math integration</description>
-    <url>http://ojalgo.org</url>
-    <organization>
-        <name>Optimatika</name>
-        <url>http://optimatika.se</url>
-    </organization>
-    <developers>
-        <developer>
-            <id>apete</id>
-            <name>Anders Peterson</name>
-            <email>apete@optimatika.se</email>
-            <organization>Optimatika</organization>
-            <organizationUrl>http://optimatika.se</organizationUrl>
-        </developer>
-    </developers>
-    <licenses>
-        <license>
-            <name>MIT</name>
-            <url>https://github.com/optimatika/ojAlgo-commons-math3/blob/main/LICENSE</url>
-        </license>
-    </licenses>
-    <scm>
-        <url>https://github.com/optimatika/ojAlgo-commons-math3</url>
-        <connection>https://github.com/optimatika/ojAlgo-commons-math3.git</connection>
-        <developerConnection>git@github.com:optimatika/ojAlgo-commons-math3.git</developerConnection>
-    </scm>
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <version.org.ojalgo>51.4.0</version.org.ojalgo>
-        <version.org.junit.jupiter>5.8.2</version.org.junit.jupiter>
-    </properties>
+    <description>ojAlgo Apache Commons Math integration</description>
+    <version>3.2.1</version>
+    <properties></properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
-            <version>3.6.1</version>
         </dependency>
         <dependency>
             <groupId>org.ojalgo</groupId>
             <artifactId>ojalgo</artifactId>
-            <version>${version.org.ojalgo}</version>
         </dependency>
         <dependency>
             <groupId>org.ojalgo</groupId>
             <artifactId>ojalgo</artifactId>
-            <version>${version.org.ojalgo}</version>
             <classifier>tests</classifier>
             <type>test-jar</type>
             <scope>test</scope>
@@ -69,84 +30,17 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
-            <version>${version.org.junit.jupiter}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>${version.org.junit.jupiter}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
-            <version>${version.org.junit.jupiter}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M7</version>
-                <configuration>
-                    <includes>
-                        <include>**/*.java</include>
-                    </includes>
-                    <excludedGroups>slow,unstable</excludedGroups>
-                </configuration>
-                <dependencies />
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-gpg-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>sign-artifacts</id>
-                        <phase>deploy</phase>
-                        <goals>
-                            <goal>sign</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.13</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <serverId>ossrh</serverId>
-                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>false</autoReleaseAfterClose>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>

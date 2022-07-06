@@ -198,6 +198,11 @@
                 <version>3.17.0</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-math3</artifactId>
+                <version>3.6.1</version>
+            </dependency>
+            <dependency>
                 <groupId>org.ojalgo</groupId>
                 <artifactId>ojalgo</artifactId>
                 <version>${version.org.ojalgo}</version>
