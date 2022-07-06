@@ -11,7 +11,7 @@
     <description>ojAlgo Mosek integration</description>
     <version>3.1.1</version>
     <properties>
-            <!-- You have to change this! -->
+        <!-- You have to change this! -->
         <path.installation.mosek>/Users/apete/Applications/mosek</path.installation.mosek>
         <path.jar.mosek>${path.installation.mosek}/7/tools/platform/osx64x86/bin/mosek.jar</path.jar.mosek>
         <path.native.mosek>${path.installation.mosek}/7/tools/platform/osx64x86/bin</path.native.mosek>
@@ -51,4 +51,18 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Djava.library.path=${path.native.mosek}</argLine>
+                    <environmentVariables>
+                        <LD_LIBRARY_PATH>${path.native.mosek}</LD_LIBRARY_PATH>
+                    </environmentVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
