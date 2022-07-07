@@ -9,7 +9,7 @@
     <artifactId>ojalgo-cplex</artifactId>
     <name>ojAlgo-cplex</name>
     <description>ojAlgo CPLEX integration</description>
-    <version>3.0.3</version>
+    <version>4.0.0-SNAPSHOT</version>
     <properties>
         <!-- You have to change this! -->
         <path.installation.cplex>/Applications/CPLEX_Studio_Community221/cplex</path.installation.cplex>
