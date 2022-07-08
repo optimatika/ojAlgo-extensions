@@ -11,6 +11,8 @@
 </dependency>
 ```
 
+http://www.gurobi.com
+
 Use [Gurobi](http://www.gurobi.com) from within ojAlgo – use Gurobi as a solver from ExpressionsBasedModel.
 
 When/if ojAlgo's built-in optimisation solvers are not capable of solving your model (fast enough) it is possible to plug in other solvers. Gurobi is one such solver where an integration already exists.

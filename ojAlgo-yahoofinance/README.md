@@ -11,6 +11,8 @@
 </dependency>
 ```
 
+https://github.com/sstrickx/yahoofinance-api
+
 Integrates Yahoo Finance API with ojAlgo to be able to download historical financial data from Yahoo Finance into ojAlgo data structures.
 
 https://financequotes-api.com

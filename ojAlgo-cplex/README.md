@@ -11,6 +11,8 @@
 </dependency>
 ```
 
+https://www.ibm.com/us-en/marketplace/ibm-ilog-cplex
+
 Use [CPLEX](https://www.ibm.com/products/ilog-cplex-optimization-studio) from within ojAlgo – use CPLEX as a solver from ExpressionsBasedModel.
 
 When/if ojAlgo's built-in optimisation solvers are not capable of solving your model (fast enough) it is possible to plug in other solvers. CPLEX is one such solver where an integration already exists.

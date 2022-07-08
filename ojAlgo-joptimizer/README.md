@@ -11,6 +11,8 @@
 </dependency>
 ```
 
+http://www.joptimizer.com
+
 Use [JOptimizer](http://www.joptimizer.com) from within ojAlgo – use JOptimizer as a solver from ExpressionsBasedModel.
 
 When/if ojAlgo's built-in optimisation solvers are not capable of solving your model (fast enough) it is possible to plug in other solvers. JOptimizer is one such solver where an integration already exists.

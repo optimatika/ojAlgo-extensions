@@ -11,4 +11,6 @@
 </dependency>
 ```
 
+http://www.jfree.org/jfreechart/
+
 Build charts directly using ojAlgo data structures
