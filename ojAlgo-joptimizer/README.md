@@ -1,5 +1,8 @@
 # ojAlgo JOptimizer integration
 
+| [ojAlgo-joptimizer](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-joptimizer) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-joptimizer/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-joptimizer/)
+
+
 Use [JOptimizer](http://www.joptimizer.com) from within ojAlgo – use JOptimizer as a solver from ExpressionsBasedModel.
 
 When/if ojAlgo's built-in optimisation solvers are not capable of solving your model (fast enough) it is possible to plug in other solvers. JOptimizer is one such solver where an integration already exists.

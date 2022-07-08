@@ -1,5 +1,8 @@
 # ojAlgo CPLEX integration
 
+| [ojAlgo-cplex](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-cplex) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-cplex/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-cplex/)
+
+
 Use [CPLEX](https://www.ibm.com/products/ilog-cplex-optimization-studio) from within ojAlgo – use CPLEX as a solver from ExpressionsBasedModel.
 
 When/if ojAlgo's built-in optimisation solvers are not capable of solving your model (fast enough) it is possible to plug in other solvers. CPLEX is one such solver where an integration already exists.

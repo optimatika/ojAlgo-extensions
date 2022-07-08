@@ -1,4 +1,8 @@
 # ojAlgo Apache Commons Math integration
+
+| [ojAlgo-commons-math3](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-commons-math3) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-commons-math3/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-commons-math3/)
+
+
 [![Build Status](https://github.com/optimatika/ojAlgo-commons-math3/actions/workflows/maven.yml/badge.svg)](https://github.com/optimatika/ojAlgo-commons-math3/actions/workflows/maven.yml)
 [![CodeQL](https://github.com/optimatika/ojAlgo-commons-math3/workflows/CodeQL/badge.svg)](https://github.com/optimatika/ojAlgo-commons-math3/actions/workflows/codeql.yml)
 [![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/optimatika/ojAlgo-commons-math3.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/optimatika/ojAlgo-commons-math3/context:java) 

@@ -3,7 +3,7 @@
 ojAlgo has zero dependencies, but through extensions it integrates with other tools and libraries. Each of the modules below depend on ojAlgo and typically one 3:d party library.
 
 | Module | Version
-| --- | --:
+| --- | ---
 | [ojAlgo-commons-math3](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-commons-math3) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-commons-math3/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-commons-math3/)
 | [ojAlgo-cplex](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-cplex) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-cplex/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-cplex/)
 | [ojAlgo-gurobi](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-gurobi) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-gurobi/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-gurobi/)

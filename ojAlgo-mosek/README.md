@@ -1,5 +1,8 @@
 # ojAlgo Mosek integration
 
+| [ojAlgo-mosek](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-mosek) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-mosek/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-mosek/)
+
+
 Use [Mosek](https://www.mosek.com) from within ojAlgo – use Mosek as a solver from ExpressionsBasedModel.
 
 When/if ojAlgo's built-in optimisation solvers are not capable of solving your model (fast enough) it is possible to plug in other solvers. Mosek is one such solver where an integration already exists.
