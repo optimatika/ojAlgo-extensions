@@ -1,7 +1,15 @@
 # ojAlgo JOptimizer integration
 
-| [ojAlgo-joptimizer](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-joptimizer) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-joptimizer/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-joptimizer/)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-joptimizer/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-joptimizer/)
 
+```xml
+<!-- https://mvnrepository.com/artifact/org.ojalgo/ojalgo-joptimizer -->
+<dependency>
+    <groupId>org.ojalgo</groupId>
+    <artifactId>ojalgo-joptimizer</artifactId>
+    <version>X.Y.Z</version>
+</dependency>
+```
 
 Use [JOptimizer](http://www.joptimizer.com) from within ojAlgo – use JOptimizer as a solver from ExpressionsBasedModel.
 
@@ -13,17 +21,7 @@ When/if ojAlgo's built-in optimisation solvers are not capable of solving your m
 
 ## This is what you need to do
 
-* Add this dependency to your project. Here's how to do that using maven:
-
-```xml
-<!-- https://mvnrepository.com/artifact/org.ojalgo/ojalgo-joptimizer -->
-<dependency>
-    <groupId>org.ojalgo</groupId>
-    <artifactId>ojalgo-joptimizer</artifactId>
-    <version>X.Y.Z</version>
-</dependency>
-```
-
+* Add this dependency to your project.
 * To configure ExpressionsBasedModel to use JOptimizer rather than ojAlgo's built-in solvers execute this line of code:
 
 ```java

@@ -1,7 +1,15 @@
 # ojAlgo Mosek integration
 
-| [ojAlgo-mosek](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-mosek) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-mosek/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-mosek/)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-mosek/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-mosek/)
 
+```xml
+<!-- https://mvnrepository.com/artifact/org.ojalgo/ojalgo-mosek -->
+<dependency>
+    <groupId>org.ojalgo</groupId>
+    <artifactId>ojalgo-mosek</artifactId>
+    <version>X.Y.Z</version>
+</dependency>
+```
 
 Use [Mosek](https://www.mosek.com) from within ojAlgo – use Mosek as a solver from ExpressionsBasedModel.
 
@@ -14,16 +22,7 @@ When/if ojAlgo's built-in optimisation solvers are not capable of solving your m
 
 ## This is what you need to do
 
-* Add this dependency to your project. Here's how to do that using maven:
-
-```xml
-<!-- https://mvnrepository.com/artifact/org.ojalgo/ojalgo-mosek -->
-<dependency>
-    <groupId>org.ojalgo</groupId>
-    <artifactId>ojalgo-mosek</artifactId>
-    <version>X.Y.Z</version>
-</dependency>
-```
+* Add this dependency to your project.
 * That POM declares properties that are paths to where the jar and native binaries are installed. You need to set these properties to match your installation:
 
 ```xml

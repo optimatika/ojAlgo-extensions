@@ -1,8 +1,15 @@
 # ojAlgo Gurobi integration
 
-| [ojAlgo-gurobi](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-gurobi) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-gurobi/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-gurobi/)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-gurobi/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-gurobi/)
 
-
+```xml
+<!-- https://mvnrepository.com/artifact/org.ojalgo/ojalgo-gurobi -->
+<dependency>
+    <groupId>org.ojalgo</groupId>
+    <artifactId>ojalgo-gurobi</artifactId>
+    <version>X.Y.Z</version>
+</dependency>
+```
 
 Use [Gurobi](http://www.gurobi.com) from within ojAlgo – use Gurobi as a solver from ExpressionsBasedModel.
 
@@ -15,16 +22,7 @@ When/if ojAlgo's built-in optimisation solvers are not capable of solving your m
 
 ## This is what you need to do
 
-* Add this dependency to your project. Here's how to do that using maven:
-
-```xml
-<!-- https://mvnrepository.com/artifact/org.ojalgo/ojalgo-gurobi -->
-<dependency>
-    <groupId>org.ojalgo</groupId>
-    <artifactId>ojalgo-gurobi</artifactId>
-    <version>X.Y.Z</version>
-</dependency>
-```
+* Add this dependency to your project.
 * That POM declares properties that are paths to where the jar and native binaries are installed. You need to set these properties to match your installation:
 
 ```xml
