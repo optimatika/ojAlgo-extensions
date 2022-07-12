@@ -15,6 +15,6 @@ ojAlgo has zero dependencies, but through extensions it integrates with other to
 
 Read the individual README files in the respective modules / project directories for more info.
 
-You have access to this repository because you are an ojAlgo sponsor. You are free to use the released artifacts and/or to maintain a fork of this repository, in accordance with the license. It's just direct access to this repository that is linked to being an ojAlgo sponsor.
+You have access to this repository because you are an ojAlgo sponsor. Anyone is free to use the released artifacts and/or to maintain a fork of this repository, in accordance with the license. It's just direct access to this repository that is linked to being an ojAlgo sponsor.
 
 New versions, of the various modules/artifacts, are built on request. To make such a request you also need to be a sponsor.
