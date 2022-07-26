@@ -15,6 +15,7 @@
         <module>ojAlgo-joptimizer</module>
         <module>ojAlgo-mosek</module>
         <module>ojAlgo-optimatika</module>
+        <module>ojAlgo-rocksdb</module>
         <module>ojAlgo-unsafe</module>
         <module>ojAlgo-yahoofinance</module>
     </modules>
@@ -84,6 +85,11 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-math3</artifactId>
                 <version>3.6.1</version>
+            </dependency>
+            <dependency>
+                <groupId>org.rocksdb</groupId>
+                <artifactId>rocksdbjni</artifactId>
+                <version>7.3.1</version>
             </dependency>
             <dependency>
                 <groupId>org.ojalgo</groupId>
