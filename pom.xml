@@ -16,7 +16,6 @@
         <module>ojAlgo-mosek</module>
         <module>ojAlgo-optimatika</module>
         <module>ojAlgo-rocksdb</module>
-        <module>ojAlgo-unsafe</module>
         <module>ojAlgo-yahoofinance</module>
     </modules>
     <licenses>
