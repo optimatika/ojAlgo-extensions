@@ -27,15 +27,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.ojalgo.data.domain.finance.series.DataSource;
 import org.ojalgo.data.domain.finance.series.DatePrice;
 import org.ojalgo.data.domain.finance.series.FinanceData;
 import org.ojalgo.data.domain.finance.series.YahooParser;
+import org.ojalgo.data.domain.finance.series.YahooParser.Data;
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.series.BasicSeries;
 import org.ojalgo.series.SimpleSeries;
 import org.ojalgo.type.CalendarDate;
 import org.ojalgo.type.CalendarDateUnit;
 import org.ojalgo.type.PrimitiveNumber;
+import org.ojalgo.type.keyvalue.KeyValue;
 
 import yahoofinance.YahooFinance;
 import yahoofinance.histquotes.Interval;
@@ -63,6 +66,11 @@ public final class YahooFinanceDataSource implements FinanceData<YahooParser.Dat
 
         mySymbol = symbol;
         myResolution = resolution;
+    }
+
+    @Override
+    public KeyValue<String, List<Data>> getHistoricalData() {
+        return KeyValue.of(this.getSymbol(), this.getHistoricalPrices());
     }
 
     @Override
@@ -110,10 +118,10 @@ public final class YahooFinanceDataSource implements FinanceData<YahooParser.Dat
         for (DatePrice datePrice : this.getHistoricalPrices()) {
             switch (myResolution) {
             case MONTH:
-                adjusted = (LocalDate) LAST_DAY_OF_MONTH.adjustInto(datePrice.date);
+                adjusted = DataSource.LAST_DAY_OF_MONTH.apply(datePrice.date);
                 break;
             case WEEK:
-                adjusted = (LocalDate) FRIDAY_OF_WEEK.adjustInto(datePrice.date);
+                adjusted = DataSource.FRIDAY_OF_WEEK.apply(datePrice.date);
                 break;
             default:
                 adjusted = datePrice.date;
