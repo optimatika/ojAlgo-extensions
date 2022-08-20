@@ -127,7 +127,7 @@ public final class YahooFinanceDataSource implements FinanceData<YahooParser.Dat
                 adjusted = datePrice.date;
                 break;
             }
-            retVal.put(adjusted, datePrice.getPrice());
+            retVal.put(adjusted, datePrice);
         }
 
         return retVal;
