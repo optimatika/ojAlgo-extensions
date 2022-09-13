@@ -17,6 +17,7 @@
         <module>ojAlgo-optimatika</module>
         <module>ojAlgo-rocksdb</module>
         <module>ojAlgo-yahoofinance</module>
+        <module>ojAlgo-hipparchus</module>
     </modules>
     <licenses>
         <license>
