@@ -140,7 +140,7 @@ public final class SolverORTools implements Optimisation.Solver {
         // CLP: LP only. Fails quietly with MIP (GLOP verkar snabbare)
 
         // CBC: LP & MIP, men MIP verkar inte så bra.
-        // SCIP: LP & MIP, men MIP verkar inte så bra. CBC är nog bättre.
+        // SCIP: LP & MIP, men MIP verkar inte så bra. CBC är bättre.
         // SAT: Can solve some LP and MIP models, but not very good/fast at all
 
         // Support for ??? not linked in, or the license was not found.

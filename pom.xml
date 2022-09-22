@@ -15,7 +15,6 @@
         <module>ojAlgo-jfreechart</module>
         <module>ojAlgo-joptimizer</module>
         <module>ojAlgo-mosek</module>
-        <module>ojAlgo-optimatika</module>
         <module>ojAlgo-ortools</module>
         <module>ojAlgo-rocksdb</module>
         <module>ojAlgo-yahoofinance</module>
