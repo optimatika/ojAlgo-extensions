@@ -245,7 +245,6 @@ public final class SolverCPLEX implements Optimisation.Solver {
     }
 
     private final IloCplex myDelegateSolver;
-
     private final List<IloNumVar> myDelegateVariables;
     private final Optimisation.Options myOptions;
 

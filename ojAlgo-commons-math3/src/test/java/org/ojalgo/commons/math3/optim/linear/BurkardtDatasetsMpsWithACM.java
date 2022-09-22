@@ -23,6 +23,7 @@ package org.ojalgo.commons.math3.optim.linear;
 
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.BurkardtDatasetsMps;
+import org.ojalgo.optimisation.solver.acm.SolverACM;
 
 /**
  * @author apete
@@ -30,7 +31,7 @@ import org.ojalgo.optimisation.linear.BurkardtDatasetsMps;
 public class BurkardtDatasetsMpsWithACM extends BurkardtDatasetsMps {
 
     static {
-        ExpressionsBasedModel.addIntegration(SolverCommonsMath.INTEGRATION);
+        ExpressionsBasedModel.addIntegration(SolverACM.INTEGRATION);
     }
 
 }

@@ -24,12 +24,13 @@ package org.ojalgo.commons.math3.optim.linear;
 import org.junit.jupiter.api.BeforeAll;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.integer.RelaxedMIPCase;
+import org.ojalgo.optimisation.solver.acm.SolverACM;
 
 public class RelaxedMIPCaseWithACM extends RelaxedMIPCase {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverCommonsMath.INTEGRATION);
+        ExpressionsBasedModel.addIntegration(SolverACM.INTEGRATION);
     }
 
 }

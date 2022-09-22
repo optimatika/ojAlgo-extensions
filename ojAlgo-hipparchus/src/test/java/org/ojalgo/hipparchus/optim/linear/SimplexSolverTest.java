@@ -35,6 +35,7 @@ import org.hipparchus.util.Precision;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.ojalgo.TestUtils;
+import org.ojalgo.optimisation.solver.hipparchus.LinearOptimizerEBM;
 
 /**
  * Tests to verify that {@link LinearOptimizerEBM} is a drop-in replacement to {@link SimplexSolver}.

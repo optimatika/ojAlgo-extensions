@@ -24,6 +24,7 @@ package org.ojalgo.hipparchus.optim.linear;
 import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.CuteNetlibCase;
+import org.ojalgo.optimisation.solver.hipparchus.SolverHipparchus;
 
 @Disabled
 public class NetlibCaseWithACM extends CuteNetlibCase {

@@ -29,6 +29,7 @@ import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
+import org.ojalgo.optimisation.solver.joptimizer.SolverJOptimizer;
 import org.ojalgo.structure.Access1D;
 import org.ojalgo.type.context.NumberContext;
 

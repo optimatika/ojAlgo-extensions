@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.CommonsMathSimplexSolverTest;
+import org.ojalgo.optimisation.solver.hipparchus.SolverHipparchus;
 
 @Disabled
 public class CommonsMathSimplexSolverTestWithACM extends CommonsMathSimplexSolverTest {

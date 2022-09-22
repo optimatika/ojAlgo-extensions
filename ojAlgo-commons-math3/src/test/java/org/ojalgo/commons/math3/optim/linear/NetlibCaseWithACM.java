@@ -24,12 +24,13 @@ package org.ojalgo.commons.math3.optim.linear;
 import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.CuteNetlibCase;
+import org.ojalgo.optimisation.solver.acm.SolverACM;
 
 @Disabled
 public class NetlibCaseWithACM extends CuteNetlibCase {
 
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverCommonsMath.INTEGRATION);
+        ExpressionsBasedModel.addIntegration(SolverACM.INTEGRATION);
     }
 
 }

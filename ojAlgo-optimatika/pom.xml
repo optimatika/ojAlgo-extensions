@@ -19,22 +19,22 @@
         <dependency>
             <groupId>org.ojalgo</groupId>
             <artifactId>ojalgo-commons-math3</artifactId>
-            <version>3.2.1</version>
+            <version>4.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.ojalgo</groupId>
             <artifactId>ojalgo-joptimizer</artifactId>
-            <version>3.0.2</version>
+            <version>4.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.ojalgo</groupId>
             <artifactId>ojalgo-cplex</artifactId>
-            <version>3.0.3</version>
+            <version>4.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.ojalgo</groupId>
             <artifactId>ojalgo-gurobi</artifactId>
-            <version>3.0.1</version>
+            <version>4.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.ojalgo</groupId>
@@ -44,7 +44,7 @@
         <dependency>
             <groupId>org.ojalgo</groupId>
             <artifactId>ojalgo-mosek</artifactId>
-            <version>3.1.1</version>
+            <version>4.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

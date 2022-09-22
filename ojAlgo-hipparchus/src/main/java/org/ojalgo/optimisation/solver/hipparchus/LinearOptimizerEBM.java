@@ -1,19 +1,18 @@
-package org.ojalgo.commons.math3.optim.linear;
+package org.ojalgo.optimisation.solver.hipparchus;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-import org.apache.commons.math3.exception.DimensionMismatchException;
-import org.apache.commons.math3.linear.RealVector;
-import org.apache.commons.math3.optim.PointValuePair;
-import org.apache.commons.math3.optim.linear.LinearConstraint;
-import org.apache.commons.math3.optim.linear.LinearObjectiveFunction;
-import org.apache.commons.math3.optim.linear.LinearOptimizer;
-import org.apache.commons.math3.optim.linear.NoFeasibleSolutionException;
-import org.apache.commons.math3.optim.linear.Relationship;
-import org.apache.commons.math3.optim.linear.SimplexSolver;
-import org.apache.commons.math3.optim.linear.UnboundedSolutionException;
-import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
+import org.hipparchus.exception.LocalizedCoreFormats;
+import org.hipparchus.exception.MathIllegalArgumentException;
+import org.hipparchus.linear.RealVector;
+import org.hipparchus.optim.LocalizedOptimFormats;
+import org.hipparchus.optim.PointValuePair;
+import org.hipparchus.optim.linear.LinearConstraint;
+import org.hipparchus.optim.linear.LinearObjectiveFunction;
+import org.hipparchus.optim.linear.LinearOptimizer;
+import org.hipparchus.optim.linear.Relationship;
+import org.hipparchus.optim.nonlinear.scalar.GoalType;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.ModelEntity;
@@ -85,12 +84,12 @@ public final class LinearOptimizerEBM extends LinearOptimizer {
 
         double[] lowerBounds = this.getLowerBound();
         if (lowerBounds != null && lowerBounds.length != nbVars) {
-            throw new DimensionMismatchException(lowerBounds.length, nbVars);
+            throw new MathIllegalArgumentException(LocalizedCoreFormats.DIMENSIONS_MISMATCH);
         }
 
         double[] upperBounds = this.getUpperBound();
         if (upperBounds != null && upperBounds.length != nbVars) {
-            throw new DimensionMismatchException(upperBounds.length, nbVars);
+            throw new MathIllegalArgumentException(LocalizedCoreFormats.DIMENSIONS_MISMATCH);
         }
 
         for (int i = 0; i < nbVars; i++) {
@@ -124,7 +123,7 @@ public final class LinearOptimizerEBM extends LinearOptimizer {
             double limit = constraint.getValue();
 
             if (coefficients.getDimension() != nbVars) {
-                throw new DimensionMismatchException(coefficients.getDimension(), nbVars);
+                throw new MathIllegalArgumentException(LocalizedCoreFormats.DIMENSIONS_MISMATCH);
             }
 
             Expression expression = model.addExpression();
@@ -144,10 +143,9 @@ public final class LinearOptimizerEBM extends LinearOptimizer {
 
         State state = result.getState();
         if (state == State.UNBOUNDED) {
-            throw new UnboundedSolutionException();
-        }
-        if (!state.isFeasible()) {
-            throw new NoFeasibleSolutionException();
+            throw new MathIllegalArgumentException(LocalizedOptimFormats.UNBOUNDED_SOLUTION);
+        } else if (!state.isFeasible()) {
+            throw new MathIllegalArgumentException(LocalizedOptimFormats.NO_FEASIBLE_SOLUTION);
         }
 
         double[] point = result.toRawCopy1D();

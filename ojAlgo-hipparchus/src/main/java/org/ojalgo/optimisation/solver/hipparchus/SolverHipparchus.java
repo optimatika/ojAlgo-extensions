@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.commons.math3.optim.linear;
+package org.ojalgo.optimisation.solver.hipparchus;
 
 import static org.ojalgo.function.constant.PrimitiveMath.*;
 
@@ -29,17 +29,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.commons.math3.optim.OptimizationData;
-import org.apache.commons.math3.optim.PointValuePair;
-import org.apache.commons.math3.optim.linear.LinearConstraint;
-import org.apache.commons.math3.optim.linear.LinearConstraintSet;
-import org.apache.commons.math3.optim.linear.LinearObjectiveFunction;
-import org.apache.commons.math3.optim.linear.NoFeasibleSolutionException;
-import org.apache.commons.math3.optim.linear.NonNegativeConstraint;
-import org.apache.commons.math3.optim.linear.Relationship;
-import org.apache.commons.math3.optim.linear.SimplexSolver;
-import org.apache.commons.math3.optim.linear.UnboundedSolutionException;
-import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
+import org.hipparchus.exception.Localizable;
+import org.hipparchus.exception.MathIllegalStateException;
+import org.hipparchus.optim.LocalizedOptimFormats;
+import org.hipparchus.optim.OptimizationData;
+import org.hipparchus.optim.PointValuePair;
+import org.hipparchus.optim.linear.LinearConstraint;
+import org.hipparchus.optim.linear.LinearConstraintSet;
+import org.hipparchus.optim.linear.LinearObjectiveFunction;
+import org.hipparchus.optim.linear.NonNegativeConstraint;
+import org.hipparchus.optim.linear.Relationship;
+import org.hipparchus.optim.linear.SimplexSolver;
+import org.hipparchus.optim.nonlinear.scalar.GoalType;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
@@ -47,14 +48,14 @@ import org.ojalgo.structure.Access1D;
 import org.ojalgo.structure.Structure1D.IntIndex;
 
 /**
- * Use Apache's {@link SimplexSolver} from ojAlgo's {@link ExpressionsBasedModel}.
+ * Use Hipparchus' {@link SimplexSolver} from ojAlgo's {@link ExpressionsBasedModel}.
  * <P>
  * Just call {@link ExpressionsBasedModel#addIntegration(ExpressionsBasedModel.Integration)} with
- * {@link SolverCommonsMath#INTEGRATION} as the argument.
+ * {@link SolverHipparchus#INTEGRATION} as the argument.
  *
  * @author apete
  */
-public final class SolverCommonsMath implements Optimisation.Solver {
+public final class SolverHipparchus implements Optimisation.Solver {
 
     @FunctionalInterface
     public interface Configurator {
@@ -63,13 +64,14 @@ public final class SolverCommonsMath implements Optimisation.Solver {
 
     }
 
-    public static final class Integration extends ExpressionsBasedModel.Integration<SolverCommonsMath> {
+    public static final class Integration extends ExpressionsBasedModel.Integration<SolverHipparchus> {
 
         Integration() {
             super();
         }
 
-        public SolverCommonsMath build(final ExpressionsBasedModel model) {
+        @Override
+        public SolverHipparchus build(final ExpressionsBasedModel model) {
 
             Set<OptimizationData> optimizationData = new HashSet<>();
 
@@ -134,9 +136,10 @@ public final class SolverCommonsMath implements Optimisation.Solver {
 
             optimizationData.add(new NonNegativeConstraint(!anyVariableNegative));
 
-            return new SolverCommonsMath(optimizationData, model.options);
+            return new SolverHipparchus(optimizationData, model.options);
         }
 
+        @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
             return !model.isAnyVariableInteger() && !model.isAnyExpressionQuadratic();
         }
@@ -148,7 +151,7 @@ public final class SolverCommonsMath implements Optimisation.Solver {
 
     }
 
-    public static final SolverCommonsMath.Integration INTEGRATION = new Integration();
+    public static final SolverHipparchus.Integration INTEGRATION = new Integration();
 
     static final Configurator DEFAULT = (solver, options) -> {
         // TODO Auto-generated method stub
@@ -157,12 +160,13 @@ public final class SolverCommonsMath implements Optimisation.Solver {
     private final Set<OptimizationData> myModelData;
     private final Optimisation.Options myOptions;
 
-    SolverCommonsMath(final Set<OptimizationData> modelData, final Optimisation.Options options) {
+    SolverHipparchus(final Set<OptimizationData> modelData, final Optimisation.Options options) {
         super();
         myModelData = modelData;
         myOptions = options;
     }
 
+    @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
         //          InitialGuess guess = new InitialGuess(kickStarter.toRawCopy1D());
@@ -189,13 +193,17 @@ public final class SolverCommonsMath implements Optimisation.Solver {
             value = solutionAndValue.getValue().doubleValue();
             solution = Access1D.wrap(solutionAndValue.getPoint());
 
-        } catch (NoFeasibleSolutionException infeasible) {
+        } catch (MathIllegalStateException cause) {
 
-            state = Optimisation.State.INFEASIBLE;
+            Localizable specifier = cause.getSpecifier();
 
-        } catch (UnboundedSolutionException unbounded) {
-
-            state = Optimisation.State.UNBOUNDED;
+            if (LocalizedOptimFormats.NO_FEASIBLE_SOLUTION.equals(specifier)) {
+                state = Optimisation.State.INFEASIBLE;
+            } else if (LocalizedOptimFormats.UNBOUNDED_SOLUTION.equals(specifier)) {
+                state = Optimisation.State.UNBOUNDED;
+            } else {
+                state = Optimisation.State.FAILED;
+            }
         }
 
         return new Optimisation.Result(state, value, solution);
