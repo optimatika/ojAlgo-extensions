@@ -48,6 +48,11 @@ import mosek.Env.variabletype;
 import mosek.Stream;
 import mosek.Task;
 
+/**
+ * TODO: Refactor to be similar to SolverORTools and SolverCPLEX.
+ *
+ * @author apete
+ */
 public final class SolverMosek implements Optimisation.Solver {
 
     @FunctionalInterface
@@ -157,9 +162,7 @@ public final class SolverMosek implements Optimisation.Solver {
     };
 
     private final Optimisation.Options myOptions;
-
     private soltype mySolutionType = soltype.bas;
-
     private final Task myTask;
 
     SolverMosek(final Task task, final Optimisation.Options options) {

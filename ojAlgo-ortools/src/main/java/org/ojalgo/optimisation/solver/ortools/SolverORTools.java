@@ -22,9 +22,6 @@
 package org.ojalgo.optimisation.solver.ortools;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
@@ -44,7 +41,7 @@ public final class SolverORTools implements Optimisation.Solver {
     @FunctionalInterface
     public interface Configurator {
 
-        void configure(MPSolver delegate, Optimisation.Options options);
+        void configure(MPSolver solver, Optimisation.Options options);
 
     }
 
@@ -57,58 +54,54 @@ public final class SolverORTools implements Optimisation.Solver {
         @Override
         public SolverORTools build(final ExpressionsBasedModel model) {
 
+            boolean mip = model.isAnyVariableInteger();
+
             MPSolver solver = SolverORTools.newSolver(model);
 
-            List<Variable> freeModVars = model.getFreeVariables();
-            Set<IntIndex> fixedModVars = model.getFixedVariables();
-
-            int nbVariables = freeModVars.size();
+            List<Variable> mVars = model.getVariables();
+            int nbVars = mVars.size();
 
             double posInf = MPSolver.infinity();
             double negInf = -posInf;
 
-            MPVariable[] solverVariables = new MPVariable[nbVariables];
-            for (int i = 0; i < nbVariables; i++) {
+            MPVariable[] sVars = new MPVariable[nbVars];
 
-                Variable modelVariable = freeModVars.get(i);
+            for (int i = 0; i < nbVars; i++) {
 
-                double lb = modelVariable.getUnadjustedLowerLimit(negInf);
-                double ub = modelVariable.getUnadjustedUpperLimit(posInf);
-                boolean integer = modelVariable.isInteger();
-                String name = modelVariable.getName();
+                Variable mVar = mVars.get(i);
 
-                solverVariables[i] = solver.makeVar(lb, ub, integer, name);
+                double lb = mVar.getLowerLimit(false, negInf);
+                double ub = mVar.getUpperLimit(false, posInf);
+                boolean integer = mip && mVar.isInteger();
+                String name = mVar.getName();
+
+                sVars[i] = solver.makeVar(lb, ub, integer, name);
             }
 
-            List<Expression> modelConstraints = model.constraints().map(e -> e.compensate(fixedModVars)).collect(Collectors.toList());
-            for (Expression modelConstraint : modelConstraints) {
+            model.constraints().forEach(mConstr -> {
 
-                double lb = modelConstraint.getAdjustedLowerLimit(negInf);
-                double ub = modelConstraint.getAdjustedUpperLimit(posInf);
-                String name = modelConstraint.getName();
+                double lb = mConstr.getLowerLimit(false, negInf);
+                double ub = mConstr.getUpperLimit(false, posInf);
+                String name = mConstr.getName();
 
-                MPConstraint solverConstraint = solver.makeConstraint(lb, ub, name);
+                MPConstraint sConstr = solver.makeConstraint(lb, ub, name);
 
-                for (IntIndex linearKey : modelConstraint.getLinearKeySet()) {
-                    solverConstraint.setCoefficient(solverVariables[model.indexOfFreeVariable(linearKey)], modelConstraint.getAdjustedLinearFactor(linearKey));
+                for (IntIndex key : mConstr.getLinearKeySet()) {
+                    sConstr.setCoefficient(sVars[key.index], mConstr.doubleValue(key, false));
                 }
-            }
+            });
 
-            Expression modelObjective = model.objective().compensate(fixedModVars);
-            MPObjective solverObjective = solver.objective();
-            solverObjective.setOptimizationDirection(model.getOptimisationSense() == Optimisation.Sense.MAX);
-
-            for (IntIndex linearKey : modelObjective.getLinearKeySet()) {
-                solverObjective.setCoefficient(solverVariables[model.indexOfFreeVariable(linearKey)], modelObjective.getAdjustedLinearFactor(linearKey));
+            Expression mObj = model.objective();
+            MPObjective sObj = solver.objective();
+            sObj.setOptimizationDirection(model.getOptimisationSense() == Optimisation.Sense.MAX);
+            for (IntIndex key : mObj.getLinearKeySet()) {
+                sObj.setCoefficient(sVars[key.index], mObj.doubleValue(key, false));
             }
 
             DEFAULT.configure(solver, model.options);
-            Optional<Configurator> optional = model.options.getConfigurator(Configurator.class);
-            if (optional.isPresent()) {
-                optional.get().configure(solver, model.options);
-            }
+            model.options.getConfigurator(Configurator.class).ifPresent(c -> c.configure(solver, model.options));
 
-            return new SolverORTools(solverVariables, solver);
+            return new SolverORTools(solver, sVars);
         }
 
         @Override
@@ -118,14 +111,14 @@ public final class SolverORTools implements Optimisation.Solver {
 
         @Override
         protected boolean isSolutionMapped() {
-            return true;
+            return false;
         }
 
     }
 
     public static final SolverORTools.Integration INTEGRATION = new Integration();
 
-    static final SolverORTools.Configurator DEFAULT = (delegate, options) -> {
+    static final SolverORTools.Configurator DEFAULT = (solver, options) -> {
     };
 
     static {
@@ -137,10 +130,10 @@ public final class SolverORTools implements Optimisation.Solver {
         // BOP: Only pure IP (no continuous variables)
 
         // GLOP: LP only. Fails quietly with MIP
-        // CLP: LP only. Fails quietly with MIP (GLOP verkar snabbare)
+        // CLP: LP only. Fails quietly with MIP (GLOP seems faster)
 
-        // CBC: LP & MIP, men MIP verkar inte så bra.
-        // SCIP: LP & MIP, men MIP verkar inte så bra. CBC är bättre.
+        // CBC: LP & MIP, but MIP not so great
+        // SCIP: LP & MIP, but even slower than CBC
         // SAT: Can solve some LP and MIP models, but not very good/fast at all
 
         // Support for ??? not linked in, or the license was not found.
@@ -181,7 +174,7 @@ public final class SolverORTools implements Optimisation.Solver {
     private final MPSolver mySolver;
     private final MPVariable[] myVariables;
 
-    SolverORTools(final MPVariable[] variables, final MPSolver solver) {
+    SolverORTools(final MPSolver solver, final MPVariable[] variables) {
 
         super();
 

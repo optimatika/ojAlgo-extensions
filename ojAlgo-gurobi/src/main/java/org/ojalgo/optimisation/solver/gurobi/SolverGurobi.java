@@ -46,6 +46,11 @@ import gurobi.GRBModel;
 import gurobi.GRBQuadExpr;
 import gurobi.GRBVar;
 
+/**
+ * TODO: Refactor to be similar to SolverORTools and SolverCPLEX.
+ *
+ * @author apete
+ */
 public final class SolverGurobi implements Optimisation.Solver {
 
     @FunctionalInterface
@@ -173,7 +178,6 @@ public final class SolverGurobi implements Optimisation.Solver {
     public static final SolverGurobi.Integration INTEGRATION = new Integration();
 
     static final Configurator DEFAULT = (environment, model, options) -> {
-        // TODO Auto-generated method stub
     };
 
     public static SolverGurobi.Integration newInstantCloudIntegration(final String accessKey, final String secret) {
