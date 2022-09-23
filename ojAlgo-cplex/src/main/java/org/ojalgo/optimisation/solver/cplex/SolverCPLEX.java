@@ -316,14 +316,6 @@ public final class SolverCPLEX implements Optimisation.Solver {
         return new Result(Optimisation.State.FAILED, Double.NaN, kickStarter);
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-
-        this.dispose();
-
-        super.finalize();
-    }
-
     IloCplex getDelegateSolver() {
         return myDelegateSolver;
     }

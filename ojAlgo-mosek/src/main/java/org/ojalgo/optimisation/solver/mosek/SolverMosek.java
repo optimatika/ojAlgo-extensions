@@ -111,16 +111,6 @@ public final class SolverMosek implements Optimisation.Solver {
         }
 
         @Override
-        protected void finalize() throws Throwable {
-
-            if (myEnvironment != null) {
-                myEnvironment.dispose();
-            }
-
-            super.finalize();
-        }
-
-        @Override
         protected boolean isSolutionMapped() {
             return true;
         }
@@ -237,14 +227,6 @@ public final class SolverMosek implements Optimisation.Solver {
         }
 
         return new Optimisation.Result(tmpSate, tmpValue, Primitive64Array.wrap(tmpSolution));
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-
-        this.dispose();
-
-        super.finalize();
     }
 
     boundkey getBoundKey(final Optimisation.Constraint modelEntity) {
