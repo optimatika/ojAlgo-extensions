@@ -26,7 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.ojalgo.array.PrimitiveR064;
+import org.ojalgo.array.ArrayR064;
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.netio.CharacterRing;
 import org.ojalgo.netio.CharacterRing.RingLogger;
@@ -229,7 +229,7 @@ public final class SolverMosek implements Optimisation.Solver {
             throw xcptn;
         }
 
-        return new Optimisation.Result(tmpSate, tmpValue, PrimitiveR064.wrap(tmpSolution));
+        return new Optimisation.Result(tmpSate, tmpValue, ArrayR064.wrap(tmpSolution));
     }
 
     boundkey getBoundKey(final Optimisation.Constraint modelEntity) {

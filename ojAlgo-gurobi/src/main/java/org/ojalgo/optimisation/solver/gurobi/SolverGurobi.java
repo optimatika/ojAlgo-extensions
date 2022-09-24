@@ -29,7 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.ojalgo.array.PrimitiveR064;
+import org.ojalgo.array.ArrayR064;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
@@ -301,7 +301,7 @@ public final class SolverGurobi implements Optimisation.Solver {
 
         State retState = State.UNEXPLORED;
         double retValue = NaN;
-        PrimitiveR064 retSolution = PrimitiveR064.make(myDelegateSolver.getVars().length);
+        ArrayR064 retSolution = ArrayR064.make(myDelegateSolver.getVars().length);
 
         try {
 
