@@ -12,7 +12,7 @@
     <version>4.0.0-SNAPSHOT</version>
     <properties>
         <!-- You have to change this! -->
-        <path.installation.gurobi>/Library/gurobi951/macos_universal2</path.installation.gurobi>
+        <path.installation.gurobi>/Library/gurobi952/macos_universal2</path.installation.gurobi>
         <!-- <path.installation.gurobi>/opt/gurobi911/linux64</path.installation.gurobi> -->
         <path.jar.gurobi>${path.installation.gurobi}/lib/gurobi.jar</path.jar.gurobi>
         <path.native.gurobi>${path.installation.gurobi}/bin</path.native.gurobi>
@@ -21,7 +21,7 @@
         <dependency>
             <groupId>gurobi</groupId>
             <artifactId>gurobi</artifactId>
-            <version>9.1.1</version>
+            <version>9.5.2</version>
             <scope>system</scope>
             <systemPath>${path.jar.gurobi}</systemPath>
         </dependency>
