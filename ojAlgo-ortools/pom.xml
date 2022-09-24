@@ -8,39 +8,15 @@
     </parent>
     <artifactId>ojalgo-ortools</artifactId>
     <name>ojAlgo-ortools</name>
-    <description>ojAlgo and Google OR Tools Integration</description>
+    <description>ojAlgo and Google OR Tools integration</description>
     <version>1.0.0-SNAPSHOT</version>
     <properties></properties>
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/com.google.ortools/ortools-java -->
         <dependency>
             <groupId>com.google.ortools</groupId>
             <artifactId>ortools-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.ojalgo</groupId>
-            <artifactId>ojalgo</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.ojalgo</groupId>
-            <artifactId>ojalgo</artifactId>
-            <classifier>tests</classifier>
-            <type>test-jar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-            <scope>test</scope>
+            <version>9.4.1874</version>
         </dependency>
     </dependencies>
 </project>
-

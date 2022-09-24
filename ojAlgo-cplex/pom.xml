@@ -8,7 +8,7 @@
     </parent>
     <artifactId>ojalgo-cplex</artifactId>
     <name>ojAlgo-cplex</name>
-    <description>ojAlgo CPLEX integration</description>
+    <description>ojAlgo and CPLEX integration</description>
     <version>4.0.0-SNAPSHOT</version>
     <properties>
         <!-- You have to change this! -->
@@ -23,32 +23,6 @@
             <version>12.8</version>
             <scope>system</scope>
             <systemPath>${path.jar.cplex}</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>org.ojalgo</groupId>
-            <artifactId>ojalgo</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.ojalgo</groupId>
-            <artifactId>ojalgo</artifactId>
-            <classifier>tests</classifier>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>
