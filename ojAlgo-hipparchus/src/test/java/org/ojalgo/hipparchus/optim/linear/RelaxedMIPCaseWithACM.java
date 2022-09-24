@@ -24,6 +24,7 @@ package org.ojalgo.hipparchus.optim.linear;
 import org.junit.jupiter.api.BeforeAll;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.integer.RelaxedMIPCase;
+import org.ojalgo.optimisation.solver.hipparchus.SolverHipparchus;
 
 public class RelaxedMIPCaseWithACM extends RelaxedMIPCase {
 

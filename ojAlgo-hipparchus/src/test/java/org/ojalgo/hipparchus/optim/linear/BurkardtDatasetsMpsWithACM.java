@@ -23,6 +23,7 @@ package org.ojalgo.hipparchus.optim.linear;
 
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.BurkardtDatasetsMps;
+import org.ojalgo.optimisation.solver.hipparchus.SolverHipparchus;
 
 /**
  * @author apete

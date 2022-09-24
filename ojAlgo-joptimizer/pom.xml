@@ -8,39 +8,15 @@
     </parent>
     <artifactId>ojalgo-joptimizer</artifactId>
     <name>ojAlgo-joptimizer</name>
-    <description>ojAlgo JOptimizer integration</description>
+    <description>ojAlgo and JOptimizer integration</description>
     <version>4.0.0-SNAPSHOT</version>
     <properties></properties>
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/com.joptimizer/joptimizer -->
         <dependency>
             <groupId>com.joptimizer</groupId>
             <artifactId>joptimizer</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.ojalgo</groupId>
-            <artifactId>ojalgo</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.ojalgo</groupId>
-            <artifactId>ojalgo</artifactId>
-            <classifier>tests</classifier>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-            <scope>test</scope>
+            <version>5.0.0</version>
         </dependency>
     </dependencies>
 </project>

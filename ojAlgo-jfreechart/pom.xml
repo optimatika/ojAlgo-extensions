@@ -8,29 +8,15 @@
     </parent>
     <artifactId>ojalgo-jfreechart</artifactId>
     <name>ojAlgo-jfreechart</name>
-    <description>ojAlgo JFreeChart integration</description>
+    <description>ojAlgo and JFreeChart integration</description>
     <version>2.0.0-SNAPSHOT</version>
     <properties></properties>
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/org.jfree/jfreechart -->
         <dependency>
             <groupId>org.jfree</groupId>
             <artifactId>jfreechart</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.ojalgo</groupId>
-            <artifactId>ojalgo</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.ojalgo</groupId>
-            <artifactId>ojalgo</artifactId>
-            <classifier>tests</classifier>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <scope>test</scope>
+            <version>1.5.3</version>
         </dependency>
     </dependencies>
 </project>

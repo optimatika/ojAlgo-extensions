@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.BurkardtDatasetsMps;
+import org.ojalgo.optimisation.solver.joptimizer.SolverJOptimizer;
 
 @Disabled
 public class BurkardtDatasetsMpsWithJOptimizer extends BurkardtDatasetsMps {
