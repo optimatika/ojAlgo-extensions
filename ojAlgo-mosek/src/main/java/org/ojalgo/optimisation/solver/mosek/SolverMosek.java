@@ -26,7 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.ojalgo.array.Primitive64Array;
+import org.ojalgo.array.PrimitiveR064;
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.netio.CharacterRing;
 import org.ojalgo.netio.CharacterRing.RingLogger;
@@ -49,7 +49,7 @@ import mosek.Stream;
 import mosek.Task;
 
 /**
- * TODO: Refactor to be similar to SolverORTools and SolverCPLEX.
+ * TODO: Clean up / refactor, look at SolverORTools and SolverCPLEX.
  *
  * @author apete
  */
@@ -62,7 +62,7 @@ public final class SolverMosek implements Optimisation.Solver {
 
     }
 
-    static final class Integration extends ExpressionsBasedModel.Integration<SolverMosek> {
+    public static final class Integration extends ExpressionsBasedModel.Integration<SolverMosek> {
 
         private final Env myEnvironment = new Env();
         private final RingLogger myLog = CharacterRing.newRingLogger();
@@ -229,7 +229,7 @@ public final class SolverMosek implements Optimisation.Solver {
             throw xcptn;
         }
 
-        return new Optimisation.Result(tmpSate, tmpValue, Primitive64Array.wrap(tmpSolution));
+        return new Optimisation.Result(tmpSate, tmpValue, PrimitiveR064.wrap(tmpSolution));
     }
 
     boundkey getBoundKey(final Optimisation.Constraint modelEntity) {

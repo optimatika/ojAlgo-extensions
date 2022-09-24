@@ -29,7 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.ojalgo.array.Primitive64Array;
+import org.ojalgo.array.PrimitiveR064;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
@@ -47,7 +47,7 @@ import gurobi.GRBQuadExpr;
 import gurobi.GRBVar;
 
 /**
- * TODO: Refactor to be similar to SolverORTools and SolverCPLEX.
+ * TODO: Clean up / refactor, look at SolverORTools and SolverCPLEX.
  *
  * @author apete
  */
@@ -301,7 +301,7 @@ public final class SolverGurobi implements Optimisation.Solver {
 
         State retState = State.UNEXPLORED;
         double retValue = NaN;
-        Primitive64Array retSolution = Primitive64Array.make(myDelegateSolver.getVars().length);
+        PrimitiveR064 retSolution = PrimitiveR064.make(myDelegateSolver.getVars().length);
 
         try {
 
