@@ -29,6 +29,7 @@ public class MIPLIBTheEasySetWithCPLEX extends MIPLIBTheEasySet {
 
     @BeforeAll
     public static void configure() {
+        // ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION.withPredicate(m -> !m.isAnyVariableInteger()));
         ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION);
     }
 
