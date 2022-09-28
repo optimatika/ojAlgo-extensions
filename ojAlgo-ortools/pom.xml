@@ -9,7 +9,7 @@
     <artifactId>ojalgo-ortools</artifactId>
     <name>ojAlgo-ortools</name>
     <description>ojAlgo and Google OR Tools integration</description>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <properties></properties>
     <dependencies>
         <!-- https://mvnrepository.com/artifact/com.google.ortools/ortools-java -->
