@@ -54,8 +54,8 @@ import org.rocksdb.WriteOptions;
  * Particular attention has been given to maximise bulk loading performance. To make use of this, specify that
  * you are going to bulk load, and use multiple shards:
  * <ol>
- * <li>{@link RocksMap.Builder#mode(Mode)</li>
- * <li>{@link RocksMap.Mode#LOAD</li>
+ * <li>{@link RocksMap.Builder#mode(Mode)}</li>
+ * <li>{@link RocksMap.Mode#LOAD}</li>
  * <li>{@link RocksMap.Builder#shards(int)}</li>
  * </ol>
  */
