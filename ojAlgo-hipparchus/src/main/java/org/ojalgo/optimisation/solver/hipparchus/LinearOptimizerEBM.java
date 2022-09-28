@@ -12,6 +12,7 @@ import org.hipparchus.optim.linear.LinearConstraint;
 import org.hipparchus.optim.linear.LinearObjectiveFunction;
 import org.hipparchus.optim.linear.LinearOptimizer;
 import org.hipparchus.optim.linear.Relationship;
+import org.hipparchus.optim.linear.SimplexSolver;
 import org.hipparchus.optim.nonlinear.scalar.GoalType;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
@@ -22,11 +23,10 @@ import org.ojalgo.optimisation.Variable;
 import org.ojalgo.type.context.NumberContext;
 
 /**
- * Intended to be a drop-in replacement to {@link org.apache.commons.math3.optim.linear.SimplexSolver} and/or
- * the deprecated {@link org.apache.commons.math3.optimization.linear.SimplexSolver}.
+ * Intended to be a drop-in replacement to {@link org.hipparchus.optim.linear.SimplexSolver}.
  * <p>
  * If you have any problems using those solvers, and would like to try ojAlgo instead. Just add
- * ojAlgo-commons-math3 as a dependency and use {@link LinearOptimizerEBM} instead of {@link SimplexSolver} –
+ * ojAlgo-hipparchus as a dependency and use {@link LinearOptimizerEBM} instead of {@link SimplexSolver} –
  * different class name, but the same API.
  * <p>
  * Internally this implementation builds an {@link ExpressionsBasedModel} and thus makes use of its pre-solve
