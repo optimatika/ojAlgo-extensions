@@ -9,7 +9,7 @@
     <artifactId>ojalgo-hipparchus</artifactId>
     <name>ojAlgo-hipparchus</name>
     <description>ojAlgo and Hipparchus integration</description>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <properties>
         <version.org.hipparchus>2.2</version.org.hipparchus>
     </properties>
