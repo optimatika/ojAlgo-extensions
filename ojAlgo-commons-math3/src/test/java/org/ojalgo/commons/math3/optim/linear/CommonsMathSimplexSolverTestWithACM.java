@@ -25,13 +25,14 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.CommonsMathSimplexSolverTest;
+import org.ojalgo.optimisation.solver.acm.SolverACM;
 
 @Disabled
 public class CommonsMathSimplexSolverTestWithACM extends CommonsMathSimplexSolverTest {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverCommonsMath.INTEGRATION);
+        ExpressionsBasedModel.addIntegration(SolverACM.INTEGRATION);
     }
 
 }

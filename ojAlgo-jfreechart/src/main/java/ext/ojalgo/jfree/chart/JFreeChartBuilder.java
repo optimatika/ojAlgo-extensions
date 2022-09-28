@@ -39,7 +39,7 @@ import org.jfree.chart.plot.Plot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.Range;
 import org.ojalgo.type.ColourData;
-import org.ojalgo.type.keyvalue.StringToDouble;
+import org.ojalgo.type.keyvalue.EntryPair;
 
 import ext.ojalgo.jfree.ChartBuilder;
 
@@ -50,7 +50,7 @@ public abstract class JFreeChartBuilder<B extends JFreeChartBuilder<B>> extends 
 
     public static final class AxisParameters {
 
-        private final ArrayList<StringToDouble> myAnnotations = new ArrayList<>();
+        private final ArrayList<EntryPair.KeyedPrimitive<String>> myAnnotations = new ArrayList<>();
         private Double myBase = null;
         private boolean myCategory = false;
         private NumberFormat myFormat = null;
@@ -65,109 +65,109 @@ public abstract class JFreeChartBuilder<B extends JFreeChartBuilder<B>> extends 
             super();
         }
 
-        public final AxisParameters annotation(final String text, final Number value) {
-            myAnnotations.add(new StringToDouble(text, value.doubleValue()));
+        public AxisParameters annotation(final String text, final Number value) {
+            myAnnotations.add(EntryPair.of(text, value.doubleValue()));
             return this;
         }
 
-        public final AxisParameters base(final double base) {
+        public AxisParameters base(final double base) {
             myBase = base;
             return this;
         }
 
-        public final AxisParameters category(final boolean category) {
+        public AxisParameters category(final boolean category) {
             myCategory = category;
             return this;
         }
 
-        public final AxisParameters format(final NumberFormat format) {
+        public AxisParameters format(final NumberFormat format) {
             myFormat = format;
             return this;
         }
 
-        public final AxisParameters interval(final double lower, final double upper) {
+        public AxisParameters interval(final double lower, final double upper) {
             myInterval = new Range(lower, upper);
             return this;
         }
 
-        public final AxisParameters inverted(final boolean inverted) {
+        public AxisParameters inverted(final boolean inverted) {
             myInverted = inverted;
             return this;
         }
 
-        public final AxisParameters label(final String label) {
+        public AxisParameters label(final String label) {
             myLabel = label;
             return this;
         }
 
-        public final AxisParameters logarithmic(final boolean logarithmic) {
+        public AxisParameters logarithmic(final boolean logarithmic) {
             myLogarithmic = logarithmic;
             return this;
         }
 
-        public final AxisParameters time(final boolean time) {
+        public AxisParameters time(final boolean time) {
             myTime = time;
             return this;
         }
 
-        public final AxisParameters zeroIncluded(final boolean zeroIncluded) {
+        public AxisParameters zeroIncluded(final boolean zeroIncluded) {
             myZeroIncluded = zeroIncluded;
             return this;
         }
 
-        protected final ArrayList<StringToDouble> getAnnotations() {
+        protected ArrayList<EntryPair.KeyedPrimitive<String>> getAnnotations() {
             return myAnnotations;
         }
 
-        protected final Double getBase() {
+        protected Double getBase() {
             return myBase;
         }
 
-        protected final NumberFormat getFormat() {
+        protected NumberFormat getFormat() {
             return myFormat;
         }
 
-        protected final Range getInterval() {
+        protected Range getInterval() {
             return myInterval;
         }
 
-        protected final String getLabel() {
+        protected String getLabel() {
             return myLabel;
         }
 
-        protected final boolean isBaseSet() {
+        protected boolean isBaseSet() {
             return myBase != null;
         }
 
-        protected final boolean isCategory() {
+        protected boolean isCategory() {
             return myCategory;
         }
 
-        protected final boolean isFormatSet() {
+        protected boolean isFormatSet() {
             return myFormat != null;
         }
 
-        protected final boolean isIntervalSet() {
+        protected boolean isIntervalSet() {
             return myInterval != null;
         }
 
-        protected final boolean isInverted() {
+        protected boolean isInverted() {
             return myInverted;
         }
 
-        protected final boolean isLabelSet() {
+        protected boolean isLabelSet() {
             return myLabel != null;
         }
 
-        protected final boolean isLogarithmic() {
+        protected boolean isLogarithmic() {
             return myLogarithmic;
         }
 
-        protected final boolean isTime() {
+        protected boolean isTime() {
             return myTime;
         }
 
-        protected final boolean isZeroIncluded() {
+        protected boolean isZeroIncluded() {
             return myZeroIncluded;
         }
 
@@ -183,26 +183,26 @@ public abstract class JFreeChartBuilder<B extends JFreeChartBuilder<B>> extends 
             super();
         }
 
-        public final PlotParameters background(final Paint background) {
+        public PlotParameters background(final Paint background) {
             myBackground = background;
             return this;
         }
 
-        public final PlotParameters orientation(final Orientation anOrientation) {
+        public PlotParameters orientation(final Orientation anOrientation) {
             myOrientation = anOrientation;
             return this;
         }
 
-        public final PlotParameters outline(final Paint outline) {
+        public PlotParameters outline(final Paint outline) {
             myOutline = outline;
             return this;
         }
 
-        protected final Paint getBackground() {
+        protected Paint getBackground() {
             return myBackground;
         }
 
-        protected final PlotOrientation getOrientation() {
+        protected PlotOrientation getOrientation() {
 
             PlotOrientation retVal = PlotOrientation.VERTICAL;
 
@@ -213,7 +213,7 @@ public abstract class JFreeChartBuilder<B extends JFreeChartBuilder<B>> extends 
             return retVal;
         }
 
-        protected final Paint getOutline() {
+        protected Paint getOutline() {
             return myOutline;
         }
 
