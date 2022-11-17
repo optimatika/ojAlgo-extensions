@@ -40,11 +40,5 @@ When/if ojAlgo's built-in optimisation solvers are not capable of solving your m
 * To configure ExpressionsBasedModel to use CPLEX rather than ojAlgo's built-in solvers execute this line of code:
 
 ```java
-ExpressionsBasedModel.addPreferredSolver(SolverCPLEX.INTEGRATION);
+ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION);
 ```
-* If you only want to use CPLEX when the built-in solvers cannot handle a particular model you should instead do this:
-
-```java
-ExpressionsBasedModel.addFallbackSolver(SolverCPLEX.INTEGRATION);
-```
-
