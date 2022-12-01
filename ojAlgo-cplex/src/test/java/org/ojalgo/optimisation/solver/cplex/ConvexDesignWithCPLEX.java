@@ -23,9 +23,9 @@ package org.ojalgo.optimisation.solver.cplex;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.convex.TestSQP;
+import org.ojalgo.optimisation.convex.ConvexDesign;
 
-public class TestSQPWithCPLEX extends TestSQP {
+public class ConvexDesignWithCPLEX extends ConvexDesign {
 
     @BeforeAll
     public static void configure() {
