@@ -87,18 +87,18 @@ public class JOptimizerTest {
         TestUtils.assertEquals(expected, sol[1], precision);
 
         ExpressionsBasedModel model = new ExpressionsBasedModel();
-        Variable x0 = model.addVariable("x0");
-        Variable x1 = model.addVariable("x1");
+        Variable x0 = model.newVariable("x0");
+        Variable x1 = model.newVariable("x1");
         x0.setValue(-2);
         x1.setValue(-2);
 
-        Expression obj = model.addExpression("Obj").weight(0.5);
+        Expression obj = model.newExpression("Obj").weight(0.5);
         obj.set(x0, x0, 1.0);
         obj.set(x1, x1, 1.0);
         obj.set(x0, x1, 0.4);
         obj.set(x1, x0, 0.4);
 
-        Expression constr = model.addExpression("Constr").upper(-4.9375);
+        Expression constr = model.newExpression("Constr").upper(-4.9375);
         constr.set(x0, x0, 1.0);
         constr.set(x1, x1, 1.0);
         constr.set(x0, 4.0);
