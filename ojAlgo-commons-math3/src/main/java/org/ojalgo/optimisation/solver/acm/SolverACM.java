@@ -21,7 +21,7 @@
  */
 package org.ojalgo.optimisation.solver.acm;
 
-import static org.ojalgo.function.constant.PrimitiveMath.*;
+import static org.ojalgo.function.constant.PrimitiveMath.ZERO;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -76,7 +76,7 @@ public final class SolverACM implements Optimisation.Solver {
             List<Variable> variables = model.getVariables();
             int nbVariables = variables.size();
 
-            double[] weights = model.objective().toFunction().getLinearFactors().toRawCopy1D();
+            double[] weights = model.objective().toFunction().getLinearFactors(false).toRawCopy1D();
             if (weights.length != nbVariables) {
                 throw new IllegalStateException();
             }
