@@ -21,7 +21,7 @@
  */
 package org.ojalgo.optimisation.solver.hipparchus;
 
-import static org.ojalgo.function.constant.PrimitiveMath.*;
+import static org.ojalgo.function.constant.PrimitiveMath.ZERO;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -78,7 +78,7 @@ public final class SolverHipparchus implements Optimisation.Solver {
             List<Variable> variables = model.getVariables();
             int nbVariables = variables.size();
 
-            double[] weights = model.objective().toFunction().getLinearFactors().toRawCopy1D();
+            double[] weights = model.objective().toFunction().getLinearFactors(false).toRawCopy1D();
             if (weights.length != nbVariables) {
                 throw new IllegalStateException();
             }
