@@ -19,18 +19,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.commons.math3.optim.linear;
+package org.ojalgo.joptimizer;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.CuteNetlibCase;
-import org.ojalgo.optimisation.solver.acm.SolverACM;
+import org.ojalgo.optimisation.solver.joptimizer.SolverJOptimizer;
 
 @Disabled
-public class NetlibCaseWithACM extends CuteNetlibCase {
+public class CuteNetlibCaseWithJOptimizer extends CuteNetlibCase {
 
+    @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverACM.INTEGRATION);
+        ExpressionsBasedModel.addIntegration(SolverJOptimizer.INTEGRATION);
     }
 
 }

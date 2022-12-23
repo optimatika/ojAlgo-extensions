@@ -19,18 +19,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.hipparchus.optim.linear;
+package org.ojalgo.optimisation.solver.mosek;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.CuteNetlibCase;
-import org.ojalgo.optimisation.solver.hipparchus.SolverHipparchus;
 
 @Disabled
-public class NetlibCaseWithACM extends CuteNetlibCase {
+public class CuteNetlibCaseWithMosek extends CuteNetlibCase {
 
+    @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverHipparchus.INTEGRATION);
+        ExpressionsBasedModel.addIntegration(SolverMosek.INTEGRATION);
     }
 
 }
