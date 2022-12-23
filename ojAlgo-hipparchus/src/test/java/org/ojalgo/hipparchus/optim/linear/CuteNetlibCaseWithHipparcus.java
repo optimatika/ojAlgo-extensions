@@ -19,20 +19,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.optimisation.solver.gurobi;
+package org.ojalgo.hipparchus.optim.linear;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.CuteNetlibCase;
+import org.ojalgo.optimisation.solver.hipparchus.SolverHipparchus;
 
 @Disabled
-public class NetlibCaseWithGurobi extends CuteNetlibCase {
+public class CuteNetlibCaseWithHipparcus extends CuteNetlibCase {
 
-    @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverGurobi.INTEGRATION);
-        // ExpressionsBasedModel.addPreferredSolver(SolverGurobi.newInstantCloudIntegration(InstantCloudAPIConfig.ACCESSKEY, InstantCloudAPIConfig.SECRET));
+        ExpressionsBasedModel.addIntegration(SolverHipparchus.INTEGRATION);
     }
 
 }

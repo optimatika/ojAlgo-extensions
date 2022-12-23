@@ -19,19 +19,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.optimisation.solver.mosek;
+package org.ojalgo.optimisation.solver.gurobi;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
-import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.CuteNetlibCase;
 
 @Disabled
-public class NetlibCaseWithMosek extends CuteNetlibCase {
+public class CuteNetlibCaseWithGurobiInstantCloud extends CuteNetlibCase {
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverMosek.INTEGRATION);
+        //        ExpressionsBasedModel.addPreferredSolver(SolverGurobi.newInstantCloudIntegration(InstantCloudAPIConfig.ACCESSKEY, InstantCloudAPIConfig.SECRET));
     }
 
 }
