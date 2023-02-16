@@ -150,11 +150,6 @@ public final class SolverCPLEX implements Optimisation.Solver {
             return true;
         }
 
-        @Override
-        protected boolean isSolutionMapped() {
-            return false;
-        }
-
     }
 
     public static final SolverCPLEX.Integration INTEGRATION = new Integration();

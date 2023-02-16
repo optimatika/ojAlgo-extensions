@@ -141,11 +141,6 @@ public final class SolverACM implements Optimisation.Solver {
             return !model.isAnyVariableInteger() && !model.isAnyExpressionQuadratic();
         }
 
-        @Override
-        protected boolean isSolutionMapped() {
-            return false;
-        }
-
     }
 
     public static final SolverACM.Integration INTEGRATION = new Integration();

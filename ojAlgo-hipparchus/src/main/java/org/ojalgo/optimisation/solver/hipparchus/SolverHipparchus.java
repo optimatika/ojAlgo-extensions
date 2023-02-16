@@ -144,11 +144,6 @@ public final class SolverHipparchus implements Optimisation.Solver {
             return !model.isAnyVariableInteger() && !model.isAnyExpressionQuadratic();
         }
 
-        @Override
-        protected boolean isSolutionMapped() {
-            return false;
-        }
-
     }
 
     public static final SolverHipparchus.Integration INTEGRATION = new Integration();

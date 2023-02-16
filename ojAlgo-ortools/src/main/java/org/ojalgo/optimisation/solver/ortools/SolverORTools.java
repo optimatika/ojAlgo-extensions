@@ -109,11 +109,6 @@ public final class SolverORTools implements Optimisation.Solver {
             return !model.isAnyExpressionQuadratic();
         }
 
-        @Override
-        protected boolean isSolutionMapped() {
-            return false;
-        }
-
     }
 
     public static final SolverORTools.Integration INTEGRATION = new Integration();
