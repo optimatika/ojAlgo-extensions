@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2022 Optimatika
+ * Copyright 1997-2023 Optimatika
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,9 +23,9 @@ package org.ojalgo.optimisation.solver.cplex;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.convex.ConvexDesign;
+import org.ojalgo.optimisation.convex.IterativeRefinementTest;
 
-public class ConvexDesignWithCPLEX extends ConvexDesign {
+public class IterativeRefinementTestWithCPLEX extends IterativeRefinementTest {
 
     @BeforeAll
     public static void configure() {
