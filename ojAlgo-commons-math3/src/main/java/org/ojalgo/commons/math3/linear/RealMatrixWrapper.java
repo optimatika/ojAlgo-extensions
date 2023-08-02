@@ -52,6 +52,7 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
             return RawStore.FACTORY;
         }
 
+        @Override
         public void supplyTo(final TransformableRegion<Double> receiver) {
 
             int limRows = Math.min(myArray2DRow.getRowDimension(), receiver.getRowDim());
@@ -72,6 +73,7 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
             super(delegate);
         }
 
+        @Override
         public void supplyTo(final TransformableRegion<Double> receiver) {
 
             int limRows = Math.min(this.getRowDim(), receiver.getRowDim());
@@ -95,22 +97,27 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
             myDiagonal = delegate;
         }
 
+        @Override
         public int firstInColumn(final int col) {
             return col;
         }
 
+        @Override
         public int firstInRow(final int row) {
             return row;
         }
 
+        @Override
         public int limitOfColumn(final int col) {
             return col + 1;
         }
 
+        @Override
         public int limitOfRow(final int row) {
             return row + 1;
         }
 
+        @Override
         public void supplyTo(final TransformableRegion<Double> receiver) {
 
             receiver.reset();
@@ -140,22 +147,27 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
         myRealMatrix = delegate;
     }
 
+    @Override
     public long countColumns() {
         return myRealMatrix.getColumnDimension();
     }
 
+    @Override
     public long countRows() {
         return myRealMatrix.getRowDimension();
     }
 
-    public double doubleValue(final long row, final long col) {
-        return myRealMatrix.getEntry((int) row, (int) col);
+    @Override
+    public double doubleValue(final int row, final int col) {
+        return myRealMatrix.getEntry(row, col);
     }
 
-    public Double get(final long row, final long col) {
+    @Override
+    public Double get(final int row, final int col) {
         return Double.valueOf(this.doubleValue(row, col));
     }
 
+    @Override
     public PhysicalStore.Factory<Double, ?> physical() {
         return Primitive64Store.FACTORY;
     }

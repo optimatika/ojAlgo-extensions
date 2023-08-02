@@ -158,12 +158,12 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
     }
 
     @Override
-    public double doubleValue(final long row, final long col) {
-        return myRealMatrix.getEntry((int) row, (int) col);
+    public double doubleValue(final int row, final int col) {
+        return myRealMatrix.getEntry(row, col);
     }
 
     @Override
-    public Double get(final long row, final long col) {
+    public Double get(final int row, final int col) {
         return Double.valueOf(this.doubleValue(row, col));
     }
 
