@@ -144,6 +144,25 @@ public final class SolverORTools implements Optimisation.Solver {
         } else {
             return MPSolver.createSolver("GLOP"); // LP
         }
+
+        // Copied from message announcing v10.0.0:
+        //        For the solvers:
+        //            We would like to remove CLP/CBC from the default build, definitely CBC.
+        //            We plan to add Highs support for MathOpt.
+        //            SCIP is there, with the good license.
+        //            Gurobi is pre-loaded.
+        //            Our internal solvers (CP-SAT, GLOP, PDLP) are there.
+        //            We are working with RTE and the Fico team on supporting XPRESS-MP. RTE is working hard on the side-loading of the XPRESS-MP shared libraries (no need to recompile). This is done for MPSolver. It should be propagated to ModelBuilder. I do not know yet when it will be available for MathOpt.
+        //            We have just started talking with CardinalOpt. My goal is to have support with side-loading for ModelBuilder and MathOpt. 
+
+        // Changes for the v10
+
+        // Switch to ModelBuilder, and these default solvers
+
+        // SCIP for MIP
+        // GLOP for LP
+        // PDLP for QP
+
     }
 
     static Optimisation.State translate(final ResultStatus status) {
