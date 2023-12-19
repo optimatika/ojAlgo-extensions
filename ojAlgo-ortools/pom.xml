@@ -8,7 +8,7 @@
     </parent>
     <artifactId>ojalgo-ortools</artifactId>
     <name>ojAlgo-ortools</name>
-    <description>ojAlgo and Google OR Tools integration</description>
+    <description>ojAlgo and Google OR-Tools integration</description>
     <version>1.0.0</version>
     <properties></properties>
     <dependencies>
