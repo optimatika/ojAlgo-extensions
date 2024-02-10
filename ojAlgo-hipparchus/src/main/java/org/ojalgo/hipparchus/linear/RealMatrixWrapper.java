@@ -148,12 +148,12 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
     }
 
     @Override
-    public long countColumns() {
+    public int getColDim() {
         return myRealMatrix.getColumnDimension();
     }
 
     @Override
-    public long countRows() {
+    public int getRowDim() {
         return myRealMatrix.getRowDimension();
     }
 
