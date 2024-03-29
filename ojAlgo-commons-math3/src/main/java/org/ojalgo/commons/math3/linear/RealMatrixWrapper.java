@@ -26,7 +26,7 @@ import org.apache.commons.math3.linear.DiagonalMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.PhysicalStore;
-import org.ojalgo.matrix.store.Primitive64Store;
+import org.ojalgo.matrix.store.R064Store;
 import org.ojalgo.matrix.store.RawStore;
 import org.ojalgo.matrix.store.TransformableRegion;
 import org.ojalgo.structure.Access2D;
@@ -169,7 +169,7 @@ public abstract class RealMatrixWrapper implements MatrixStore<Double> {
 
     @Override
     public PhysicalStore.Factory<Double, ?> physical() {
-        return Primitive64Store.FACTORY;
+        return R064Store.FACTORY;
     }
 
     @Override
