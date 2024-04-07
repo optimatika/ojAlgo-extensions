@@ -21,16 +21,15 @@
  */
 package org.ojalgo.hipparchus.optim.linear;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.linear.BurkardtDatasetsMps;
+import org.ojalgo.optimisation.linear.CommonsMathSimplexSolverTest;
 import org.ojalgo.optimisation.solver.hipparchus.SolverHipparchus;
 
-/**
- * @author apete
- */
-public class BurkardtDatasetsMpsWithACM extends BurkardtDatasetsMps {
+public class CommonsMathSimplexSolverTestWithHipparchus extends CommonsMathSimplexSolverTest {
 
-    static {
+    @BeforeAll
+    public static void configure() {
         ExpressionsBasedModel.addIntegration(SolverHipparchus.INTEGRATION);
     }
 

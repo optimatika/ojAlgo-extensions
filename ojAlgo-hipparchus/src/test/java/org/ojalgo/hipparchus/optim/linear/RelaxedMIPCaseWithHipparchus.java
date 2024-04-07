@@ -22,13 +22,11 @@
 package org.ojalgo.hipparchus.optim.linear;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.linear.CommonsMathSimplexSolverTest;
+import org.ojalgo.optimisation.integer.RelaxedMIPCase;
 import org.ojalgo.optimisation.solver.hipparchus.SolverHipparchus;
 
-@Disabled
-public class CommonsMathSimplexSolverTestWithACM extends CommonsMathSimplexSolverTest {
+public class RelaxedMIPCaseWithHipparchus extends RelaxedMIPCase {
 
     @BeforeAll
     public static void configure() {

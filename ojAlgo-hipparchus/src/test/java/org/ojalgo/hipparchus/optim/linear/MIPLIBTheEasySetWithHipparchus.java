@@ -28,7 +28,7 @@ import org.ojalgo.optimisation.integer.MIPLIBTheEasySet;
 import org.ojalgo.optimisation.solver.hipparchus.SolverHipparchus;
 
 @Disabled
-public class MIPLIBTheEasySetWithACM extends MIPLIBTheEasySet {
+public class MIPLIBTheEasySetWithHipparchus extends MIPLIBTheEasySet {
 
     @BeforeAll
     public static void configure() {
