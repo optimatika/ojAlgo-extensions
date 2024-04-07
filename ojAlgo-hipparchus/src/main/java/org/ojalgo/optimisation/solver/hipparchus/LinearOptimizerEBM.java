@@ -31,7 +31,7 @@ import org.ojalgo.type.context.NumberContext;
  * <p>
  * Internally this implementation builds an {@link ExpressionsBasedModel} and thus makes use of its pre-solve
  * functionality and the ojAlgo suite of solvers. Code wise this is a bit of a detour. Should you find that
- * this works better for you, then consider building an {@link ExpressionsBasedModel} direcly, and skip any
+ * this works better for you, then consider building an {@link ExpressionsBasedModel} directly, and skip any
  * usage of the Apache solver.
  *
  * @author apete

@@ -45,6 +45,7 @@ import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Access1D;
+import org.ojalgo.structure.Primitive1D;
 import org.ojalgo.structure.Structure1D.IntIndex;
 
 /**
@@ -65,6 +66,8 @@ public final class SolverHipparchus implements Optimisation.Solver {
     }
 
     public static final class Integration extends ExpressionsBasedModel.Integration<SolverHipparchus> {
+
+        private static final boolean ADJUSTED = true;
 
         Integration() {
             super();
@@ -92,17 +95,17 @@ public final class SolverHipparchus implements Optimisation.Solver {
                 double[] coeffs = new double[nbVariables];
 
                 for (IntIndex key : expr.getLinearKeySet()) {
-                    coeffs[key.index] = expr.doubleValue(key, true);
+                    coeffs[key.index] = expr.doubleValue(key, ADJUSTED);
                 }
 
                 if (expr.isEqualityConstraint()) {
-                    constraints.add(new LinearConstraint(coeffs, Relationship.EQ, expr.getUpperLimit(true, Double.POSITIVE_INFINITY)));
+                    constraints.add(new LinearConstraint(coeffs, Relationship.EQ, expr.getUpperLimit(ADJUSTED, Double.POSITIVE_INFINITY)));
                 } else {
                     if (expr.isLowerConstraint()) {
-                        constraints.add(new LinearConstraint(coeffs, Relationship.GEQ, expr.getLowerLimit(true, Double.NEGATIVE_INFINITY)));
+                        constraints.add(new LinearConstraint(coeffs, Relationship.GEQ, expr.getLowerLimit(ADJUSTED, Double.NEGATIVE_INFINITY)));
                     }
                     if (expr.isUpperConstraint()) {
-                        constraints.add(new LinearConstraint(coeffs, Relationship.LEQ, expr.getUpperLimit(true, Double.POSITIVE_INFINITY)));
+                        constraints.add(new LinearConstraint(coeffs, Relationship.LEQ, expr.getUpperLimit(ADJUSTED, Double.POSITIVE_INFINITY)));
                     }
                 }
             });
@@ -120,13 +123,13 @@ public final class SolverHipparchus implements Optimisation.Solver {
                     coeffs[i] = tmpVariable.getAdjustmentFactor();
 
                     if (tmpVariable.isEqualityConstraint()) {
-                        constraints.add(new LinearConstraint(coeffs, Relationship.EQ, tmpVariable.getUpperLimit(true, Double.POSITIVE_INFINITY)));
+                        constraints.add(new LinearConstraint(coeffs, Relationship.EQ, tmpVariable.getUpperLimit(ADJUSTED, Double.POSITIVE_INFINITY)));
                     } else {
                         if (tmpVariable.isLowerConstraint()) {
-                            constraints.add(new LinearConstraint(coeffs, Relationship.GEQ, tmpVariable.getLowerLimit(true, Double.NEGATIVE_INFINITY)));
+                            constraints.add(new LinearConstraint(coeffs, Relationship.GEQ, tmpVariable.getLowerLimit(ADJUSTED, Double.NEGATIVE_INFINITY)));
                         }
                         if (tmpVariable.isUpperConstraint()) {
-                            constraints.add(new LinearConstraint(coeffs, Relationship.LEQ, tmpVariable.getUpperLimit(true, Double.POSITIVE_INFINITY)));
+                            constraints.add(new LinearConstraint(coeffs, Relationship.LEQ, tmpVariable.getUpperLimit(ADJUSTED, Double.POSITIVE_INFINITY)));
                         }
                     }
                 }
@@ -147,9 +150,7 @@ public final class SolverHipparchus implements Optimisation.Solver {
 
     public static final SolverHipparchus.Integration INTEGRATION = new Integration();
 
-    static final Configurator DEFAULT = (solver, options) -> {
-        // TODO Auto-generated method stub
-    };
+    static final Configurator DEFAULT = (solver, options) -> {};
 
     private final Set<OptimizationData> myModelData;
     private final Optimisation.Options myOptions;
@@ -163,11 +164,7 @@ public final class SolverHipparchus implements Optimisation.Solver {
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
-        //          InitialGuess guess = new InitialGuess(kickStarter.toRawCopy1D());
-        //
-        //        myModelData.add(guess);
-
-        Optimisation.State state = Optimisation.State.FAILED;
+        Optimisation.State state = Optimisation.State.UNEXPLORED;
         double value = Double.NaN;
         Access1D<?> solution = kickStarter;
 
@@ -185,7 +182,7 @@ public final class SolverHipparchus implements Optimisation.Solver {
 
             state = Optimisation.State.OPTIMAL;
             value = solutionAndValue.getValue().doubleValue();
-            solution = Access1D.wrap(solutionAndValue.getPoint());
+            solution = Primitive1D.of(solutionAndValue.getPoint());
 
         } catch (MathIllegalStateException cause) {
 
