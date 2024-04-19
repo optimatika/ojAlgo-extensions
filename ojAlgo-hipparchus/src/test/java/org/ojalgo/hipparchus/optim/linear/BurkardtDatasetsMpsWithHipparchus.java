@@ -21,6 +21,8 @@
  */
 package org.ojalgo.hipparchus.optim.linear;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.linear.BurkardtDatasetsMps;
 import org.ojalgo.optimisation.solver.hipparchus.SolverHipparchus;
@@ -30,8 +32,15 @@ import org.ojalgo.optimisation.solver.hipparchus.SolverHipparchus;
  */
 public class BurkardtDatasetsMpsWithHipparchus extends BurkardtDatasetsMps {
 
-    static {
+    @BeforeEach
+    void configure() {
         ExpressionsBasedModel.addIntegration(SolverHipparchus.INTEGRATION);
+        //ExpressionsBasedModel.addIntegration(SimplexSolverImpl.INTEGRATION);
+    }
+
+    @AfterEach
+    void reset() {
+        ExpressionsBasedModel.clearIntegrations();
     }
 
 }
