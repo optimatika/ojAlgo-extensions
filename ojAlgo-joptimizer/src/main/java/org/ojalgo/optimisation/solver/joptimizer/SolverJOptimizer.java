@@ -64,6 +64,8 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
     public static final class Integration extends ExpressionsBasedModel.Integration<SolverJOptimizer> {
 
+        private static final boolean ADJUSTED = true;
+
         Integration() {
             super();
         }
@@ -85,32 +87,33 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             }
 
             List<Variable> variables = model.getFreeVariables();
-            int numbVars = variables.size();
+            int nbVars = variables.size();
 
             Set<IntIndex> fixed = model.getFixedVariables();
 
-            Expression objective = model.objective();
+            Expression objective = model.objective().compensate(fixed);
 
             List<Expression> equalities = model.constraints().filter(expr -> expr.isEqualityConstraint() && !expr.isAnyQuadraticFactorNonZero())
+                    .map(expr -> expr.compensate(fixed))
                     .collect(Collectors.toList());
-            int numbEquals = equalities.size();
+            int nbEquals = equalities.size();
 
-            if (numbEquals > 0) {
+            if (nbEquals > 0) {
 
-                DenseDoubleMatrix2D A = new DenseDoubleMatrix2D(numbEquals, numbVars);
-                DenseDoubleMatrix1D b = new DenseDoubleMatrix1D(numbEquals);
+                DenseDoubleMatrix2D A = new DenseDoubleMatrix2D(nbEquals, nbVars);
+                DenseDoubleMatrix1D b = new DenseDoubleMatrix1D(nbEquals);
 
-                for (int i = 0; i < numbEquals; i++) {
-                    Expression constr = equalities.get(i).compensate(fixed);
+                for (int i = 0; i < nbEquals; i++) {
+                    Expression constr = equalities.get(i);
 
                     for (IntIndex key : constr.getLinearKeySet()) {
                         int freeIndex = model.indexOfFreeVariable(key);
                         if (freeIndex >= 0) {
-                            A.set(i, freeIndex, constr.doubleValue(key, true));
+                            A.set(i, freeIndex, constr.doubleValue(key, ADJUSTED));
                         }
                     }
 
-                    b.set(i, constr.getLowerLimit(true, Double.NEGATIVE_INFINITY));
+                    b.set(i, constr.getLowerLimit(ADJUSTED, Double.NEGATIVE_INFINITY));
                 }
 
                 request.setA(A);
@@ -120,9 +123,9 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             if (reqLP != null) {
                 // LP
 
-                DenseDoubleMatrix1D c = new DenseDoubleMatrix1D(numbVars);
-                DenseDoubleMatrix1D lb = new DenseDoubleMatrix1D(numbVars);
-                DenseDoubleMatrix1D ub = new DenseDoubleMatrix1D(numbVars);
+                DenseDoubleMatrix1D c = new DenseDoubleMatrix1D(nbVars);
+                DenseDoubleMatrix1D lb = new DenseDoubleMatrix1D(nbVars);
+                DenseDoubleMatrix1D ub = new DenseDoubleMatrix1D(nbVars);
 
                 lb.assign(LPPrimalDualMethod.DEFAULT_MIN_LOWER_BOUND);
                 ub.assign(LPPrimalDualMethod.DEFAULT_MAX_UPPER_BOUND);
@@ -135,7 +138,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
                         Variable var = model.getVariable(key);
 
-                        double cost = objective.doubleValue(key, true);
+                        double cost = objective.doubleValue(key, ADJUSTED);
                         c.setQuick(freeIndex, max ? -cost : cost);
 
                         double low = var.getLowerLimit(false, Double.NEGATIVE_INFINITY);
@@ -147,40 +150,42 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                 }
 
                 List<Expression> lowIneq = model.constraints().filter(expr -> expr.isLowerConstraint() && !expr.isAnyQuadraticFactorNonZero())
+                        .map(expr -> expr.compensate(fixed))
                         .collect(Collectors.toList());
-                int numbLowIneq = lowIneq.size();
+                int nbLowIneq = lowIneq.size();
 
                 List<Expression> uppIneq = model.constraints().filter(expr -> expr.isUpperConstraint() && !expr.isAnyQuadraticFactorNonZero())
+                        .map(expr -> expr.compensate(fixed))
                         .collect(Collectors.toList());
-                int numbUppIneq = uppIneq.size();
+                int nbUppIneq = uppIneq.size();
 
-                DenseDoubleMatrix2D G = new DenseDoubleMatrix2D(numbLowIneq + numbUppIneq, numbVars);
-                DenseDoubleMatrix1D h = new DenseDoubleMatrix1D(numbLowIneq + numbUppIneq);
+                DenseDoubleMatrix2D G = new DenseDoubleMatrix2D(nbLowIneq + nbUppIneq, nbVars);
+                DenseDoubleMatrix1D h = new DenseDoubleMatrix1D(nbLowIneq + nbUppIneq);
 
-                for (int i = 0; i < numbLowIneq; i++) {
-                    Expression constr = lowIneq.get(i).compensate(fixed);
+                for (int i = 0; i < nbLowIneq; i++) {
+                    Expression constr = lowIneq.get(i);
 
                     for (IntIndex key : constr.getLinearKeySet()) {
                         int freeIndex = model.indexOfFreeVariable(key);
                         if (freeIndex >= 0) {
-                            G.set(i, freeIndex, -constr.doubleValue(key, true));
+                            G.set(i, freeIndex, -constr.doubleValue(key, ADJUSTED));
                         }
                     }
 
-                    h.set(i, -constr.getLowerLimit(true, Double.NEGATIVE_INFINITY));
+                    h.set(i, -constr.getLowerLimit(ADJUSTED, Double.NEGATIVE_INFINITY));
                 }
 
-                for (int i = 0; i < numbUppIneq; i++) {
-                    Expression constr = uppIneq.get(i).compensate(fixed);
+                for (int i = 0; i < nbUppIneq; i++) {
+                    Expression constr = uppIneq.get(i);
 
                     for (IntIndex key : constr.getLinearKeySet()) {
                         int freeIndex = model.indexOfFreeVariable(key);
                         if (freeIndex >= 0) {
-                            G.set(numbLowIneq + i, freeIndex, constr.doubleValue(key, true));
+                            G.set(nbLowIneq + i, freeIndex, constr.doubleValue(key, ADJUSTED));
                         }
                     }
 
-                    h.set(numbLowIneq + i, constr.getUpperLimit(true, Double.POSITIVE_INFINITY));
+                    h.set(nbLowIneq + i, constr.getUpperLimit(ADJUSTED, Double.POSITIVE_INFINITY));
                 }
 
                 reqLP.setC(c);
@@ -194,34 +199,34 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             } else {
                 // QP
 
-                Expression compObj = objective.compensate(fixed);
-                ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toObjectiveFunction(compObj, numbVars, model);
+                ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toObjectiveFunction(objective, nbVars, model);
                 request.setF0(objFunc);
 
-                List<Expression> lowerConstr = model.constraints().filter(Expression::isLowerConstraint).collect(Collectors.toList());
-                int numbLowerConstr = lowerConstr.size();
+                List<Expression> lowerConstr = model.constraints().filter(Expression::isLowerConstraint).map(expr -> expr.compensate(fixed))
+                        .collect(Collectors.toList());
+                int nbLowerConstr = lowerConstr.size();
 
-                List<Expression> upperConstr = model.constraints().filter(Expression::isUpperConstraint).collect(Collectors.toList());
-                int numbUpperConstr = upperConstr.size();
+                List<Expression> upperConstr = model.constraints().filter(Expression::isUpperConstraint).map(expr -> expr.compensate(fixed))
+                        .collect(Collectors.toList());
+                int nbUpperConstr = upperConstr.size();
 
-                if (numbLowerConstr + numbUpperConstr > 0) {
+                if (nbLowerConstr + nbUpperConstr > 0) {
 
-                    ConvexMultivariateRealFunction[] constrs = new ConvexMultivariateRealFunction[numbLowerConstr + numbUpperConstr];
+                    ConvexMultivariateRealFunction[] constrs = new ConvexMultivariateRealFunction[nbLowerConstr + nbUpperConstr];
 
-                    for (int i = 0; i < numbLowerConstr; i++) {
-                        Expression compC = lowerConstr.get(0).compensate(fixed);
-                        ConvexMultivariateRealFunction c = SolverJOptimizer.toLowerConstraint(compC, numbVars, model);
+                    for (int i = 0; i < nbLowerConstr; i++) {
+                        Expression compC = lowerConstr.get(0);
+                        ConvexMultivariateRealFunction c = SolverJOptimizer.toLowerConstraint(compC, nbVars, model);
                         constrs[i] = c;
                     }
-                    for (int i = 0; i < numbUpperConstr; i++) {
-                        Expression compC = upperConstr.get(0).compensate(fixed);
-                        ConvexMultivariateRealFunction c = SolverJOptimizer.toUpperConstraint(compC, numbVars, model);
-                        constrs[numbLowerConstr + i] = c;
+                    for (int i = 0; i < nbUpperConstr; i++) {
+                        Expression compC = upperConstr.get(0);
+                        ConvexMultivariateRealFunction c = SolverJOptimizer.toUpperConstraint(compC, nbVars, model);
+                        constrs[nbLowerConstr + i] = c;
                     }
 
                     request.setFi(constrs);
                 }
-
             }
 
             return new SolverJOptimizer(request, model.options);
