@@ -140,7 +140,7 @@ public final class SolverORTools implements Optimisation.Solver {
 
         if (model.isAnyVariableInteger()) {
             // Maybe BOP for pure IP models?
-            return MPSolver.createSolver("CBC"); // MIP
+            return MPSolver.createSolver("SCIP"); // MIP
         } else {
             return MPSolver.createSolver("GLOP"); // LP
         }
