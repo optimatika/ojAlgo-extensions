@@ -48,9 +48,13 @@ import yahoofinance.histquotes.Interval;
  * <li>https://financequotes-api.com
  * <li>https://github.com/sstrickx/yahoofinance-api
  * </ul>
- *
+ * All data downloaders/fetchers are deprecated. They will be removed in a future release, and most likely
+ * they're already broken.
+ * 
  * @author apete
+ * @deprecated
  */
+@Deprecated
 public final class YahooFinanceDataSource implements FinanceData<YahooParser.Data> {
 
     public static YahooFinanceDataSource of(final String symbol, final CalendarDateUnit resolution) {
