@@ -21,6 +21,9 @@
  */
 package org.ojalgo.optimisation.solver.ortools;
 
+import static org.ojalgo.function.constant.PrimitiveMath.NEGATIVE_INFINITY;
+import static org.ojalgo.function.constant.PrimitiveMath.POSITIVE_INFINITY;
+
 import java.util.List;
 
 import org.ojalgo.optimisation.Expression;
@@ -30,78 +33,86 @@ import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
 
 import com.google.ortools.Loader;
-import com.google.ortools.linearsolver.MPConstraint;
-import com.google.ortools.linearsolver.MPObjective;
-import com.google.ortools.linearsolver.MPSolver;
-import com.google.ortools.linearsolver.MPSolver.ResultStatus;
-import com.google.ortools.linearsolver.MPVariable;
+import com.google.ortools.modelbuilder.ModelBuilder;
+import com.google.ortools.modelbuilder.ModelBuilderHelper;
+import com.google.ortools.modelbuilder.ModelSolver;
+import com.google.ortools.modelbuilder.ModelSolverHelper;
+import com.google.ortools.modelbuilder.SolveStatus;
 
 public final class SolverORTools implements Optimisation.Solver {
 
     @FunctionalInterface
     public interface Configurator {
 
-        void configure(MPSolver solver, Optimisation.Options options);
+        void configure(ModelBuilderHelper builder, ModelSolverHelper solver, Optimisation.Options options);
 
     }
 
     public static final class Integration extends ExpressionsBasedModel.Integration<SolverORTools> {
 
-        Integration() {
+        private final String mySolverLP;
+        private final String mySolverMIP;
+
+        Integration(final String solverMIP, final String solverLP) {
             super();
+            mySolverMIP = solverMIP;
+            mySolverLP = solverLP;
         }
 
         @Override
         public SolverORTools build(final ExpressionsBasedModel model) {
 
-            boolean mip = model.isAnyVariableInteger();
+            ModelBuilderHelper builder = new ModelBuilderHelper();
 
-            MPSolver solver = SolverORTools.newSolver(model);
+            boolean mip = model.isAnyVariableInteger();
 
             List<Variable> mVars = model.getVariables();
             int nbVars = mVars.size();
-
-            double posInf = MPSolver.infinity();
-            double negInf = -posInf;
-
-            MPVariable[] sVars = new MPVariable[nbVars];
 
             for (int i = 0; i < nbVars; i++) {
 
                 Variable mVar = mVars.get(i);
 
-                double lb = mVar.getLowerLimit(false, negInf);
-                double ub = mVar.getUpperLimit(false, posInf);
-                boolean integer = mip && mVar.isInteger();
                 String name = mVar.getName();
+                boolean integer = mip && mVar.isInteger();
+                double lb = mVar.getLowerLimit(false, NEGATIVE_INFINITY);
+                double ub = mVar.getUpperLimit(false, POSITIVE_INFINITY);
 
-                sVars[i] = solver.makeVar(lb, ub, integer, name);
+                int index = builder.addVar();
+                if (index != i) {
+                    throw new IllegalStateException();
+                }
+
+                builder.setVarName(index, name);
+                builder.setVarIntegrality(index, integer);
+                builder.setVarLowerBound(index, lb);
+                builder.setVarUpperBound(index, ub);
             }
 
             model.constraints().forEach(mConstr -> {
 
-                double lb = mConstr.getLowerLimit(false, negInf);
-                double ub = mConstr.getUpperLimit(false, posInf);
-                String name = mConstr.getName();
+                double lb = mConstr.getLowerLimit(false, NEGATIVE_INFINITY);
+                double ub = mConstr.getUpperLimit(false, POSITIVE_INFINITY);
 
-                MPConstraint sConstr = solver.makeConstraint(lb, ub, name);
+                int index = builder.addLinearConstraint();
 
                 for (IntIndex key : mConstr.getLinearKeySet()) {
-                    sConstr.setCoefficient(sVars[key.index], mConstr.doubleValue(key, false));
+                    double coefficient = mConstr.doubleValue(key, false);
+                    builder.addConstraintTerm(index, key.index, coefficient);
                 }
+
+                builder.setConstraintLowerBound(index, lb);
+                builder.setConstraintUpperBound(index, ub);
             });
 
             Expression mObj = model.objective();
-            MPObjective sObj = solver.objective();
-            sObj.setOptimizationDirection(model.getOptimisationSense() == Optimisation.Sense.MAX);
             for (IntIndex key : mObj.getLinearKeySet()) {
-                sObj.setCoefficient(sVars[key.index], mObj.doubleValue(key, false));
+                double coefficient = mObj.doubleValue(key, false);
+                builder.setVarObjectiveCoefficient(key.index, coefficient);
             }
+            builder.setMaximize(model.getOptimisationSense() == Optimisation.Sense.MAX);
 
-            DEFAULT.configure(solver, model.options);
-            model.options.getConfigurator(Configurator.class).ifPresent(c -> c.configure(solver, model.options));
-
-            return new SolverORTools(solver, sVars);
+            return this.newSolver(builder, mip, model.options);
         }
 
         @Override
@@ -109,90 +120,106 @@ public final class SolverORTools implements Optimisation.Solver {
             return !model.isAnyExpressionQuadratic();
         }
 
+        public SolverORTools.Integration withSolverLP(final String solver) {
+            return new SolverORTools.Integration(mySolverMIP, solver);
+        }
+
+        public SolverORTools.Integration withSolverMIP(final String solver) {
+            return new SolverORTools.Integration(solver, mySolverLP);
+        }
+
+        private SolverORTools newSolver(final ModelBuilderHelper builder, final boolean mip, final Optimisation.Options options) {
+
+            // BOP: Only pure IP (no continuous variables)
+
+            // GLOP: LP only. Fails quietly with MIP
+            // CLP: LP only. Fails quietly with MIP (GLOP seems faster)
+
+            // CBC: LP & MIP, but MIP not so great
+            // SCIP: LP & MIP, but even slower than CBC
+            // SAT: Can solve some LP and MIP models, but not very good/fast at all
+
+            // Support for ??? not linked in, or the license was not found.
+            // ==========
+            // CPLEX
+            // GLPK
+            // GUROBI
+            // XPRESS
+
+            ModelSolverHelper solver = mip ? new ModelSolverHelper(mySolverMIP) : new ModelSolverHelper(mySolverLP);
+
+            // Copied from message announcing v10.0.0:
+            //        For the solvers:
+            //            We would like to remove CLP/CBC from the default build, definitely CBC.
+            //            We plan to add Highs support for MathOpt.
+            //            SCIP is there, with the good license.
+            //            Gurobi is pre-loaded.
+            //            Our internal solvers (CP-SAT, GLOP, PDLP) are there.
+            //            We are working with RTE and the Fico team on supporting XPRESS-MP. RTE is working hard on the side-loading of the XPRESS-MP shared libraries (no need to recompile). This is done for MPSolver. It should be propagated to ModelBuilder. I do not know yet when it will be available for MathOpt.
+            //            We have just started talking with CardinalOpt. My goal is to have support with side-loading for ModelBuilder and MathOpt.
+
+            // Changes for the v10
+
+            // Switch to ModelBuilder, and these default solvers
+
+            // SCIP for MIP
+            // GLOP/HIGHS for LP
+            // PDLP for QP
+
+            DEFAULT.configure(builder, solver, options);
+            options.getConfigurator(Configurator.class).ifPresent(c -> c.configure(builder, solver, options));
+
+            return new SolverORTools(builder, solver);
+        }
+
     }
 
-    public static final SolverORTools.Integration INTEGRATION = new Integration();
+    public static final SolverORTools.Integration INTEGRATION = new Integration("SCIP", "GLOP");
 
-    static final SolverORTools.Configurator DEFAULT = (solver, options) -> {
+    static final SolverORTools.Configurator DEFAULT = (builder, solver, options) -> {
+
+        solver.clearLogCallback();
+        solver.setLogCallback(str -> {});
     };
 
     static {
         Loader.loadNativeLibraries();
     }
 
-    static MPSolver newSolver(final ExpressionsBasedModel model) {
-
-        // BOP: Only pure IP (no continuous variables)
-
-        // GLOP: LP only. Fails quietly with MIP
-        // CLP: LP only. Fails quietly with MIP (GLOP seems faster)
-
-        // CBC: LP & MIP, but MIP not so great
-        // SCIP: LP & MIP, but even slower than CBC
-        // SAT: Can solve some LP and MIP models, but not very good/fast at all
-
-        // Support for ??? not linked in, or the license was not found.
-        // ==========
-        // CPLEX
-        // GLPK
-        // GUROBI
-        // XPRESS
-
-        if (model.isAnyVariableInteger()) {
-            // Maybe BOP for pure IP models?
-            return MPSolver.createSolver("SCIP"); // MIP
-        } else {
-            return MPSolver.createSolver("GLOP"); // LP
-        }
-
-        // Copied from message announcing v10.0.0:
-        //        For the solvers:
-        //            We would like to remove CLP/CBC from the default build, definitely CBC.
-        //            We plan to add Highs support for MathOpt.
-        //            SCIP is there, with the good license.
-        //            Gurobi is pre-loaded.
-        //            Our internal solvers (CP-SAT, GLOP, PDLP) are there.
-        //            We are working with RTE and the Fico team on supporting XPRESS-MP. RTE is working hard on the side-loading of the XPRESS-MP shared libraries (no need to recompile). This is done for MPSolver. It should be propagated to ModelBuilder. I do not know yet when it will be available for MathOpt.
-        //            We have just started talking with CardinalOpt. My goal is to have support with side-loading for ModelBuilder and MathOpt. 
-
-        // Changes for the v10
-
-        // Switch to ModelBuilder, and these default solvers
-
-        // SCIP for MIP
-        // GLOP for LP
-        // PDLP for QP
-
-    }
-
-    static Optimisation.State translate(final ResultStatus status) {
+    static Optimisation.State translate(final SolveStatus status) {
         switch (status) {
-        case NOT_SOLVED:
-            return Optimisation.State.UNEXPLORED;
-        case MODEL_INVALID:
-            return Optimisation.State.INVALID;
-        case ABNORMAL:
-            return Optimisation.State.FAILED;
-        case UNBOUNDED:
-        case INFEASIBLE:
-            return Optimisation.State.INFEASIBLE;
-        case FEASIBLE:
-            return Optimisation.State.FEASIBLE;
-        case OPTIMAL:
-            return Optimisation.State.OPTIMAL;
-        default:
-            return Optimisation.State.FAILED;
+            case NOT_SOLVED:
+                return Optimisation.State.UNEXPLORED;
+            case MODEL_INVALID:
+                return Optimisation.State.INVALID;
+            case ABNORMAL:
+                return Optimisation.State.FAILED;
+            case UNBOUNDED:
+            case INFEASIBLE:
+                return Optimisation.State.INFEASIBLE;
+            case FEASIBLE:
+                return Optimisation.State.FEASIBLE;
+            case OPTIMAL:
+                return Optimisation.State.OPTIMAL;
+            default:
+                return Optimisation.State.FAILED;
         }
     }
 
-    private final MPSolver mySolver;
-    private final MPVariable[] myVariables;
+    /**
+     * Look at {@link ModelBuilder} for hints on how to use this.
+     */
+    private final ModelBuilderHelper myBuilder;
+    /**
+     * Look at {@link ModelSolver} for hints on how to use this.
+     */
+    private final ModelSolverHelper mySolver;
 
-    SolverORTools(final MPSolver solver, final MPVariable[] variables) {
+    SolverORTools(final ModelBuilderHelper builder, final ModelSolverHelper solver) {
 
         super();
 
-        myVariables = variables;
+        myBuilder = builder;
         mySolver = solver;
     }
 
@@ -201,26 +228,36 @@ public final class SolverORTools implements Optimisation.Solver {
 
         Solver.super.dispose();
 
-        if (mySolver != null) {
-            mySolver.delete();
-        }
+        myBuilder.delete();
+        mySolver.delete();
     }
 
     @Override
-    public Result solve(final Result kickStarter) {
+    public Optimisation.Result solve(final Result kickStarter) {
 
-        Optimisation.State retState = SolverORTools.translate(mySolver.solve());
+        mySolver.solve(myBuilder);
 
-        double retValue = mySolver.objective().value();
+        SolveStatus status = mySolver.hasResponse() ? mySolver.getStatus() : SolveStatus.UNKNOWN_STATUS;
 
-        double[] retSolution = new double[myVariables.length];
+        Optimisation.State retState = SolverORTools.translate(status);
+
+
+
         if (retState.isFeasible()) {
-            for (int i = 0; i < retSolution.length; i++) {
-                retSolution[i] = myVariables[i].solutionValue();
-            }
-        }
 
-        return Optimisation.Result.of(retValue, retState, retSolution);
+            double retValue = mySolver.getObjectiveValue();
+
+            double[] retSolution = new double[myBuilder.numVariables()];
+            for (int i = 0; i < retSolution.length; i++) {
+                retSolution[i] = mySolver.getVariableValue(i);
+            }
+
+            return Optimisation.Result.of(retValue, retState, retSolution);
+
+        } else {
+
+            return Optimisation.Result.of(retState);
+        }
     }
 
 }
