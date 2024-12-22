@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.ojalgo.concurrent.Parallelism;
 import org.ojalgo.concurrent.ProcessingService;
@@ -117,6 +118,12 @@ public abstract class RocksMap<K, V> extends AbstractMap<K, V> implements AutoCl
             return new Builder<>(this, kConverter, myValueConverter);
         }
 
+        public <KK> Builder<KK, V> key(final Function<KK, byte[]> toBytesFunction, final Function<byte[], KK> toInstanceFunction) {
+            Objects.requireNonNull(toBytesFunction);
+            Objects.requireNonNull(toInstanceFunction);
+            return this.key(new ComposedConverter<>(toBytesFunction, toInstanceFunction));
+        }
+
         /**
          * When bulk loading key-value pairs are put in batches to the underlying {@link RocksDB} instance –
          * what's the max batch size
@@ -173,6 +180,12 @@ public abstract class RocksMap<K, V> extends AbstractMap<K, V> implements AutoCl
         public <VV> Builder<K, VV> value(final Converter<VV> vConverter) {
             Objects.requireNonNull(vConverter);
             return new Builder<>(this, myKeyConverter, vConverter);
+        }
+
+        public <VV> Builder<K, VV> value(final Function<VV, byte[]> toBytesFunction, final Function<byte[], VV> toInstanceFunction) {
+            Objects.requireNonNull(toBytesFunction);
+            Objects.requireNonNull(toInstanceFunction);
+            return this.value(new ComposedConverter<>(toBytesFunction, toInstanceFunction));
         }
 
         private RocksMap<K, V> buildSharded() {
@@ -303,6 +316,29 @@ public abstract class RocksMap<K, V> extends AbstractMap<K, V> implements AutoCl
 
             return options;
         }
+    }
+
+    static final class ComposedConverter<T> implements Converter<T> {
+
+        private final Function<T, byte[]> myToBytesFunction;
+        private final Function<byte[], T> myToInstanceFunction;
+
+        ComposedConverter(final Function<T, byte[]> toBytesFunction, final Function<byte[], T> toInstanceFunction) {
+            super();
+            myToBytesFunction = toBytesFunction;
+            myToInstanceFunction = toInstanceFunction;
+        }
+
+        @Override
+        public byte[] toBytes(final T instance) {
+            return myToBytesFunction.apply(instance);
+        }
+
+        @Override
+        public T toInstance(final byte[] bytes) {
+            return myToInstanceFunction.apply(bytes);
+        }
+
     }
 
     static final class Configuration {

@@ -27,13 +27,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.BiConsumer;
 
 import org.ojalgo.concurrent.ProcessingService;
 import org.ojalgo.netio.ToFileWriter;
-import org.ojalgo.type.function.AutoConsumer;
 import org.ojalgo.type.keyvalue.EntryPair;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
@@ -45,15 +42,10 @@ import org.rocksdb.WriteOptions;
 
 final class SingleDB<K, V> extends RocksMap<K, V> {
 
-    final class BatchConsumer implements AutoConsumer<EntryPair<K, V>> {
+    final class BatchConsumer implements ToFileWriter<EntryPair<K, V>> {
 
         BatchConsumer() {
             super();
-        }
-
-        @Override
-        public void accept(final EntryPair<K, V> item) {
-            SingleDB.this.doPut(item.getKey(), item.getValue());
         }
 
         @Override
@@ -92,7 +84,7 @@ final class SingleDB<K, V> extends RocksMap<K, V> {
 
     }
 
-    private AutoConsumer<EntryPair<K, V>> myBatchLoader = null;
+    private ToFileWriter<EntryPair<K, V>> myBatchLoader = null;
     private final Configuration myConfiguration;
     private final File myDirectory;
     private Mode myMode;
@@ -345,10 +337,8 @@ final class SingleDB<K, V> extends RocksMap<K, V> {
         }
 
         if (myMode.isBulkLoad()) {
-            ExecutorService executor = this.getExecutor();
-            LinkedBlockingQueue<EntryPair<K, V>> queue = new LinkedBlockingQueue<>(3 * myConfiguration.maxBatchSize);
-            BatchConsumer consumer = new BatchConsumer();
-            myBatchLoader = AutoConsumer.queued(executor, queue, consumer);
+            myBatchLoader = ToFileWriter.newBuilder(myDirectory).queue(3 * myConfiguration.maxBatchSize).executor(this.getExecutor()).parallelism(1)
+                    .build(t -> new BatchConsumer());
         } else {
             myBatchLoader = null;
         }
