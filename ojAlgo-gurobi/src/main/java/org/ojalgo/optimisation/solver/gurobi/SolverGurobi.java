@@ -25,8 +25,8 @@ import static org.ojalgo.function.constant.PrimitiveMath.*;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.ojalgo.array.ArrayR064;
@@ -36,6 +36,7 @@ import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
+import org.ojalgo.type.ForgetfulMap;
 
 import com.gurobi.gurobi.GRB;
 import com.gurobi.gurobi.GRBEnv;
@@ -47,48 +48,59 @@ import com.gurobi.gurobi.GRBQuadExpr;
 import com.gurobi.gurobi.GRBVar;
 
 /**
- * TODO: Clean up / refactor, look at SolverORTools and SolverCPLEX.
+ * https://docs.gurobi.com/projects/optimizer/en/current/reference/java/env.html#java-method-GRBEnv-start
  *
  * @author apete
  */
 public final class SolverGurobi implements Optimisation.Solver {
 
-    @FunctionalInterface
-    public interface Configurator {
+    public static class Configurator {
 
-        void configure(GRBEnv environment, GRBModel model, Optimisation.Options options);
-
-    }
-
-    public static final class Integration extends ExpressionsBasedModel.Integration<SolverGurobi> implements AutoCloseable {
-
-        private final GRBEnv myEnvironment;
-
-        Integration() {
-            this(null, null);
-        }
-
-        Integration(final String accessKey, final String secret) {
-            super();
-            GRBEnv tmpGRBEnv;
+        protected void configure(final GRBEnv environment, final Optimisation.Options options) {
             try {
-                if (accessKey != null && secret != null) {
-                    // tmpGRBEnv = new GRBEnv(null, accessKey, secret, null, 0);
-                    tmpGRBEnv = null;
-                } else {
-                    tmpGRBEnv = new GRBEnv();
-                }
+                environment.set(GRB.IntParam.OutputFlag, 0);
             } catch (GRBException cause) {
                 throw new RuntimeException(cause);
             }
-            myEnvironment = tmpGRBEnv;
+        }
+
+        protected GRBModel newGRBModel(final GRBEnv environment) {
+            try {
+                environment.start();
+                return new GRBModel(environment);
+            } catch (GRBException cause) {
+                throw new RuntimeException(cause);
+            }
+        }
+
+    }
+
+    static final class Integration extends ExpressionsBasedModel.Integration<SolverGurobi> {
+
+        private final boolean myEmpty;
+        private final ForgetfulMap.ValueCache<GRBEnv> myEnvironmentCache;
+
+        Integration(final boolean empty) {
+
+            super();
+
+            myEmpty = empty;
+
+            myEnvironmentCache = ForgetfulMap.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).build(this::newGRBEnv, this::dispose);
         }
 
         @Override
         public SolverGurobi build(final ExpressionsBasedModel model) {
+
+            GRBEnv environment = this.getEnvironment();
+
+            Configurator configurator = model.options.getConfigurator(Configurator.class).orElse(DEFAULT);
+
             try {
-                GRBModel delegateSolver = new GRBModel(myEnvironment);
-                SolverGurobi retVal = new SolverGurobi(delegateSolver, model.options);
+
+                configurator.configure(environment, model.options);
+
+                GRBModel delegateSolver = configurator.newGRBModel(environment);
 
                 List<Variable> freeModVars = model.getFreeVariables();
                 Set<IntIndex> fixedModVars = model.getFixedVariables();
@@ -145,20 +157,13 @@ public final class SolverGurobi implements Optimisation.Solver {
 
                 delegateSolver.update();
 
-                return retVal;
+                return new SolverGurobi(delegateSolver);
 
             } catch (GRBException exception) {
                 exception.printStackTrace();
                 return null;
             }
 
-        }
-
-        @Override
-        public void close() throws Exception {
-            if (myEnvironment != null) {
-                myEnvironment.dispose();
-            }
         }
 
         @Override
@@ -204,18 +209,39 @@ public final class SolverGurobi implements Optimisation.Solver {
             return new Result(modelState.getState(), solverSolution);
         }
 
+        private void dispose(final GRBEnv env) {
+            try {
+                env.dispose();
+            } catch (GRBException cause) {
+                throw new RuntimeException(cause);
+            }
+        }
+
+        private GRBEnv newGRBEnv() {
+            try {
+                return new GRBEnv(myEmpty);
+            } catch (GRBException cause) {
+                throw new RuntimeException(cause);
+            }
+        }
+
         GRBEnv getEnvironment() {
-            return myEnvironment;
+            return myEnvironmentCache.getCachedObject();
         }
 
     }
 
-    public static final SolverGurobi.Integration INTEGRATION = new Integration();
+    public static final ExpressionsBasedModel.Integration<SolverGurobi> INTEGRATION = new Integration(false);
 
-    static final Configurator DEFAULT = (environment, model, options) -> {};
+    static final Configurator DEFAULT = new Configurator();
 
-    public static SolverGurobi.Integration newInstantCloudIntegration(final String accessKey, final String secret) {
-        return new Integration(accessKey, secret);
+    /**
+     * Will create "empty" {@link GRBEnv} instances. Use
+     * {@link Configurator#configure(GRBEnv, Optimisation.Options)} to configure the environment.
+     * {@link GRBEnv#start()} will be called automatically.
+     */
+    public static ExpressionsBasedModel.Integration<SolverGurobi> newConfigurableIntegration() {
+        return new Integration(true);
     }
 
     static void addConstraint(final GRBModel model, final GRBExpr expr, final char sense, final double rhs, final String name) {
@@ -311,49 +337,39 @@ public final class SolverGurobi implements Optimisation.Solver {
         }
     }
 
-    private final GRBModel myDelegateSolver;
-    private final Options myOptions;
+    private final GRBModel myGRBModel;
 
-    SolverGurobi(final GRBModel model, final Options options) {
+    SolverGurobi(final GRBModel model) {
         super();
-        myDelegateSolver = model;
-        myOptions = options;
+        myGRBModel = model;
     }
 
     @Override
     public void dispose() {
         Solver.super.dispose();
-        if (myDelegateSolver != null) {
-            myDelegateSolver.dispose();
+        if (myGRBModel != null) {
+            myGRBModel.dispose();
         }
     }
 
     @Override
     public Result solve(final Result kickStarter) {
 
-        GRBVar[] tmpVars = myDelegateSolver.getVars();
+        GRBVar[] tmpVars = myGRBModel.getVars();
 
         State retState = State.UNEXPLORED;
         double retValue = NaN;
-        ArrayR064 retSolution = ArrayR064.make(myDelegateSolver.getVars().length);
+        ArrayR064 retSolution = ArrayR064.make(myGRBModel.getVars().length);
 
         try {
 
-            GRBEnv tmpEnvironment = INTEGRATION.getEnvironment();
+            myGRBModel.optimize();
 
-            DEFAULT.configure(tmpEnvironment, myDelegateSolver, myOptions);
-            Optional<Configurator> optional = myOptions.getConfigurator(Configurator.class);
-            optional.ifPresent(configurator -> configurator.configure(tmpEnvironment, myDelegateSolver, myOptions));
-
-            myDelegateSolver.getEnv().set(GRB.IntParam.OutputFlag, 0);
-
-            myDelegateSolver.optimize();
-
-            retState = SolverGurobi.translate(myDelegateSolver.get(GRB.IntAttr.Status));
+            retState = SolverGurobi.translate(myGRBModel.get(GRB.IntAttr.Status));
 
             if (retState.isFeasible()) {
 
-                retValue = myDelegateSolver.get(GRB.DoubleAttr.ObjVal);
+                retValue = myGRBModel.get(GRB.DoubleAttr.ObjVal);
 
                 for (int i = 0; i < tmpVars.length; i++) {
                     retSolution.set(i, tmpVars[i].get(GRB.DoubleAttr.X));

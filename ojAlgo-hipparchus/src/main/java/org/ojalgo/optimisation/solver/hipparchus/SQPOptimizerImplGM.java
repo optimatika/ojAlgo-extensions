@@ -33,7 +33,7 @@ public final class SQPOptimizerImplGM extends ConvexImpl<SQPOptimizerGM> {
 
     }
 
-    public static final class Integration extends ConvexImpl.Integration<SQPOptimizerImplGM> {
+    static final class Integration extends ConvexImpl.Integration<SQPOptimizerImplGM> {
 
         @Override
         SQPOptimizerImplGM newSolver(final Set<OptimizationData> optimisationdata, final Options options) {
@@ -41,6 +41,8 @@ public final class SQPOptimizerImplGM extends ConvexImpl<SQPOptimizerGM> {
         }
 
     }
+
+    public static final Integration INTEGRATION = new Integration();
 
     static final Configurator DEFAULT = (solver, options) -> {};
 

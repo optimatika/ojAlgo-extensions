@@ -63,12 +63,13 @@ public final class SolverACM implements Optimisation.Solver {
 
     }
 
-    public static final class Integration extends ExpressionsBasedModel.Integration<SolverACM> {
+    static final class Integration extends ExpressionsBasedModel.Integration<SolverACM> {
 
         Integration() {
             super();
         }
 
+        @Override
         public SolverACM build(final ExpressionsBasedModel model) {
 
             Set<OptimizationData> optimizationData = new HashSet<>();
@@ -136,13 +137,14 @@ public final class SolverACM implements Optimisation.Solver {
             return new SolverACM(optimizationData, model.options);
         }
 
+        @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
             return !model.isAnyVariableInteger() && !model.isAnyExpressionQuadratic();
         }
 
     }
 
-    public static final SolverACM.Integration INTEGRATION = new Integration();
+    public static final ExpressionsBasedModel.Integration<SolverACM> INTEGRATION = new Integration();
 
     static final Configurator DEFAULT = (solver, options) -> {
         // TODO Auto-generated method stub
@@ -157,6 +159,7 @@ public final class SolverACM implements Optimisation.Solver {
         myOptions = options;
     }
 
+    @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
         //          InitialGuess guess = new InitialGuess(kickStarter.toRawCopy1D());

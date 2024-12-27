@@ -35,7 +35,7 @@ import org.ojalgo.optimisation.Optimisation;
  */
 public final class SolverHipparchus implements Optimisation.Solver {
 
-    public static final class Integration extends ExpressionsBasedModel.Integration<SolverHipparchus> {
+    static final class Integration extends ExpressionsBasedModel.Integration<SolverHipparchus> {
 
         Integration() {
             super();
@@ -58,7 +58,7 @@ public final class SolverHipparchus implements Optimisation.Solver {
 
     }
 
-    public static final SolverHipparchus.Integration INTEGRATION = new Integration();
+    public static final ExpressionsBasedModel.Integration<SolverHipparchus> INTEGRATION = new Integration();
 
     private final AbstractImpl<?, ?> myDelegateSolver;
 

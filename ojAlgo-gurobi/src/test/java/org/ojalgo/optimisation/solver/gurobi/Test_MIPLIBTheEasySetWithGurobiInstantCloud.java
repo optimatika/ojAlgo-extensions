@@ -31,7 +31,7 @@ public class Test_MIPLIBTheEasySetWithGurobiInstantCloud extends MIPLIBTheEasySe
 
     @BeforeAll
     public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverGurobi.newInstantCloudIntegration(InstantCloudAPIConfig.ACCESSKEY, InstantCloudAPIConfig.SECRET));
+        ExpressionsBasedModel.addIntegration(SolverGurobi.newConfigurableIntegration());
     }
 
 }

@@ -33,7 +33,7 @@ public final class ADMMQPOptimizerImpl extends ConvexImpl<ADMMQPOptimizer> {
 
     }
 
-    public static final class Integration extends ConvexImpl.Integration<ADMMQPOptimizerImpl> {
+    static final class Integration extends ConvexImpl.Integration<ADMMQPOptimizerImpl> {
 
         @Override
         ADMMQPOptimizerImpl newSolver(final Set<OptimizationData> optimisationdata, final Options options) {

@@ -62,7 +62,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
     }
 
-    public static final class Integration extends ExpressionsBasedModel.Integration<SolverJOptimizer> {
+    static final class Integration extends ExpressionsBasedModel.Integration<SolverJOptimizer> {
 
         private static final boolean ADJUSTED = true;
 
@@ -277,7 +277,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
     }
 
-    public static final SolverJOptimizer.Integration INTEGRATION = new Integration();
+    public static final ExpressionsBasedModel.Integration<SolverJOptimizer> INTEGRATION = new Integration();
 
     static final Configurator DEFAULT = (request, handler, options) -> {
 
