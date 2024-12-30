@@ -211,7 +211,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
             } else {
 
-                throw new IllegalStateException();
+                return cplex.linearNumExpr();
             }
         }
 
