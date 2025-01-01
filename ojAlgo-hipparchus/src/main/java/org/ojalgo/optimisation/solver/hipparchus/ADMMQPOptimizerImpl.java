@@ -28,8 +28,12 @@ import org.hipparchus.optim.nonlinear.vector.constrained.ADMMQPOptimizer;
 
 public final class ADMMQPOptimizerImpl extends ConvexImpl<ADMMQPOptimizer> {
 
-    @FunctionalInterface
-    public interface Configurator extends AbstractImpl.Configurator<ADMMQPOptimizer> {
+    public static class Configurator extends AbstractImpl.Configurator<ADMMQPOptimizer> {
+
+        @Override
+        ADMMQPOptimizer newDelegateSolver(final Options options) {
+            return new ADMMQPOptimizer();
+        }
 
     }
 
@@ -44,15 +48,10 @@ public final class ADMMQPOptimizerImpl extends ConvexImpl<ADMMQPOptimizer> {
 
     public static final Integration INTEGRATION = new Integration();
 
-    static final Configurator DEFAULT = (solver, options) -> {};
+    static final Configurator DEFAULT = new Configurator();
 
     ADMMQPOptimizerImpl(final Set<OptimizationData> modelData, final Options options) {
-        super(modelData, options, DEFAULT);
-    }
-
-    @Override
-    ADMMQPOptimizer newDelegateSolver() {
-        return new ADMMQPOptimizer();
+        super(modelData, options, options.getConfigurator(Configurator.class).orElse(DEFAULT));
     }
 
 }

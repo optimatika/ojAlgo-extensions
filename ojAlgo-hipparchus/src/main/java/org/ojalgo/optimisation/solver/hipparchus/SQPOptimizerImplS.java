@@ -28,8 +28,12 @@ import org.hipparchus.optim.nonlinear.vector.constrained.SQPOptimizerS;
 
 public final class SQPOptimizerImplS extends ConvexImpl<SQPOptimizerS> {
 
-    @FunctionalInterface
-    public interface Configurator extends AbstractImpl.Configurator<SQPOptimizerS> {
+    public static class Configurator extends AbstractImpl.Configurator<SQPOptimizerS> {
+
+        @Override
+        SQPOptimizerS newDelegateSolver(final Options options) {
+            return new SQPOptimizerS();
+        }
 
     }
 
@@ -44,15 +48,10 @@ public final class SQPOptimizerImplS extends ConvexImpl<SQPOptimizerS> {
 
     public static final Integration INTEGRATION = new Integration();
 
-    static final Configurator DEFAULT = (solver, options) -> {};
+    static final Configurator DEFAULT = new Configurator();
 
     SQPOptimizerImplS(final Set<OptimizationData> modelData, final Options options) {
-        super(modelData, options, DEFAULT);
-    }
-
-    @Override
-    SQPOptimizerS newDelegateSolver() {
-        return new SQPOptimizerS();
+        super(modelData, options, options.getConfigurator(Configurator.class).orElse(DEFAULT));
     }
 
 }

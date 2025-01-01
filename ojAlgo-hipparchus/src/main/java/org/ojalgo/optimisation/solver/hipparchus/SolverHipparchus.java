@@ -44,7 +44,11 @@ public final class SolverHipparchus implements Optimisation.Solver {
         @Override
         public SolverHipparchus build(final ExpressionsBasedModel model) {
 
-            if (model.isAnyExpressionQuadratic()) {
+            boolean qp = model.isAnyExpressionQuadratic();
+
+            this.setSwitch(model, ExpressionsBasedModel.IntegrationProperty.LP_OR_QP, qp);
+
+            if (qp) {
                 return new SolverHipparchus(ADMMQPOptimizerImpl.INTEGRATION.build(model));
             } else {
                 return new SolverHipparchus(SimplexSolverImpl.INTEGRATION.build(model));

@@ -30,8 +30,12 @@ import org.ojalgo.optimisation.Optimisation;
 
 public final class SimplexSolverImpl extends LinearImpl<SimplexSolver> {
 
-    @FunctionalInterface
-    public interface Configurator extends AbstractImpl.Configurator<SimplexSolver> {
+    public static class Configurator extends AbstractImpl.Configurator<SimplexSolver> {
+
+        @Override
+        SimplexSolver newDelegateSolver(final Options options) {
+            return new SimplexSolver();
+        }
 
     }
 
@@ -55,15 +59,10 @@ public final class SimplexSolverImpl extends LinearImpl<SimplexSolver> {
 
     public static final SimplexSolverImpl.Integration INTEGRATION = new Integration();
 
-    static final Configurator DEFAULT = (solver, options) -> {};
+    static final Configurator DEFAULT = new Configurator();
 
     SimplexSolverImpl(final Set<OptimizationData> modelData, final Optimisation.Options options) {
-        super(modelData, options, DEFAULT);
-    }
-
-    @Override
-    SimplexSolver newDelegateSolver() {
-        return new SimplexSolver();
+        super(modelData, options, options.getConfigurator(Configurator.class).orElse(DEFAULT));
     }
 
 }

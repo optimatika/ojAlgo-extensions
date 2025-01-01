@@ -26,7 +26,6 @@ import static org.ojalgo.function.constant.PrimitiveMath.ZERO;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.math3.optim.OptimizationData;
@@ -56,10 +55,11 @@ import org.ojalgo.structure.Structure1D.IntIndex;
  */
 public final class SolverACM implements Optimisation.Solver {
 
-    @FunctionalInterface
-    public interface Configurator {
+    public static class Configurator {
 
-        void configure(SimplexSolver solver, Optimisation.Options options);
+        protected SimplexSolver newSimplexSolver(final Optimisation.Options options) {
+            return new SimplexSolver();
+        }
 
     }
 
@@ -146,9 +146,7 @@ public final class SolverACM implements Optimisation.Solver {
 
     public static final ExpressionsBasedModel.Integration<SolverACM> INTEGRATION = new Integration();
 
-    static final Configurator DEFAULT = (solver, options) -> {
-        // TODO Auto-generated method stub
-    };
+    static final Configurator DEFAULT = new Configurator();
 
     private final Set<OptimizationData> myModelData;
     private final Optimisation.Options myOptions;
@@ -162,6 +160,8 @@ public final class SolverACM implements Optimisation.Solver {
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
+        Configurator configurator = myOptions.getConfigurator(Configurator.class).orElse(DEFAULT);
+
         //          InitialGuess guess = new InitialGuess(kickStarter.toRawCopy1D());
         //
         //        myModelData.add(guess);
@@ -172,13 +172,7 @@ public final class SolverACM implements Optimisation.Solver {
 
         try {
 
-            SimplexSolver solver = new SimplexSolver();
-
-            DEFAULT.configure(solver, myOptions);
-            Optional<Configurator> optional = myOptions.getConfigurator(Configurator.class);
-            if (optional.isPresent()) {
-                optional.get().configure(solver, myOptions);
-            }
+            SimplexSolver solver = configurator.newSimplexSolver(myOptions);
 
             PointValuePair solutionAndValue = solver.optimize(myModelData.toArray(new OptimizationData[myModelData.size()]));
 

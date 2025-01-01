@@ -55,10 +55,27 @@ import cern.colt.matrix.impl.DenseDoubleMatrix2D;
 
 public final class SolverJOptimizer implements Optimisation.Solver {
 
-    @FunctionalInterface
-    public interface Configurator {
+    public static class Configurator {
 
-        void configure(OptimizationRequest request, OptimizationRequestHandler handler, Optimisation.Options options);
+        protected void configure(final OptimizationRequest request, final OptimizationRequestHandler handler, final Optimisation.Options options) {
+
+            PatternLayout layout = new PatternLayout("%d{ISO8601} [%t] %-5p %c %x - %m%n");
+
+            Logger rootLogger = Logger.getRootLogger();
+            rootLogger.setLevel(Level.DEBUG);
+            if (options.logger_appender != null) {
+                options.logger_appender.asWriter().ifPresent(a -> rootLogger.addAppender(new WriterAppender(layout, a)));
+            }
+
+            if (request instanceof LPOptimizationRequest) {
+                ((LPOptimizationRequest) request).setPresolvingDisabled(true);
+            }
+
+        }
+
+        protected OptimizationRequestHandler newOptimizationRequestHandler(final OptimizationRequest request) {
+            return request instanceof LPOptimizationRequest ? new LPPrimalDualMethod() : new NewtonUnconstrained(true);
+        }
 
     }
 
@@ -279,21 +296,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
     public static final ExpressionsBasedModel.Integration<SolverJOptimizer> INTEGRATION = new Integration();
 
-    static final Configurator DEFAULT = (request, handler, options) -> {
-
-        PatternLayout layout = new PatternLayout("%d{ISO8601} [%t] %-5p %c %x - %m%n");
-
-        Logger rootLogger = Logger.getRootLogger();
-        rootLogger.setLevel(Level.DEBUG);
-        if (options.logger_appender != null) {
-            options.logger_appender.asWriter().ifPresent(a -> rootLogger.addAppender(new WriterAppender(layout, a)));
-        }
-
-        if (request instanceof LPOptimizationRequest) {
-            ((LPOptimizationRequest) request).setPresolvingDisabled(true);
-        }
-
-    };
+    static final Configurator DEFAULT = new Configurator();
 
     private static ConvexMultivariateRealFunction toFunction(final Expression expression, final int dim, final boolean negate,
             final ExpressionsBasedModel model, final double constant) {
@@ -356,10 +359,11 @@ public final class SolverJOptimizer implements Optimisation.Solver {
     @Override
     public Result solve(final Result kickStarter) {
 
-        OptimizationRequestHandler handler = myRequest instanceof LPOptimizationRequest ? new LPPrimalDualMethod() : new NewtonUnconstrained(true);
+        Configurator configurator = myOptions.getConfigurator(Configurator.class).orElse(DEFAULT);
 
-        DEFAULT.configure(myRequest, handler, myOptions);
-        myOptions.getConfigurator(Configurator.class).ifPresent(c -> c.configure(myRequest, handler, myOptions));
+        OptimizationRequestHandler handler = configurator.newOptimizationRequestHandler(myRequest);
+
+        configurator.configure(myRequest, handler, myOptions);
 
         Optimisation.State retState = Optimisation.State.UNEXPLORED;
         Access1D<Double> retSolution = null;

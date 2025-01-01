@@ -39,10 +39,9 @@ import org.ojalgo.structure.Structure1D.IntIndex;
 
 abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implements Optimisation.Solver {
 
-    @FunctionalInterface
-    public interface Configurator<S extends BaseMultivariateOptimizer<?>> {
+    public static abstract class Configurator<S extends BaseMultivariateOptimizer<?>> {
 
-        void configure(S solver, Optimisation.Options options);
+        abstract S newDelegateSolver(Optimisation.Options options);
 
     }
 
@@ -57,17 +56,17 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
             body = new double[dim];
         }
 
+        @Override
+        public String toString() {
+            return lower + " < " + Arrays.toString(body) + " < " + upper;
+        }
+
         boolean isLower() {
             return Double.isFinite(lower);
         }
 
         boolean isUpper() {
             return Double.isFinite(upper);
-        }
-
-        @Override
-        public String toString() {
-            return lower + " < " + Arrays.toString(body) + " < " + upper;
         }
 
     }
@@ -132,8 +131,7 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
             }
 
             Set<OptimizationData> optimisationdata = this.toOptimizationData(objective, model.getOptimisationSense() == Optimisation.Sense.MAX, equalities,
-                    ranges,
-                    anyVariableNegative);
+                    ranges, anyVariableNegative);
 
             return this.newSolver(optimisationdata, model.options);
         }
@@ -141,8 +139,7 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
         abstract S newSolver(Set<OptimizationData> optimisationdata, Optimisation.Options options);
 
         abstract Set<OptimizationData> toOptimizationData(TwiceDifferentiable<Double> objective, boolean maximize, List<ConstraintTemplate> equalities,
-                List<ConstraintTemplate> ranges,
-                boolean negative);
+                List<ConstraintTemplate> ranges, boolean negative);
 
     }
 
@@ -157,7 +154,6 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
         myConfigurator = configurator;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public final Optimisation.Result solve(final Result kickStarter) {
 
@@ -167,10 +163,7 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
 
         try {
 
-            S solver = this.newDelegateSolver();
-
-            myConfigurator.configure(solver, myOptions);
-            myOptions.getConfigurator(Configurator.class).ifPresent(c -> c.configure(solver, myOptions));
+            S solver = myConfigurator.newDelegateSolver(myOptions);
 
             R solutionAndValue = solver.optimize(myModelData.toArray(new OptimizationData[myModelData.size()]));
 
@@ -191,7 +184,5 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
     abstract Optimisation.State extractState(Localizable exceptionSpecifier);
 
     abstract double extractValue(R solutionAndValue);
-
-    abstract S newDelegateSolver();
 
 }
