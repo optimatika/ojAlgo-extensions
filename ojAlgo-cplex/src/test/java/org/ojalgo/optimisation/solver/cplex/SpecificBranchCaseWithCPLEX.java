@@ -22,11 +22,10 @@
 package org.ojalgo.optimisation.solver.cplex;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.integer.SpecificBranchCase;
 
-@Disabled
+
 public class SpecificBranchCaseWithCPLEX extends SpecificBranchCase {
 
     @BeforeAll
