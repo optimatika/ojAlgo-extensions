@@ -22,9 +22,11 @@
 package org.ojalgo.optimisation.solver.ortools;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.integer.MIPLIBTheEasySet;
 
+@Tag("slow")
 public class MIPLIBTheEasySetWithORTools extends MIPLIBTheEasySet {
 
     @BeforeAll

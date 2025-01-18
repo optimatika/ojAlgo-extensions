@@ -59,7 +59,7 @@ public class Access2DWrapper extends AbstractRealMatrix {
 
     @Override
     public int getColumnDimension() {
-        return (int) myAccess2D.countColumns();
+        return myAccess2D.getColDim();
     }
 
     @Override
@@ -69,7 +69,7 @@ public class Access2DWrapper extends AbstractRealMatrix {
 
     @Override
     public int getRowDimension() {
-        return (int) myAccess2D.countRows();
+        return myAccess2D.getRowDim();
     }
 
     @Override
