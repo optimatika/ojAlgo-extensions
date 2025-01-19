@@ -22,9 +22,11 @@
 package org.ojalgo.optimisation.solver.cplex;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.convex.CuteMarosMeszarosCase;
 
+@Tag("slow")
 public class MarosMeszarosCaseWithCPLEX extends CuteMarosMeszarosCase {
 
     @BeforeAll

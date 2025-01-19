@@ -22,9 +22,11 @@
 package org.ojalgo.optimisation.solver.cplex;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.convex.IterativeRefinementTest;
 
+@Tag("unstable")
 public class IterativeRefinementTestWithCPLEX extends IterativeRefinementTest {
 
     @BeforeAll
