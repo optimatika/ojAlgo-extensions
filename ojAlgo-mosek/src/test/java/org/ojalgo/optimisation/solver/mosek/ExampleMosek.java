@@ -49,7 +49,7 @@ public class ExampleMosek {
         BasicLogger.debug();
         BasicLogger.debug(tmpModel);
 
-        SolverMosek.INTEGRATION.flushLog(BasicLogger.DEBUG);
+        // Integration.LOGGER.flush(BasicLogger.DEBUG);
     }
 
     ExampleMosek() {

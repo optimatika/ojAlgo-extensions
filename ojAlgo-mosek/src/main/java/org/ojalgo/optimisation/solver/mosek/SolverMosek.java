@@ -22,31 +22,22 @@
 package org.ojalgo.optimisation.solver.mosek;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.ojalgo.array.ArrayR064;
 import org.ojalgo.netio.BasicLogger;
-import org.ojalgo.netio.CharacterRing;
-import org.ojalgo.netio.CharacterRing.RingLogger;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
+import org.ojalgo.type.ForgetfulMap;
 
-import mosek.Env;
-import mosek.Env.boundkey;
-import mosek.Env.objsense;
-import mosek.Env.rescode;
-import mosek.Env.solsta;
-import mosek.Env.soltype;
-import mosek.Env.streamtype;
-import mosek.Env.variabletype;
-import mosek.Stream;
-import mosek.Task;
+import mosek.*;
+import mosek.Exception;
 
 /**
  * TODO: Clean up / refactor, look at SolverORTools and SolverCPLEX.
@@ -55,55 +46,77 @@ import mosek.Task;
  */
 public final class SolverMosek implements Optimisation.Solver {
 
-    @FunctionalInterface
-    public interface Configurator {
+    public static class Configurator {
 
-        void configure(Env environment, Task task, Optimisation.Options options);
+        protected Task newTask(final Env environment, final int nbConstraints, final int nbVariables, final Optimisation.Options options) {
+
+            Task task = new Task(environment, nbConstraints, nbVariables);
+
+            task.appendcons(nbConstraints);
+            task.appendvars(nbVariables);
+
+            if (options.logger_appender != null) {
+
+                Stream stream = new Stream() {
+
+                    @Override
+                    public void stream(final String message) {
+                        options.logger_appender.print(message);
+                    }
+                };
+
+                environment.set_Stream(streamtype.log, stream);
+                task.set_Stream(streamtype.log, stream);
+            }
+
+            return task;
+        }
 
     }
 
     public static final class Integration extends ExpressionsBasedModel.Integration<SolverMosek> {
 
-        private final Env myEnvironment = new Env();
-        private final RingLogger myLog = CharacterRing.newRingLogger();
-        private final Stream myStream = new Stream() {
-
-            @Override
-            public void stream(final String message) {
-                org.ojalgo.optimisation.solver.mosek.SolverMosek.Integration.this.printToLog(message);
-            }
-        };
+        private final ForgetfulMap.ValueCache<Env> myEnvironmentCache;
 
         Integration() {
 
             super();
 
-            myEnvironment.set_Stream(streamtype.log, myStream);
+            myEnvironmentCache = ForgetfulMap.newBuilder().expireAfterAccess(1, TimeUnit.HOURS).build(this::newEnv, this::dispose);
         }
 
+        @Override
         public SolverMosek build(final ExpressionsBasedModel model) {
 
-            List<Variable> tmpFreeVariables = model.getFreeVariables();
-            Set<IntIndex> tmpFixedVariables = model.getFixedVariables();
+            Options options = model.options;
 
-            List<Expression> tmpConstraints = model.constraints().collect(Collectors.toList());
+            Env environment = this.getEnvironment();
 
-            int tmpNumberOfVariables = tmpFreeVariables.size();
-            int tmpNumberOfConstraints = tmpConstraints.size();
+            Configurator configurator = options.getConfigurator(Configurator.class).orElse(DEFAULT);
 
-            SolverMosek retVal = INTEGRATION.makeSolver(tmpNumberOfConstraints, tmpNumberOfVariables, model.options);
+            List<Variable> freeVariables = model.getFreeVariables();
+            Set<IntIndex> fixedVariables = model.getFixedVariables();
 
-            for (int v = 0; v < tmpNumberOfVariables; v++) {
-                Variable tmpVariable = tmpFreeVariables.get(v);
+            List<Expression> constraints = model.constraints().collect(Collectors.toList());
+
+            int nbVariables = freeVariables.size();
+            int nbConstraints = constraints.size();
+
+            Task task = configurator.newTask(environment, nbConstraints, nbVariables, options);
+
+            SolverMosek retVal = new SolverMosek(task, options);
+
+            for (int v = 0; v < nbVariables; v++) {
+                Variable tmpVariable = freeVariables.get(v);
                 retVal.putVariable(v, tmpVariable);
             }
 
-            for (int c = 0; c < tmpNumberOfConstraints; c++) {
-                Expression tmpConstraint = tmpConstraints.get(c).compensate(tmpFixedVariables);
+            for (int c = 0; c < nbConstraints; c++) {
+                Expression tmpConstraint = constraints.get(c).compensate(fixedVariables);
                 retVal.putConstraint(c, tmpConstraint, model);
             }
 
-            Expression tmpObjective = model.objective().compensate(tmpFixedVariables);
+            Expression tmpObjective = model.objective().compensate(fixedVariables);
             retVal.putObjective(tmpObjective, model);
 
             retVal.setSolutionType(model);
@@ -111,32 +124,9 @@ public final class SolverMosek implements Optimisation.Solver {
             return retVal;
         }
 
+        @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
             return true; // Can handle any variation of an ExpressionsBasedModel
-        }
-
-        void flushLog(final BasicLogger target) {
-            myLog.flush(target);
-        }
-
-        Env getEnvironment() {
-            return myEnvironment;
-        }
-
-        SolverMosek makeSolver(final int numberOfConstraints, final int numberOfVariables, final Optimisation.Options options) {
-
-            Task tmpTask = new Task(myEnvironment, numberOfConstraints, numberOfVariables);
-
-            tmpTask.appendcons(numberOfConstraints);
-            tmpTask.appendvars(numberOfVariables);
-
-            tmpTask.set_Stream(streamtype.log, myStream);
-
-            return new SolverMosek(tmpTask, options);
-        }
-
-        void printToLog(final Object message) {
-            myLog.print(message);
         }
 
         @Override
@@ -177,22 +167,33 @@ public final class SolverMosek implements Optimisation.Solver {
             return new Result(modelState.getState(), solverSolution);
         }
 
+        private void dispose(final Env env) {
+            env.dispose();
+        }
+
+        private Env newEnv() {
+
+            Env env = new Env();
+
+            env.set_Stream(streamtype.err, new Stream() {
+                @Override
+                public void stream(final String message) {
+                    BasicLogger.ERROR.print(message);
+                }
+            });
+
+            return env;
+        }
+
+        Env getEnvironment() {
+            return myEnvironmentCache.getCachedObject();
+        }
+
     }
 
     public static final SolverMosek.Integration INTEGRATION = new Integration();
 
-    static final Configurator DEFAULT = (environment, task, options) -> {
-
-        task.putdouparam(Env.dparam.mio_max_time, options.time_abort);
-
-        Class<? extends Solver> loggerSolver = options.logger_solver;
-
-        if (loggerSolver != null && loggerSolver.isAssignableFrom(SolverMosek.class)) {
-            task.putintparam(Env.iparam.log, 1);
-        } else {
-            task.putintparam(Env.iparam.log, 0);
-        }
-    };
+    static final Configurator DEFAULT = new Configurator();
 
     private final Optimisation.Options myOptions;
     private soltype mySolutionType = soltype.bas;
@@ -206,6 +207,7 @@ public final class SolverMosek implements Optimisation.Solver {
         myOptions = options;
     }
 
+    @Override
     public void dispose() {
 
         Solver.super.dispose();
@@ -215,6 +217,7 @@ public final class SolverMosek implements Optimisation.Solver {
         }
     }
 
+    @Override
     public Result solve(final Result kickStarter) {
 
         int tmpNumberOfVariables = myTask.getnumvar();
@@ -225,14 +228,6 @@ public final class SolverMosek implements Optimisation.Solver {
 
         try {
 
-            Env tmpEnvironment = INTEGRATION.getEnvironment();
-
-            DEFAULT.configure(tmpEnvironment, myTask, myOptions);
-            Optional<Configurator> optional = myOptions.getConfigurator(Configurator.class);
-            if (optional.isPresent()) {
-                optional.get().configure(tmpEnvironment, myTask, myOptions);
-            }
-
             if (myTask.optimize() == rescode.ok) {
 
                 solsta[] tmpSolverState = new solsta[1];
@@ -241,20 +236,17 @@ public final class SolverMosek implements Optimisation.Solver {
                 myTask.getxx(mySolutionType, tmpSolution);
 
                 switch (tmpSolverState[0]) {
-                case optimal:
-                case near_optimal:
-                    tmpSate = Optimisation.State.OPTIMAL;
-                    tmpValue = myTask.getprimalobj(mySolutionType);
-                    break;
-                case dual_infeas_cer:
-                case prim_infeas_cer:
-                case near_dual_infeas_cer:
-                case near_prim_infeas_cer:
-                    tmpSate = Optimisation.State.INFEASIBLE;
-                    break;
-                default:
-                    tmpSate = Optimisation.State.FAILED;
-                    break;
+                    case optimal:
+                        tmpSate = Optimisation.State.OPTIMAL;
+                        tmpValue = myTask.getprimalobj(mySolutionType);
+                        break;
+                    case dual_infeas_cer:
+                    case prim_infeas_cer:
+                        tmpSate = Optimisation.State.INFEASIBLE;
+                        break;
+                    default:
+                        tmpSate = Optimisation.State.FAILED;
+                        break;
                 }
             }
 
@@ -296,7 +288,7 @@ public final class SolverMosek implements Optimisation.Solver {
                 int tmpRow = tmpKey.index;
                 if (tmpRow >= 0) {
                     tmpCols[i] = tmpRow;
-                    tmpVals[i] = constraint.getAdjustedLinearFactor(tmpKey);
+                    tmpVals[i] = constraint.doubleValue(tmpKey, true);
                 } else {
                     tmpCols[i] = 0;
                     tmpVals[i] = 0.0;
@@ -322,11 +314,11 @@ public final class SolverMosek implements Optimisation.Solver {
                     if (tmpRow == tmpCol) {
                         tmpRows[i] = tmpRow;
                         tmpCols[i] = tmpCol;
-                        tmpVals[i] = 2.0 * constraint.getAdjustedQuadraticFactor(tmpKey);
+                        tmpVals[i] = 2.0 * constraint.doubleValue(tmpKey, true);
                     } else {
                         tmpRows[i] = Math.max(tmpRow, tmpCol);
                         tmpCols[i] = Math.min(tmpRow, tmpCol);
-                        tmpVals[i] = constraint.getAdjustedQuadraticFactor(tmpKey);
+                        tmpVals[i] = constraint.doubleValue(tmpKey, true);
                     }
                 } else {
                     tmpRows[i] = 0;
@@ -339,8 +331,8 @@ public final class SolverMosek implements Optimisation.Solver {
         }
 
         boundkey tmpBoundType = this.getBoundKey(constraint);
-        double tmpLowerBound = constraint.getAdjustedLowerLimit();
-        double tmpUpperBound = constraint.getAdjustedUpperLimit();
+        double tmpLowerBound = constraint.getLowerLimit(true, Double.NEGATIVE_INFINITY);
+        double tmpUpperBound = constraint.getUpperLimit(true, Double.POSITIVE_INFINITY);
 
         myTask.putconbound(index, tmpBoundType, tmpLowerBound, tmpUpperBound);
     }
@@ -359,7 +351,7 @@ public final class SolverMosek implements Optimisation.Solver {
                 int tmpRow = tmpKey.index;
                 if (tmpRow >= 0) {
                     tmpRows[i] = tmpRow;
-                    tmpVals[i] = objective.getAdjustedLinearFactor(tmpKey);
+                    tmpVals[i] = objective.doubleValue(tmpKey, true);
                 } else {
                     tmpRows[i] = 0;
                     tmpVals[i] = 0.0;
@@ -385,11 +377,11 @@ public final class SolverMosek implements Optimisation.Solver {
                     if (tmpRow == tmpCol) {
                         tmpRows[i] = tmpRow;
                         tmpCols[i] = tmpCol;
-                        tmpVals[i] = 2.0 * objective.getAdjustedQuadraticFactor(tmpKey);
+                        tmpVals[i] = 2.0 * objective.doubleValue(tmpKey, true);
                     } else {
                         tmpRows[i] = Math.max(tmpRow, tmpCol);
                         tmpCols[i] = Math.min(tmpRow, tmpCol);
-                        tmpVals[i] = objective.getAdjustedQuadraticFactor(tmpKey);
+                        tmpVals[i] = objective.doubleValue(tmpKey, true);
                     }
                 } else {
                     tmpRows[i] = 0;
@@ -407,8 +399,8 @@ public final class SolverMosek implements Optimisation.Solver {
     void putVariable(final int index, final Variable variable) {
 
         boundkey boundType = this.getBoundKey(variable);
-        double lowerBound = variable.getUnadjustedLowerLimit();
-        double upperBound = variable.getUnadjustedUpperLimit();
+        double lowerBound = variable.getLowerLimit(false, Double.NEGATIVE_INFINITY);
+        double upperBound = variable.getUpperLimit(false, Double.POSITIVE_INFINITY);
         variabletype variableType = variable.isInteger() ? variabletype.type_int : variabletype.type_cont;
 
         myTask.putvarbound(index, boundType, lowerBound, upperBound);
