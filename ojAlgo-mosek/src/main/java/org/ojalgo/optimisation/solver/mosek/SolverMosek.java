@@ -38,15 +38,17 @@ import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
 
 import mosek.Env;
-import mosek.Env.boundkey;
-import mosek.Env.objsense;
-import mosek.Env.rescode;
-import mosek.Env.solsta;
-import mosek.Env.soltype;
-import mosek.Env.streamtype;
-import mosek.Env.variabletype;
 import mosek.Stream;
 import mosek.Task;
+import mosek.boundkey;
+import mosek.dparam;
+import mosek.iparam;
+import mosek.objsense;
+import mosek.rescode;
+import mosek.solsta;
+import mosek.soltype;
+import mosek.streamtype;
+import mosek.variabletype;
 
 /**
  * TODO: Clean up / refactor, look at SolverORTools and SolverCPLEX.
@@ -55,368 +57,368 @@ import mosek.Task;
  */
 public final class SolverMosek implements Optimisation.Solver {
 
-    @FunctionalInterface
-    public interface Configurator {
+	@FunctionalInterface
+	public interface Configurator {
 
-        void configure(Env environment, Task task, Optimisation.Options options);
+		void configure(Env environment, Task task, Optimisation.Options options);
 
-    }
+	}
 
-    public static final class Integration extends ExpressionsBasedModel.Integration<SolverMosek> {
+	public static final class Integration extends ExpressionsBasedModel.Integration<SolverMosek> {
 
-        private final Env myEnvironment = new Env();
-        private final RingLogger myLog = CharacterRing.newRingLogger();
-        private final Stream myStream = new Stream() {
+		private final Env myEnvironment = new Env();
+		private final RingLogger myLog = CharacterRing.newRingLogger();
+		private final Stream myStream = new Stream() {
 
-            @Override
-            public void stream(final String message) {
-                org.ojalgo.optimisation.solver.mosek.SolverMosek.Integration.this.printToLog(message);
-            }
-        };
+			@Override
+			public void stream(final String message) {
+				org.ojalgo.optimisation.solver.mosek.SolverMosek.Integration.this.printToLog(message);
+			}
+		};
 
-        Integration() {
+		Integration() {
 
-            super();
+			super();
 
-            myEnvironment.set_Stream(streamtype.log, myStream);
-        }
+			myEnvironment.set_Stream(streamtype.log, myStream);
+		}
 
-        public SolverMosek build(final ExpressionsBasedModel model) {
+		public SolverMosek build(final ExpressionsBasedModel model) {
 
-            List<Variable> tmpFreeVariables = model.getFreeVariables();
-            Set<IntIndex> tmpFixedVariables = model.getFixedVariables();
+			List<Variable> tmpFreeVariables = model.getFreeVariables();
+			Set<IntIndex> tmpFixedVariables = model.getFixedVariables();
 
-            List<Expression> tmpConstraints = model.constraints().collect(Collectors.toList());
+			List<Expression> tmpConstraints = model.constraints().collect(Collectors.toList());
 
-            int tmpNumberOfVariables = tmpFreeVariables.size();
-            int tmpNumberOfConstraints = tmpConstraints.size();
+			int tmpNumberOfVariables = tmpFreeVariables.size();
+			int tmpNumberOfConstraints = tmpConstraints.size();
 
-            SolverMosek retVal = INTEGRATION.makeSolver(tmpNumberOfConstraints, tmpNumberOfVariables, model.options);
+			SolverMosek retVal = INTEGRATION.makeSolver(tmpNumberOfConstraints, tmpNumberOfVariables, model.options);
 
-            for (int v = 0; v < tmpNumberOfVariables; v++) {
-                Variable tmpVariable = tmpFreeVariables.get(v);
-                retVal.putVariable(v, tmpVariable);
-            }
+			for (int v = 0; v < tmpNumberOfVariables; v++) {
+				Variable tmpVariable = tmpFreeVariables.get(v);
+				retVal.putVariable(v, tmpVariable);
+			}
 
-            for (int c = 0; c < tmpNumberOfConstraints; c++) {
-                Expression tmpConstraint = tmpConstraints.get(c).compensate(tmpFixedVariables);
-                retVal.putConstraint(c, tmpConstraint, model);
-            }
+			for (int c = 0; c < tmpNumberOfConstraints; c++) {
+				Expression tmpConstraint = tmpConstraints.get(c).compensate(tmpFixedVariables);
+				retVal.putConstraint(c, tmpConstraint, model);
+			}
 
-            Expression tmpObjective = model.objective().compensate(tmpFixedVariables);
-            retVal.putObjective(tmpObjective, model);
+			Expression tmpObjective = model.objective().compensate(tmpFixedVariables);
+			retVal.putObjective(tmpObjective, model);
 
-            retVal.setSolutionType(model);
+			retVal.setSolutionType(model);
 
-            return retVal;
-        }
+			return retVal;
+		}
 
-        public boolean isCapable(final ExpressionsBasedModel model) {
-            return true; // Can handle any variation of an ExpressionsBasedModel
-        }
+		void flushLog(final BasicLogger target) {
+			myLog.flush(target);
+		}
 
-        void flushLog(final BasicLogger target) {
-            myLog.flush(target);
-        }
+		Env getEnvironment() {
+			return myEnvironment;
+		}
 
-        Env getEnvironment() {
-            return myEnvironment;
-        }
+		public boolean isCapable(final ExpressionsBasedModel model) {
+			return true; // Can handle any variation of an ExpressionsBasedModel
+		}
 
-        SolverMosek makeSolver(final int numberOfConstraints, final int numberOfVariables, final Optimisation.Options options) {
+		SolverMosek makeSolver(final int numberOfConstraints, final int numberOfVariables,
+				final Optimisation.Options options) {
 
-            Task tmpTask = new Task(myEnvironment, numberOfConstraints, numberOfVariables);
+			Task tmpTask = new Task(myEnvironment, numberOfConstraints, numberOfVariables);
 
-            tmpTask.appendcons(numberOfConstraints);
-            tmpTask.appendvars(numberOfVariables);
+			tmpTask.appendcons(numberOfConstraints);
+			tmpTask.appendvars(numberOfVariables);
 
-            tmpTask.set_Stream(streamtype.log, myStream);
+			tmpTask.set_Stream(streamtype.log, myStream);
 
-            return new SolverMosek(tmpTask, options);
-        }
+			return new SolverMosek(tmpTask, options);
+		}
 
-        void printToLog(final Object message) {
-            myLog.print(message);
-        }
+		void printToLog(final Object message) {
+			myLog.print(message);
+		}
 
-        @Override
-        public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
+		@Override
+		public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
 
-            List<Variable> freeVariables = model.getFreeVariables();
-            Set<IntIndex> fixedVariables = model.getFixedVariables();
-            int nbFreeVars = freeVariables.size();
-            int nbModelVars = model.countVariables();
+			List<Variable> freeVariables = model.getFreeVariables();
+			Set<IntIndex> fixedVariables = model.getFixedVariables();
+			int nbFreeVars = freeVariables.size();
+			int nbModelVars = model.countVariables();
 
-            ArrayR064 modelSolution = ArrayR064.make(nbModelVars);
+			ArrayR064 modelSolution = ArrayR064.make(nbModelVars);
 
-            for (int i = 0; i < nbFreeVars; i++) {
-                modelSolution.set(model.indexOf(freeVariables.get(i)), solverState.doubleValue(i));
-            }
+			for (int i = 0; i < nbFreeVars; i++) {
+				modelSolution.set(model.indexOf(freeVariables.get(i)), solverState.doubleValue(i));
+			}
 
-            for (IntIndex fixed : fixedVariables) {
-                modelSolution.set(fixed.index, model.getVariable(fixed.index).getValue());
-            }
+			for (IntIndex fixed : fixedVariables) {
+				modelSolution.set(fixed.index, model.getVariable(fixed.index).getValue());
+			}
 
-            return new Result(solverState.getState(), modelSolution);
-        }
+			return new Result(solverState.getState(), modelSolution);
+		}
+
+		@Override
+		public Result toSolverState(final Result modelState, final ExpressionsBasedModel model) {
 
-        @Override
-        public Result toSolverState(final Result modelState, final ExpressionsBasedModel model) {
+			List<Variable> freeVariables = model.getFreeVariables();
+			int nbFreeVars = freeVariables.size();
 
-            List<Variable> freeVariables = model.getFreeVariables();
-            int nbFreeVars = freeVariables.size();
-
-            ArrayR064 solverSolution = ArrayR064.make(nbFreeVars);
-
-            for (int i = 0; i < nbFreeVars; i++) {
-                Variable variable = freeVariables.get(i);
-                int modelIndex = model.indexOf(variable);
-                solverSolution.set(i, modelState.doubleValue(modelIndex));
-            }
-
-            return new Result(modelState.getState(), solverSolution);
-        }
-
-    }
-
-    public static final SolverMosek.Integration INTEGRATION = new Integration();
-
-    static final Configurator DEFAULT = (environment, task, options) -> {
-
-        task.putdouparam(Env.dparam.mio_max_time, options.time_abort);
-
-        Class<? extends Solver> loggerSolver = options.logger_solver;
-
-        if (loggerSolver != null && loggerSolver.isAssignableFrom(SolverMosek.class)) {
-            task.putintparam(Env.iparam.log, 1);
-        } else {
-            task.putintparam(Env.iparam.log, 0);
-        }
-    };
-
-    private final Optimisation.Options myOptions;
-    private soltype mySolutionType = soltype.bas;
-    private final Task myTask;
-
-    SolverMosek(final Task task, final Optimisation.Options options) {
-
-        super();
-
-        myTask = task;
-        myOptions = options;
-    }
-
-    public void dispose() {
-
-        Solver.super.dispose();
-
-        if (myTask != null) {
-            myTask.dispose();
-        }
-    }
-
-    public Result solve(final Result kickStarter) {
-
-        int tmpNumberOfVariables = myTask.getnumvar();
-
-        Optimisation.State tmpSate = Optimisation.State.FAILED;
-        double tmpValue = Double.NaN;
-        double[] tmpSolution = new double[tmpNumberOfVariables];
-
-        try {
-
-            Env tmpEnvironment = INTEGRATION.getEnvironment();
-
-            DEFAULT.configure(tmpEnvironment, myTask, myOptions);
-            Optional<Configurator> optional = myOptions.getConfigurator(Configurator.class);
-            if (optional.isPresent()) {
-                optional.get().configure(tmpEnvironment, myTask, myOptions);
-            }
-
-            if (myTask.optimize() == rescode.ok) {
-
-                solsta[] tmpSolverState = new solsta[1];
-                myTask.getsolsta(mySolutionType, tmpSolverState);
-
-                myTask.getxx(mySolutionType, tmpSolution);
-
-                switch (tmpSolverState[0]) {
-                case optimal:
-                case near_optimal:
-                    tmpSate = Optimisation.State.OPTIMAL;
-                    tmpValue = myTask.getprimalobj(mySolutionType);
-                    break;
-                case dual_infeas_cer:
-                case prim_infeas_cer:
-                case near_dual_infeas_cer:
-                case near_prim_infeas_cer:
-                    tmpSate = Optimisation.State.INFEASIBLE;
-                    break;
-                default:
-                    tmpSate = Optimisation.State.FAILED;
-                    break;
-                }
-            }
-
-        } catch (Exception xcptn) {
-            throw xcptn;
-        }
-
-        return new Optimisation.Result(tmpSate, tmpValue, ArrayR064.wrap(tmpSolution));
-    }
-
-    boundkey getBoundKey(final Optimisation.Constraint modelEntity) {
-
-        if (modelEntity.getLowerLimit() != null) {
-            if (modelEntity.getUpperLimit() == null) {
-                return boundkey.lo;
-            }
-            if (modelEntity.getLowerLimit().compareTo(modelEntity.getUpperLimit()) == 0) {
-                return boundkey.fx;
-            }
-            return boundkey.ra;
-        }
-        if (modelEntity.getUpperLimit() != null) {
-            return boundkey.up;
-        }
-        return boundkey.fr;
-    }
-
-    void putConstraint(final int index, final Expression constraint, final ExpressionsBasedModel model) {
-
-        Set<IntIndex> tmpLinearFactorKeys = constraint.getLinearKeySet();
-        int tmpLinearSize = tmpLinearFactorKeys.size();
-        if (tmpLinearSize > 0) {
-
-            int[] tmpCols = new int[tmpLinearSize];
-            double[] tmpVals = new double[tmpLinearSize];
-
-            int i = 0;
-            for (IntIndex tmpKey : tmpLinearFactorKeys) {
-                int tmpRow = tmpKey.index;
-                if (tmpRow >= 0) {
-                    tmpCols[i] = tmpRow;
-                    tmpVals[i] = constraint.getAdjustedLinearFactor(tmpKey);
-                } else {
-                    tmpCols[i] = 0;
-                    tmpVals[i] = 0.0;
-                }
-                i++;
-            }
-            myTask.putarow(index, tmpCols, tmpVals);
-        }
-
-        Set<IntRowColumn> tmpQuadraticFactorKeys = constraint.getQuadraticKeySet();
-        int tmpQuadraticSize = tmpQuadraticFactorKeys.size();
-        if (tmpQuadraticSize > 0) {
-
-            int[] tmpRows = new int[tmpQuadraticSize];
-            int[] tmpCols = new int[tmpQuadraticSize];
-            double[] tmpVals = new double[tmpQuadraticSize];
-
-            int i = 0;
-            for (IntRowColumn tmpKey : tmpQuadraticFactorKeys) {
-                int tmpRow = tmpKey.row;
-                int tmpCol = tmpKey.column;
-                if (tmpRow >= 0 && tmpCol >= 0) {
-                    if (tmpRow == tmpCol) {
-                        tmpRows[i] = tmpRow;
-                        tmpCols[i] = tmpCol;
-                        tmpVals[i] = 2.0 * constraint.getAdjustedQuadraticFactor(tmpKey);
-                    } else {
-                        tmpRows[i] = Math.max(tmpRow, tmpCol);
-                        tmpCols[i] = Math.min(tmpRow, tmpCol);
-                        tmpVals[i] = constraint.getAdjustedQuadraticFactor(tmpKey);
-                    }
-                } else {
-                    tmpRows[i] = 0;
-                    tmpCols[i] = 0;
-                    tmpVals[i] = 0.0;
-                }
-                i++;
-            }
-            myTask.putqconk(index, tmpRows, tmpCols, tmpVals);
-        }
-
-        boundkey tmpBoundType = this.getBoundKey(constraint);
-        double tmpLowerBound = constraint.getAdjustedLowerLimit();
-        double tmpUpperBound = constraint.getAdjustedUpperLimit();
-
-        myTask.putconbound(index, tmpBoundType, tmpLowerBound, tmpUpperBound);
-    }
-
-    void putObjective(final Expression objective, final ExpressionsBasedModel model) {
-
-        Set<IntIndex> tmpLinearFactorKeys = objective.getLinearKeySet();
-        int tmpLinearSize = tmpLinearFactorKeys.size();
-        if (tmpLinearSize > 0) {
-
-            int[] tmpRows = new int[tmpLinearSize];
-            double[] tmpVals = new double[tmpLinearSize];
-
-            int i = 0;
-            for (IntIndex tmpKey : tmpLinearFactorKeys) {
-                int tmpRow = tmpKey.index;
-                if (tmpRow >= 0) {
-                    tmpRows[i] = tmpRow;
-                    tmpVals[i] = objective.getAdjustedLinearFactor(tmpKey);
-                } else {
-                    tmpRows[i] = 0;
-                    tmpVals[i] = 0.0;
-                }
-                i++;
-            }
-            myTask.putclist(tmpRows, tmpVals);
-        }
-
-        Set<IntRowColumn> tmpQuadraticFactorKeys = objective.getQuadraticKeySet();
-        int tmpQuadraticSize = tmpQuadraticFactorKeys.size();
-        if (tmpQuadraticSize > 0) {
-
-            int[] tmpRows = new int[tmpQuadraticSize];
-            int[] tmpCols = new int[tmpQuadraticSize];
-            double[] tmpVals = new double[tmpQuadraticSize];
-
-            int i = 0;
-            for (IntRowColumn tmpKey : tmpQuadraticFactorKeys) {
-                int tmpRow = tmpKey.row;
-                int tmpCol = tmpKey.column;
-                if (tmpRow >= 0 && tmpCol >= 0) {
-                    if (tmpRow == tmpCol) {
-                        tmpRows[i] = tmpRow;
-                        tmpCols[i] = tmpCol;
-                        tmpVals[i] = 2.0 * objective.getAdjustedQuadraticFactor(tmpKey);
-                    } else {
-                        tmpRows[i] = Math.max(tmpRow, tmpCol);
-                        tmpCols[i] = Math.min(tmpRow, tmpCol);
-                        tmpVals[i] = objective.getAdjustedQuadraticFactor(tmpKey);
-                    }
-                } else {
-                    tmpRows[i] = 0;
-                    tmpCols[i] = 0;
-                    tmpVals[i] = 0.0;
-                }
-                i++;
-            }
-            myTask.putqobj(tmpRows, tmpCols, tmpVals);
-        }
-
-        myTask.putobjsense(model.getOptimisationSense() == Optimisation.Sense.MIN ? objsense.minimize : objsense.maximize);
-    }
-
-    void putVariable(final int index, final Variable variable) {
-
-        boundkey boundType = this.getBoundKey(variable);
-        double lowerBound = variable.getUnadjustedLowerLimit();
-        double upperBound = variable.getUnadjustedUpperLimit();
-        variabletype variableType = variable.isInteger() ? variabletype.type_int : variabletype.type_cont;
-
-        myTask.putvarbound(index, boundType, lowerBound, upperBound);
-        myTask.putvartype(index, variableType);
-    }
-
-    void setSolutionType(final ExpressionsBasedModel model) {
-        mySolutionType = model.isAnyVariableInteger() ? soltype.itg : model.isAnyExpressionQuadratic() ? soltype.itr : soltype.bas;
-    }
+			ArrayR064 solverSolution = ArrayR064.make(nbFreeVars);
+
+			for (int i = 0; i < nbFreeVars; i++) {
+				Variable variable = freeVariables.get(i);
+				int modelIndex = model.indexOf(variable);
+				solverSolution.set(i, modelState.doubleValue(modelIndex));
+			}
+
+			return new Result(modelState.getState(), solverSolution);
+		}
+
+	}
+
+	public static final SolverMosek.Integration INTEGRATION = new Integration();
+
+	static final Configurator DEFAULT = (environment, task, options) -> {
+
+		task.putdouparam(dparam.mio_max_time, options.time_abort);
+
+		Class<? extends Solver> loggerSolver = options.logger_solver;
+
+		if (loggerSolver != null && loggerSolver.isAssignableFrom(SolverMosek.class)) {
+			task.putintparam(iparam.log, 1);
+		} else {
+			task.putintparam(iparam.log, 0);
+		}
+	};
+
+	private final Optimisation.Options myOptions;
+	private soltype mySolutionType = soltype.bas;
+	private final Task myTask;
+
+	SolverMosek(final Task task, final Optimisation.Options options) {
+
+		super();
+
+		myTask = task;
+		myOptions = options;
+	}
+
+	public void dispose() {
+
+		Solver.super.dispose();
+
+		if (myTask != null) {
+			myTask.dispose();
+		}
+	}
+
+	boundkey getBoundKey(final Optimisation.Constraint modelEntity) {
+
+		if (modelEntity.getLowerLimit() != null) {
+			if (modelEntity.getUpperLimit() == null) {
+				return boundkey.lo;
+			}
+			if (modelEntity.getLowerLimit().compareTo(modelEntity.getUpperLimit()) == 0) {
+				return boundkey.fx;
+			}
+			return boundkey.ra;
+		}
+		if (modelEntity.getUpperLimit() != null) {
+			return boundkey.up;
+		}
+		return boundkey.fr;
+	}
+
+	void putConstraint(final int index, final Expression constraint, final ExpressionsBasedModel model) {
+
+		Set<IntIndex> tmpLinearFactorKeys = constraint.getLinearKeySet();
+		int tmpLinearSize = tmpLinearFactorKeys.size();
+		if (tmpLinearSize > 0) {
+
+			int[] tmpCols = new int[tmpLinearSize];
+			double[] tmpVals = new double[tmpLinearSize];
+
+			int i = 0;
+			for (IntIndex tmpKey : tmpLinearFactorKeys) {
+				int tmpRow = tmpKey.index;
+				if (tmpRow >= 0) {
+					tmpCols[i] = tmpRow;
+					tmpVals[i] = constraint.doubleValue(tmpKey, true);
+				} else {
+					tmpCols[i] = 0;
+					tmpVals[i] = 0.0;
+				}
+				i++;
+			}
+			myTask.putarow(index, tmpCols, tmpVals);
+		}
+
+		Set<IntRowColumn> tmpQuadraticFactorKeys = constraint.getQuadraticKeySet();
+		int tmpQuadraticSize = tmpQuadraticFactorKeys.size();
+		if (tmpQuadraticSize > 0) {
+
+			int[] tmpRows = new int[tmpQuadraticSize];
+			int[] tmpCols = new int[tmpQuadraticSize];
+			double[] tmpVals = new double[tmpQuadraticSize];
+
+			int i = 0;
+			for (IntRowColumn tmpKey : tmpQuadraticFactorKeys) {
+				int tmpRow = tmpKey.row;
+				int tmpCol = tmpKey.column;
+				if (tmpRow >= 0 && tmpCol >= 0) {
+					if (tmpRow == tmpCol) {
+						tmpRows[i] = tmpRow;
+						tmpCols[i] = tmpCol;
+						tmpVals[i] = 2.0 * constraint.doubleValue(tmpKey, true);
+					} else {
+						tmpRows[i] = Math.max(tmpRow, tmpCol);
+						tmpCols[i] = Math.min(tmpRow, tmpCol);
+						tmpVals[i] = constraint.doubleValue(tmpKey, true);
+					}
+				} else {
+					tmpRows[i] = 0;
+					tmpCols[i] = 0;
+					tmpVals[i] = 0.0;
+				}
+				i++;
+			}
+			myTask.putqconk(index, tmpRows, tmpCols, tmpVals);
+		}
+
+		boundkey tmpBoundType = this.getBoundKey(constraint);
+		double tmpLowerBound = constraint.getLowerLimit(true, Double.NEGATIVE_INFINITY);
+		double tmpUpperBound = constraint.getUpperLimit(true, Double.POSITIVE_INFINITY);
+
+		myTask.putconbound(index, tmpBoundType, tmpLowerBound, tmpUpperBound);
+	}
+
+	void putObjective(final Expression objective, final ExpressionsBasedModel model) {
+
+		Set<IntIndex> tmpLinearFactorKeys = objective.getLinearKeySet();
+		int tmpLinearSize = tmpLinearFactorKeys.size();
+		if (tmpLinearSize > 0) {
+
+			int[] tmpRows = new int[tmpLinearSize];
+			double[] tmpVals = new double[tmpLinearSize];
+
+			int i = 0;
+			for (IntIndex tmpKey : tmpLinearFactorKeys) {
+				int tmpRow = tmpKey.index;
+				if (tmpRow >= 0) {
+					tmpRows[i] = tmpRow;
+					tmpVals[i] = objective.doubleValue(tmpKey, true);
+				} else {
+					tmpRows[i] = 0;
+					tmpVals[i] = 0.0;
+				}
+				i++;
+			}
+			myTask.putclist(tmpRows, tmpVals);
+		}
+
+		Set<IntRowColumn> tmpQuadraticFactorKeys = objective.getQuadraticKeySet();
+		int tmpQuadraticSize = tmpQuadraticFactorKeys.size();
+		if (tmpQuadraticSize > 0) {
+
+			int[] tmpRows = new int[tmpQuadraticSize];
+			int[] tmpCols = new int[tmpQuadraticSize];
+			double[] tmpVals = new double[tmpQuadraticSize];
+
+			int i = 0;
+			for (IntRowColumn tmpKey : tmpQuadraticFactorKeys) {
+				int tmpRow = tmpKey.row;
+				int tmpCol = tmpKey.column;
+				if (tmpRow >= 0 && tmpCol >= 0) {
+					if (tmpRow == tmpCol) {
+						tmpRows[i] = tmpRow;
+						tmpCols[i] = tmpCol;
+						tmpVals[i] = 2.0 * objective.doubleValue(tmpKey, true);
+					} else {
+						tmpRows[i] = Math.max(tmpRow, tmpCol);
+						tmpCols[i] = Math.min(tmpRow, tmpCol);
+						tmpVals[i] = objective.doubleValue(tmpKey, true);
+					}
+				} else {
+					tmpRows[i] = 0;
+					tmpCols[i] = 0;
+					tmpVals[i] = 0.0;
+				}
+				i++;
+			}
+			myTask.putqobj(tmpRows, tmpCols, tmpVals);
+		}
+
+		myTask.putobjsense(
+				model.getOptimisationSense() == Optimisation.Sense.MIN ? objsense.minimize : objsense.maximize);
+	}
+
+	void putVariable(final int index, final Variable variable) {
+
+		boundkey boundType = this.getBoundKey(variable);
+		double lowerBound = variable.getLowerLimit(false, Double.NEGATIVE_INFINITY);
+		double upperBound = variable.getUpperLimit(false, Double.POSITIVE_INFINITY);
+		variabletype variableType = variable.isInteger() ? variabletype.type_int : variabletype.type_cont;
+
+		myTask.putvarbound(index, boundType, lowerBound, upperBound);
+		myTask.putvartype(index, variableType);
+	}
+
+	void setSolutionType(final ExpressionsBasedModel model) {
+		mySolutionType = model.isAnyVariableInteger() ? soltype.itg
+				: model.isAnyExpressionQuadratic() ? soltype.itr : soltype.bas;
+	}
+
+	public Result solve(final Result kickStarter) {
+
+		int tmpNumberOfVariables = myTask.getnumvar();
+
+		Optimisation.State tmpSate = Optimisation.State.FAILED;
+		double tmpValue = Double.NaN;
+		double[] tmpSolution = new double[tmpNumberOfVariables];
+
+		try {
+
+			Env tmpEnvironment = INTEGRATION.getEnvironment();
+
+			DEFAULT.configure(tmpEnvironment, myTask, myOptions);
+			Optional<Configurator> optional = myOptions.getConfigurator(Configurator.class);
+			if (optional.isPresent()) {
+				optional.get().configure(tmpEnvironment, myTask, myOptions);
+			}
+
+			if (myTask.optimize() == rescode.ok) {
+
+				solsta[] tmpSolverState = new solsta[1];
+				myTask.getsolsta(mySolutionType, tmpSolverState);
+
+				myTask.getxx(mySolutionType, tmpSolution);
+
+				switch (tmpSolverState[0]) {
+				case optimal:
+					tmpSate = Optimisation.State.OPTIMAL;
+					tmpValue = myTask.getprimalobj(mySolutionType);
+					break;
+				case dual_infeas_cer:
+				case prim_infeas_cer:
+					tmpSate = Optimisation.State.INFEASIBLE;
+					break;
+				default:
+					tmpSate = Optimisation.State.FAILED;
+					break;
+				}
+			}
+
+		} catch (Exception xcptn) {
+			throw xcptn;
+		}
+
+		return new Optimisation.Result(tmpSate, tmpValue, ArrayR064.wrap(tmpSolution));
+	}
 
 }
