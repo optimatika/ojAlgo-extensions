@@ -7,7 +7,7 @@
         <listEntry value="4"/>
     </listAttribute>
     <mapAttribute key="org.eclipse.debug.core.environmentVariables">
-        <mapEntry key="LD_LIBRARY_PATH" value="/Users/apete/Applications/mosek/11.0/tools/platform/osx64x86/bin"/>
+        <mapEntry key="LD_LIBRARY_PATH" value="/Users/apete/Applications/mosek/11.0/tools/platform/osxaarch64/bin"/>
     </mapAttribute>
     <listAttribute key="org.eclipse.debug.ui.favoriteGroups">
         <listEntry value="org.eclipse.debug.ui.launchGroup.debug"/>
@@ -25,5 +25,5 @@
     <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value=""/>
     <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="ojAlgo-mosek"/>
     <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.m2e.launchconfig.sourcepathProvider"/>
-    <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea&#10;-Djava.library.path=/Users/apete/Applications/mosek/11.0/tools/platform/osx64x86/bin"/>
+    <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea&#10;-Djava.library.path=/Users/apete/Applications/mosek/11.0/tools/platform/osxaarch64/bin"/>
 </launchConfiguration>
