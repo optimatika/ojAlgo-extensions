@@ -22,15 +22,13 @@
 package org.ojalgo.optimisation.solver.cplex;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.convex.ConvexProblems;
 
-@Disabled
 public class ConvexProblemsWithCPLEX extends ConvexProblems {
 
-    @BeforeAll
-    public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION);
-    }
+	@BeforeAll
+	public static void configure() {
+		ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION);
+	}
 }
