@@ -21,6 +21,8 @@
  */
 package org.ojalgo.optimisation.solver.cplex;
 
+import static org.ojalgo.function.constant.PrimitiveMath.*;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
@@ -83,6 +85,8 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverCPLEX> {
 
+        private static final boolean ADJUST = false;
+
         Integration() {
             super();
         }
@@ -115,8 +119,8 @@ public final class SolverCPLEX implements Optimisation.Solver {
                             type = IloNumVarType.Int;
                         }
                     }
-                    double lb = mVar.getLowerLimit(false, Double.NEGATIVE_INFINITY);
-                    double ub = mVar.getUpperLimit(false, Double.POSITIVE_INFINITY);
+                    double lb = mVar.getLowerLimit(false, NEGATIVE_INFINITY);
+                    double ub = mVar.getUpperLimit(false, POSITIVE_INFINITY);
                     String name = mVar.getName();
 
                     solver.add(sVars[i] = solver.numVar(lb, ub, type, name));
@@ -129,13 +133,13 @@ public final class SolverCPLEX implements Optimisation.Solver {
                         IloNumExpr sConstr = this.buildExpression(mConstr, solver, sVars);
 
                         if (mConstr.isEqualityConstraint()) {
-                            solver.addEq(mConstr.getLowerLimit(false, 0.0), sConstr);
+                            solver.addEq(mConstr.getLowerLimit(ADJUST, ZERO), sConstr);
                         } else {
                             if (mConstr.isLowerConstraint()) {
-                                solver.addLe(mConstr.getLowerLimit(false, Double.NEGATIVE_INFINITY), sConstr);
+                                solver.addLe(mConstr.getLowerLimit(ADJUST, NEGATIVE_INFINITY), sConstr);
                             }
                             if (mConstr.isUpperConstraint()) {
-                                solver.addGe(mConstr.getUpperLimit(false, Double.POSITIVE_INFINITY), sConstr);
+                                solver.addGe(mConstr.getUpperLimit(ADJUST, POSITIVE_INFINITY), sConstr);
                             }
                         }
 
@@ -172,13 +176,13 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
         private void copyLinear(final Expression source, final IloNumVar[] variables, final IloLinearNumExpr destination) throws IloException {
             for (IntIndex key : source.getLinearKeySet()) {
-                destination.addTerm(source.doubleValue(key, false), variables[key.index]);
+                destination.addTerm(source.doubleValue(key, ADJUST), variables[key.index]);
             }
         }
 
         private void copyQuadratic(final Expression source, final IloNumVar[] variables, final IloQuadNumExpr destination) throws IloException {
             for (IntRowColumn key : source.getQuadraticKeySet()) {
-                destination.addTerm(source.doubleValue(key, false), variables[key.row], variables[key.column]);
+                destination.addTerm(source.doubleValue(key, ADJUST), variables[key.row], variables[key.column]);
             }
         }
 
@@ -265,7 +269,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
-        double retValue = Double.NaN;
+        double retValue = NaN;
         Optimisation.State retState = Optimisation.State.UNEXPLORED;
         double[] retSolution = new double[myVariables.length];
 
@@ -284,7 +288,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
         } catch (IloException cause) {
             BasicLogger.error(cause, "CPLEX solve failed!");
-            retValue = Double.NaN;
+            retValue = NaN;
             retState = Optimisation.State.FAILED;
         }
 
