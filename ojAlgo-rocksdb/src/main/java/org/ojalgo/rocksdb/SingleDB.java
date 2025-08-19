@@ -141,7 +141,6 @@ final class SingleDB<K, V> extends RocksMap<K, V> {
         return this.get(key) != null;
     }
 
-    @SuppressWarnings("resource")
     @Override
     public Set<Entry<K, V>> entrySet() {
 

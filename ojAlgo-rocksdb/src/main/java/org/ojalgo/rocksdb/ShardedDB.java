@@ -86,7 +86,6 @@ final class ShardedDB<K, V> extends RocksMap<K, V> {
                     private int index = 0;
                     private Iterator<Entry<K, V>> shard = ShardedDB.this.getShard(index).entrySet().iterator();
 
-                    @SuppressWarnings("resource")
                     @Override
                     public boolean hasNext() {
 
