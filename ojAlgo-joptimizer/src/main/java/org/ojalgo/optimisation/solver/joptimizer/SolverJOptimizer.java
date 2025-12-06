@@ -111,8 +111,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             Expression objective = model.objective().compensate(fixed);
 
             List<Expression> equalities = model.constraints().filter(expr -> expr.isEqualityConstraint() && !expr.isAnyQuadraticFactorNonZero())
-                    .map(expr -> expr.compensate(fixed))
-                    .collect(Collectors.toList());
+                    .map(expr -> expr.compensate(fixed)).collect(Collectors.toList());
             int nbEquals = equalities.size();
 
             if (nbEquals > 0) {
@@ -167,13 +166,11 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                 }
 
                 List<Expression> lowIneq = model.constraints().filter(expr -> expr.isLowerConstraint() && !expr.isAnyQuadraticFactorNonZero())
-                        .map(expr -> expr.compensate(fixed))
-                        .collect(Collectors.toList());
+                        .map(expr -> expr.compensate(fixed)).collect(Collectors.toList());
                 int nbLowIneq = lowIneq.size();
 
                 List<Expression> uppIneq = model.constraints().filter(expr -> expr.isUpperConstraint() && !expr.isAnyQuadraticFactorNonZero())
-                        .map(expr -> expr.compensate(fixed))
-                        .collect(Collectors.toList());
+                        .map(expr -> expr.compensate(fixed)).collect(Collectors.toList());
                 int nbUppIneq = uppIneq.size();
 
                 DenseDoubleMatrix2D G = new DenseDoubleMatrix2D(nbLowIneq + nbUppIneq, nbVars);
@@ -256,40 +253,12 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
         @Override
         public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
-
-            List<Variable> freeVariables = model.getFreeVariables();
-            Set<IntIndex> fixedVariables = model.getFixedVariables();
-            int nbFreeVars = freeVariables.size();
-            int nbModelVars = model.countVariables();
-
-            ArrayR064 modelSolution = ArrayR064.make(nbModelVars);
-
-            for (int i = 0; i < nbFreeVars; i++) {
-                modelSolution.set(model.indexOf(freeVariables.get(i)), solverState.doubleValue(i));
-            }
-
-            for (IntIndex fixed : fixedVariables) {
-                modelSolution.set(fixed.index, model.getVariable(fixed.index).getValue());
-            }
-
-            return new Result(solverState.getState(), modelSolution);
+            return ExpressionsBasedModel.Integration.expandFreeToFull(solverState, model, ArrayR064.FACTORY);
         }
 
         @Override
         public Result toSolverState(final Result modelState, final ExpressionsBasedModel model) {
-
-            List<Variable> freeVariables = model.getFreeVariables();
-            int nbFreeVars = freeVariables.size();
-
-            ArrayR064 solverSolution = ArrayR064.make(nbFreeVars);
-
-            for (int i = 0; i < nbFreeVars; i++) {
-                Variable variable = freeVariables.get(i);
-                int modelIndex = model.indexOf(variable);
-                solverSolution.set(i, modelState.doubleValue(modelIndex));
-            }
-
-            return new Result(modelState.getState(), solverSolution);
+            return ExpressionsBasedModel.Integration.reduceFullToFree(modelState, model, ArrayR064.FACTORY);
         }
 
     }

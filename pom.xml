@@ -18,6 +18,7 @@
         <module>ojAlgo-ortools</module>
         <module>ojAlgo-rocksdb</module>
         <module>ojAlgo-yahoofinance</module>
+        <module>ojAlgo-clarabel4j</module>
     </modules>
     <licenses>
         <license>
@@ -59,7 +60,7 @@
     </distributionManagement>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <version.java>11</version.java>
+        <java.version>11</java.version>
         <version.org.ojalgo>56.2.0</version.org.ojalgo>
         <version.org.junit.jupiter>5.14.1</version.org.junit.jupiter>
         <version.org.openjdk.jmh>1.35</version.org.openjdk.jmh>
@@ -104,9 +105,9 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.14.1</version>
                 <configuration>
-                    <source>${version.java}</source>
-                    <target>${version.java}</target>
-                    <release>${version.java}</release>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <release>${java.version}</release>
                 </configuration>
             </plugin>
             <plugin>
@@ -182,7 +183,7 @@
                             <failOnError>false</failOnError>
                             <quiet>true</quiet>
                             <serialwarn>false</serialwarn>
-                            <source>${version.java}</source>
+                            <source>${java.version}</source>
                         </configuration>
                         <goals>
                             <goal>jar</goal>

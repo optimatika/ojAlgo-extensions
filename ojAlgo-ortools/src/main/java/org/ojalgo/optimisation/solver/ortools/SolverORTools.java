@@ -58,7 +58,7 @@ public final class SolverORTools implements Optimisation.Solver {
     public static class Configurator {
 
         /**
-         * @param integer Is any variable an integer?
+         * @param integer   Is any variable an integer?
          * @param quadratic Is any expression quadratic?
          */
         protected String getSolverName(final boolean integer, final boolean quadratic) {

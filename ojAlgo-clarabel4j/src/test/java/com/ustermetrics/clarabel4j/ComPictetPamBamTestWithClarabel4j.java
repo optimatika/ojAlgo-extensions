@@ -1,0 +1,15 @@
+package com.ustermetrics.clarabel4j;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.ojalgo.optimisation.ExpressionsBasedModel;
+import org.ojalgo.optimisation.convex.ComPictetPamBamTest;
+import org.ojalgo.optimisation.solver.clarabel4j.SolverClarabel4j;
+
+public class ComPictetPamBamTestWithClarabel4j extends ComPictetPamBamTest {
+
+    @BeforeAll
+    public static void configure() {
+        ExpressionsBasedModel.addIntegration(SolverClarabel4j.INTEGRATION);
+    }
+
+}
