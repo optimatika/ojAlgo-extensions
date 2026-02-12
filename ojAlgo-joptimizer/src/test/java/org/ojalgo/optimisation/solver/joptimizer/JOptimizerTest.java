@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.joptimizer;
+package org.ojalgo.optimisation.solver.joptimizer;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -29,7 +29,6 @@ import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
-import org.ojalgo.optimisation.solver.joptimizer.SolverJOptimizer;
 import org.ojalgo.structure.Access1D;
 import org.ojalgo.type.context.NumberContext;
 

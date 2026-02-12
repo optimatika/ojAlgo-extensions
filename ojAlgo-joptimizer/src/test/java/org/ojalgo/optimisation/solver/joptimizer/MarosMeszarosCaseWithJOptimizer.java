@@ -19,16 +19,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.ojalgo.joptimizer;
+package org.ojalgo.optimisation.solver.joptimizer;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.linear.CuteNetlibCase;
-import org.ojalgo.optimisation.solver.joptimizer.SolverJOptimizer;
+import org.ojalgo.optimisation.convex.CuteMarosMeszarosCase;
 
 @Disabled
-public class CuteNetlibCaseWithJOptimizer extends CuteNetlibCase {
+public class MarosMeszarosCaseWithJOptimizer extends CuteMarosMeszarosCase {
 
     @BeforeAll
     public static void configure() {
