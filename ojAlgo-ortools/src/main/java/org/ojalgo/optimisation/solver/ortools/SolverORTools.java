@@ -57,6 +57,13 @@ public final class SolverORTools implements Optimisation.Solver {
      */
     public static class Configurator {
 
+        private final InternalSolver[] myPreferences;
+
+        public Configurator(final InternalSolver... preferences) {
+            super();
+            myPreferences = preferences;
+        }
+
         /**
          * @param integer   Is any variable an integer?
          * @param quadratic Is any expression quadratic?
@@ -79,11 +86,19 @@ public final class SolverORTools implements Optimisation.Solver {
             // GUROBI
             // XPRESS
 
+            for (int i = 0; i < myPreferences.length; i++) {
+                InternalSolver candidate = myPreferences[i];
+                if (candidate.isCapableMIP() == integer && candidate.isCapableQP() == quadratic) {
+                    return candidate.name();
+                }
+            }
+
             if (quadratic) {
                 return integer ? null : "PDLP";
             } else {
                 return integer ? "SCIP" : "GLOP";
             }
+            // HIGHS is probably a good alternative for any/all type;
 
             // Copied from message announcing v10.0.0:
             //        For the solvers:
@@ -119,6 +134,114 @@ public final class SolverORTools implements Optimisation.Solver {
 
             return retVal;
         }
+    }
+
+    /**
+     * Solvers available internally via OR-Tools ModelBuilder API.
+     * <p>
+     * Categorized by licensing and problem type support.
+     */
+    public enum InternalSolver {
+
+        /**
+         * IBM CPLEX. Requires commercial license.
+         */
+        CPLEX(License.COMMERCIAL, true, true, true, false),
+
+        /**
+         * Google's simplex LP solver. Default for LP.
+         */
+        GLOP(License.OPEN_SOURCE, true, false, false, false),
+
+        /**
+         * GNU Linear Programming Kit. GPL license restricts commercial use.
+         */
+        GLPK(License.COPYLEFT, true, false, true, false),
+
+        /**
+         * Gurobi Optimizer. Requires commercial license.
+         */
+        GUROBI(License.COMMERCIAL, true, true, true, false),
+
+        /**
+         * High-performance open-source solver (MIT license).
+         */
+        HIGHS(License.OPEN_SOURCE, true, false, true, false),
+
+        /**
+         * Google's first-order LP/QP solver.
+         */
+        PDLP(License.OPEN_SOURCE, true, true, false, false),
+
+        /**
+         * Google's CP-SAT solver. Handles pure integer and constraint problems.
+         */
+        SAT(License.OPEN_SOURCE, false, false, true, false),
+
+        /**
+         * Open-source MIP solver (Apache 2.0 license).
+         */
+        SCIP(License.OPEN_SOURCE, true, false, true, false),
+
+        /**
+         * FICO Xpress. Requires commercial license.
+         */
+        XPRESS(License.COMMERCIAL, true, true, true, false);
+
+        private final boolean myCapableLP;
+        private final boolean myCapableMIP;
+        private final boolean myCapableQCQP;
+        private final boolean myCapableQP;
+        private final License myLicense;
+
+        InternalSolver(final License license, final boolean lp, final boolean qp, final boolean mip, final boolean qcqp) {
+            myLicense = license;
+            myCapableLP = lp;
+            myCapableQP = qp;
+            myCapableMIP = mip;
+            myCapableQCQP = qcqp;
+        }
+
+        /**
+         * @return true if this solver can handle Linear Programming problems
+         */
+        public boolean isCapableLP() {
+            return myCapableLP;
+        }
+
+        /**
+         * @return true if this solver can handle Mixed-Integer Programming problems
+         */
+        public boolean isCapableMIP() {
+            return myCapableMIP;
+        }
+
+        /**
+         * @return true if this solver can handle Quadratically Constrained Quadratic Programming problems
+         *         (via ModelBuilder)
+         */
+        public boolean isCapableQCQP() {
+            return myCapableQCQP;
+        }
+
+        /**
+         * @return true if this solver can handle Quadratic Programming problems (via ModelBuilder)
+         */
+        public boolean isCapableQP() {
+            return myCapableQP;
+        }
+
+        /**
+         * @return true if the solver is freely available for commercial use
+         */
+        public boolean isFreeForCommercialUse() {
+            return myLicense == License.OPEN_SOURCE;
+        }
+
+        License getLicense() {
+            return myLicense;
+        }
+
     }
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverORTools> {
@@ -190,9 +313,25 @@ public final class SolverORTools implements Optimisation.Solver {
 
         @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
+            // ModelBuilder API does not expose quadratic objective support
             return !model.isAnyExpressionQuadratic();
         }
 
+    }
+
+    enum License {
+        /**
+         * Requires commercial license.
+         */
+        COMMERCIAL,
+        /**
+         * Copyleft license (GPL) that restricts commercial use.
+         */
+        COPYLEFT,
+        /**
+         * Permissive open-source (MIT, Apache 2.0, etc.)
+         */
+        OPEN_SOURCE
     }
 
     public static final ExpressionsBasedModel.Integration<SolverORTools> INTEGRATION = new Integration();
