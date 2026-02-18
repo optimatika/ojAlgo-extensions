@@ -8,17 +8,17 @@
     <packaging>pom</packaging>
     <url>http://ojalgo.org</url>
     <modules>
+        <module>ojAlgo-clarabel4j</module>
         <module>ojAlgo-commons-math3</module>
         <module>ojAlgo-cplex</module>
         <module>ojAlgo-gurobi</module>
+        <module>ojAlgo-highs</module>
         <module>ojAlgo-hipparchus</module>
         <module>ojAlgo-jfreechart</module>
         <module>ojAlgo-joptimizer</module>
         <module>ojAlgo-mosek</module>
         <module>ojAlgo-ortools</module>
         <module>ojAlgo-rocksdb</module>
-        <module>ojAlgo-yahoofinance</module>
-        <module>ojAlgo-clarabel4j</module>
     </modules>
     <licenses>
         <license>
@@ -113,7 +113,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.4</version>
+                <version>3.5.5</version>
                 <configuration>
                     <includes>
                         <include>**/*.java</include>

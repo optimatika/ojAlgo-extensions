@@ -61,7 +61,11 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
             if (options.logger_appender != null) {
 
-                retVal.setParam(IntParam.MIPDisplay, 5);
+                int displayLevel = options.logger_detailed ? 5 : 1;
+
+                retVal.setParam(IntParam.MIPDisplay, displayLevel);
+                retVal.setParam(IntParam.SimDisplay, displayLevel);
+                retVal.setParam(IntParam.BarDisplay, displayLevel);
 
                 retVal.setParam(IntParam.MIPInterval, 5);
 
@@ -76,6 +80,22 @@ public final class SolverCPLEX implements Optimisation.Solver {
             } else {
 
                 retVal.setOut(OutputStream.nullOutputStream());
+            }
+
+            if (options.time_abort > 0L && options.time_abort < Long.MAX_VALUE) {
+                double seconds = options.time_abort / 1000.0;
+                retVal.setParam(IloCplex.DoubleParam.TiLim, seconds);
+            }
+
+            if (options.iterations_abort > 0 && options.iterations_abort < Integer.MAX_VALUE) {
+                retVal.setParam(IntParam.ItLim, options.iterations_abort);
+                retVal.setParam(IloCplex.LongParam.BarItLim, options.iterations_abort);
+            }
+
+            double feasTol = options.feasibility.epsilon();
+            if (feasTol > ZERO && feasTol < ONE) {
+                retVal.setParam(IloCplex.DoubleParam.EpRHS, feasTol);
+                retVal.setParam(IloCplex.DoubleParam.EpOpt, feasTol);
             }
 
             return retVal;

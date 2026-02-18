@@ -217,20 +217,7 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
         @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
-
-            if (model.isAnyVariableInteger()) {
-                return false;
-            }
-
-            if (model.countVariables() > _46_340) {
-                return false;
-            }
-
-            if (model.countExpressions() > _46_340) {
-                return false;
-            }
-
-            return true;
+            return !model.isAnyVariableInteger();
         }
 
         @Override

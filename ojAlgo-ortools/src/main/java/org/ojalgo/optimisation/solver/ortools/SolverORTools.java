@@ -127,10 +127,20 @@ public final class SolverORTools implements Optimisation.Solver {
 
             ModelSolverHelper retVal = new ModelSolverHelper(solverName);
 
-            retVal.clearLogCallback();
-            retVal.setLogCallback(str -> {});
+            boolean verbose = options.logger_appender != null && options.logger_detailed;
 
-            retVal.setTimeLimitInSeconds(options.time_abort / THOUSAND);
+            retVal.clearLogCallback();
+            if (verbose) {
+                retVal.setLogCallback(str -> options.logger_appender.println(str));
+                retVal.enableOutput(true);
+            } else {
+                retVal.setLogCallback(str -> {});
+                retVal.enableOutput(false);
+            }
+
+            if (options.time_abort > 0L && options.time_abort < Long.MAX_VALUE) {
+                retVal.setTimeLimitInSeconds(options.time_abort / THOUSAND);
+            }
 
             return retVal;
         }
