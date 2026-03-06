@@ -58,7 +58,8 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
      * Configuration options for the HiGHS solver.
      * <p>
      * Subclass this to customize HiGHS-specific settings. Set via
-     * {@link Optimisation.Options#setConfigurator(Object)}.
+     * {@link Optimisation.Options#setConfigurator(Object)} or
+     * {@link OptimisationEnvironment#setConfigurator(Object)}.
      */
     public static class Configurator {
 
@@ -90,14 +91,14 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
                 HiGHSBindings.setIntOptionValue(highs, ipmIterLimit, limit);
             }
 
-            double feasTol = options.feasibility.epsilon();
-            if (feasTol > ZERO && feasTol < ONE) {
-                MemorySegment primalFeasTol = HiGHSBindings.allocateString(arena, "primal_feasibility_tolerance");
-                HiGHSBindings.setDoubleOptionValue(highs, primalFeasTol, feasTol);
-
-                MemorySegment dualFeasTol = HiGHSBindings.allocateString(arena, "dual_feasibility_tolerance");
-                HiGHSBindings.setDoubleOptionValue(highs, dualFeasTol, feasTol);
-            }
+            //            double feasTol = options.feasibility.epsilon();
+            //            if (feasTol > ZERO && feasTol < ONE) {
+            //                MemorySegment primalFeasTol = HiGHSBindings.allocateString(arena, "primal_feasibility_tolerance");
+            //                HiGHSBindings.setDoubleOptionValue(highs, primalFeasTol, feasTol);
+            //
+            //                MemorySegment dualFeasTol = HiGHSBindings.allocateString(arena, "dual_feasibility_tolerance");
+            //                HiGHSBindings.setDoubleOptionValue(highs, dualFeasTol, feasTol);
+            //            }
         }
 
     }
@@ -202,7 +203,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         @Override
         public SolverHiGHS build(final ExpressionsBasedModel model) {
 
-            Configurator configurator = model.options.getConfigurator(Configurator.class).orElse(DEFAULT);
+            Configurator configurator = model.getConfigurator(DEFAULT);
 
             int sense = model.getOptimisationSense() == Optimisation.Sense.MAX ? HiGHSBindings.SENSE_MAXIMIZE : HiGHSBindings.SENSE_MINIMIZE;
 
