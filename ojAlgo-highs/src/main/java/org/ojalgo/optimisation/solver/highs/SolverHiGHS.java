@@ -108,11 +108,11 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
      */
     static final class HiGHSEntityMap implements ExpressionsBasedModel.EntityMap {
 
-        private final int myNumModelVars;
+        private final List<EntryPair<ModelEntity<?>, Optimisation.ConstraintType>> myConstraints;
         private final int myNumEqualityConstraints;
         private final int myNumInequalityConstraints;
+        private final int myNumModelVars;
         private final int[] mySolverToModel;
-        private final List<EntryPair<ModelEntity<?>, Optimisation.ConstraintType>> myConstraints;
 
         HiGHSEntityMap(final int numModelVars, final int numConstraints, final ExpressionsBasedModel model, final List<Variable> freeVariables,
                 final List<Expression> constraints) {
@@ -370,11 +370,11 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
     }
 
-    private static final boolean ADJUSTED_CONSTRAINTS = true;
-    private static final boolean ADJUSTED_BOUNDS = false;
-    private static final boolean ADJUSTED_OBJECTIVE = true;
-
     public static final ExpressionsBasedModel.Integration<SolverHiGHS> INTEGRATION = new Integration();
+    private static final boolean ADJUSTED_BOUNDS = false;
+    private static final boolean ADJUSTED_CONSTRAINTS = true;
+
+    private static final boolean ADJUSTED_OBJECTIVE = true;
 
     static final Configurator DEFAULT = new Configurator();
 
@@ -405,10 +405,12 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         };
     }
 
+    private double[] myColDual;
+    private final HiGHSEntityMap myEntityMap;
     private final MemorySegment myHighs;
     private final int myNumCol;
     private final int myNumRow;
-    private final HiGHSEntityMap myEntityMap;
+    private double[] myRowDual;
 
     SolverHiGHS(final MemorySegment highs, final int numCol, final int numRow, final HiGHSEntityMap entityMap) {
         super();
@@ -433,14 +435,30 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         int status = HiGHSBindings.changeColBounds(myHighs, index, value, value);
         if (status == HiGHSBindings.STATUS_OK) {
             HiGHSBindings.clearSolver(myHighs);
+            myColDual = null;
+            myRowDual = null;
             return true;
         }
         return false;
     }
 
+    public double getDualMultiplier(final int index) {
+        if (myRowDual == null) {
+            throw new IllegalStateException();
+        }
+        return myRowDual[index];
+    }
+
     @Override
     public Optional<ExpressionsBasedModel.EntityMap> getEntityMap() {
         return Optional.of(myEntityMap);
+    }
+
+    public double getReducedGradient(final int index) {
+        if (myColDual == null) {
+            throw new IllegalStateException();
+        }
+        return myColDual[index];
     }
 
     @Override
@@ -455,6 +473,8 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
             double objectiveValue = HiGHSBindings.getObjectiveValue(myHighs);
 
             double[] solution = new double[myNumCol];
+            myColDual = new double[myNumCol];
+            myRowDual = new double[myNumRow];
 
             try (Arena arena = Arena.ofConfined()) {
                 MemorySegment colValue = arena.allocate(myNumCol * Double.BYTES);
@@ -464,11 +484,15 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
                 HiGHSBindings.getSolution(myHighs, colValue, colDual, rowValue, rowDual);
                 HiGHSBindings.copyToJavaArray(colValue, solution);
+                HiGHSBindings.copyToJavaArray(colDual, myColDual);
+                HiGHSBindings.copyToJavaArray(rowDual, myRowDual);
             }
 
             return Optimisation.Result.of(objectiveValue, state, solution);
 
         } else {
+            myColDual = null;
+            myRowDual = null;
             return Optimisation.Result.of(state, new double[myNumCol]);
         }
     }
@@ -481,6 +505,8 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         int status = HiGHSBindings.changeColBounds(myHighs, index, lower, upper);
         if (status == HiGHSBindings.STATUS_OK) {
             HiGHSBindings.clearSolver(myHighs);
+            myColDual = null;
+            myRowDual = null;
             return true;
         }
         return false;
