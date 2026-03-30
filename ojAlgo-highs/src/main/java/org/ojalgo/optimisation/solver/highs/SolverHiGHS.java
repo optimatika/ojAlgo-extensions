@@ -442,7 +442,6 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         return false;
     }
 
-    @Override
     public double getDualMultiplier(final int index) {
         if (myRowDual == null) {
             throw new IllegalStateException();
@@ -455,7 +454,6 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         return Optional.of(myEntityMap);
     }
 
-    @Override
     public double getReducedGradient(final int index) {
         if (myColDual == null) {
             throw new IllegalStateException();
