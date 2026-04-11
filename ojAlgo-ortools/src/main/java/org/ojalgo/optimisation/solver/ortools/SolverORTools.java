@@ -263,7 +263,7 @@ public final class SolverORTools implements Optimisation.Solver {
         @Override
         public SolverORTools build(final ExpressionsBasedModel model) {
 
-            Configurator configurator = model.options.getConfigurator(Configurator.class).orElse(DEFAULT);
+            Configurator configurator = model.getConfigurator(DEFAULT);
 
             ModelBuilderHelper builder = configurator.newModelBuilderHelper();
 

@@ -47,8 +47,8 @@ import org.ojalgo.type.keyvalue.EntryPair;
  * HiGHS solver integration for ojAlgo.
  * <p>
  * HiGHS is a high-performance open-source solver for linear programming (LP), mixed-integer programming
- * (MIP), and quadratic programming (QP). This integration uses Java's Foreign Function &amp; Memory API (FFM)
- * to directly call the HiGHS C library.
+ * (MIP), and quadratic programming (QP). This integration uses Java's Foreign Function & Memory API (FFM) to
+ * directly call the HiGHS C library.
  *
  * @see <a href="https://highs.dev">HiGHS</a>
  */
@@ -207,15 +207,14 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
             int sense = model.getOptimisationSense() == Optimisation.Sense.MAX ? HiGHSBindings.SENSE_MAXIMIZE : HiGHSBindings.SENSE_MINIMIZE;
 
-            List<Variable> freeVariables = model.getFreeVariables();
-            Set<IntIndex> fixedVariables = model.getFixedVariables();
+            List<Variable> variables = model.getVariables();
 
-            Expression objective = model.objective().compensate(fixedVariables);
+            Expression objective = model.objective();
 
-            List<Expression> constraints = model.constraints().map(c -> c.compensate(fixedVariables)).toList();
+            List<Expression> constraints = model.constraints().toList();
 
             int m = constraints.size();
-            int n = freeVariables.size();
+            int n = variables.size();
 
             double[] colCost = new double[n];
             double[] colLower = new double[n];
@@ -226,7 +225,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
             boolean hasMIP = false;
 
             for (int v = 0; v < n; v++) {
-                Variable variable = freeVariables.get(v);
+                Variable variable = variables.get(v);
 
                 colLower[v] = variable.getLowerLimit(ADJUSTED_BOUNDS, NEGATIVE_INFINITY);
                 colUpper[v] = variable.getUpperLimit(ADJUSTED_BOUNDS, POSITIVE_INFINITY);
@@ -240,10 +239,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
             }
 
             for (IntIndex key : objective.getLinearKeySet()) {
-                int col = model.indexOfFreeVariable(key.index);
-                if (col >= 0) {
-                    colCost[col] = objective.doubleValue(key, ADJUSTED_OBJECTIVE);
-                }
+                colCost[key.index] = objective.doubleValue(key, ADJUSTED_OBJECTIVE);
             }
 
             R064CSC mtrxQ = null;
@@ -252,16 +248,12 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
                 Builder builderQ = R064CSC.newBuilder(n, n);
 
                 for (IntRowColumn key : objective.getQuadraticKeySet()) {
-                    int row = model.indexOfFreeVariable(key.row);
-                    int col = model.indexOfFreeVariable(key.column);
-                    if (row >= 0 && row < n && col >= 0 && col < n) {
-                        double value = objective.doubleValue(key, ADJUSTED_OBJECTIVE);
-                        if (row >= col) {
-                            builderQ.add(row, col, value);
-                        }
-                        if (col >= row) {
-                            builderQ.add(col, row, value);
-                        }
+                    double value = objective.doubleValue(key, ADJUSTED_OBJECTIVE);
+                    if (key.row >= key.column) {
+                        builderQ.add(key.row, key.column, value);
+                    }
+                    if (key.column >= key.row) {
+                        builderQ.add(key.column, key.row, value);
                     }
                 }
 
@@ -276,10 +268,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
                 rowLower[row] = constraint.getLowerLimit(ADJUSTED_CONSTRAINTS, NEGATIVE_INFINITY);
                 rowUpper[row] = constraint.getUpperLimit(ADJUSTED_CONSTRAINTS, POSITIVE_INFINITY);
                 for (IntIndex key : constraint.getLinearKeySet()) {
-                    int col = model.indexOfFreeVariable(key.index);
-                    if (col >= 0 && col < n) {
-                        builderA.set(row, col, constraint.doubleValue(key, ADJUSTED_CONSTRAINTS));
-                    }
+                    builderA.set(row, key.index, constraint.doubleValue(key, ADJUSTED_CONSTRAINTS));
                 }
             }
 
@@ -333,7 +322,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
                 arena.close();
             }
 
-            HiGHSEntityMap entityMap = new HiGHSEntityMap(n, m, model, freeVariables, constraints);
+            HiGHSEntityMap entityMap = new HiGHSEntityMap(n, m, model, variables, constraints);
 
             return new SolverHiGHS(highs, n, m, entityMap);
         }
@@ -356,16 +345,6 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
             }
 
             return true;
-        }
-
-        @Override
-        public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
-            return ExpressionsBasedModel.Integration.expandFreeToFull(solverState, model, ArrayR064.FACTORY, solverState.getReducedGradient());
-        }
-
-        @Override
-        public Result toSolverState(final Result modelState, final ExpressionsBasedModel model) {
-            return ExpressionsBasedModel.Integration.reduceFullToFree(modelState, model, ArrayR064.FACTORY);
         }
 
     }
@@ -442,6 +421,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         return false;
     }
 
+    @Override
     public double getDualMultiplier(final int index) {
         if (myRowDual == null) {
             throw new IllegalStateException();
@@ -454,6 +434,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         return Optional.of(myEntityMap);
     }
 
+    @Override
     public double getReducedGradient(final int index) {
         if (myColDual == null) {
             throw new IllegalStateException();

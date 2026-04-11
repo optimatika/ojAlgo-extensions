@@ -4,9 +4,7 @@ import static org.ojalgo.function.constant.PrimitiveMath.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
-import org.ojalgo.array.ArrayR064;
 import org.ojalgo.matrix.decomposition.Cholesky;
 import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.PhysicalStore;
@@ -103,8 +101,6 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverClarabel4j> {
 
-        private static final int _46_340 = 46_340;
-
         Integration() {
             super();
         }
@@ -112,13 +108,12 @@ public final class SolverClarabel4j implements Optimisation.Solver {
         @Override
         public SolverClarabel4j build(final ExpressionsBasedModel model) {
 
-            Configurator configurator = model.options.getConfigurator(Configurator.class).orElse(DEFAULT);
+            Configurator configurator = model.getConfigurator(DEFAULT);
 
-            List<Variable> freeVariables = model.getFreeVariables();
-            Set<IntIndex> fixedVariables = model.getFixedVariables();
+            List<Variable> variables = model.getVariables();
 
             // The number of model variables present in the solver problem
-            int nbProbVars = freeVariables.size();
+            int nbProbVars = variables.size();
 
             List<Cone> cones = new ArrayList<>();
 
@@ -127,7 +122,7 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
             // Linear equality constraints -> ZeroCone (A rows + b entries)
             Expression[] linEquExprs = model.constraints().filter(expr -> !expr.isAnyQuadraticFactorNonZero()).filter(Expression::isEqualityConstraint)
-                    .map(expr -> expr.compensate(fixedVariables)).toArray(Expression[]::new);
+                    .toArray(Expression[]::new);
 
             ZeroCone zeroCone = SolverClarabel4j.makeZeroCone(linEquExprs, bldrA, bldrB, model);
             if (zeroCone != null) {
@@ -136,16 +131,15 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
             // Linear inequalities (including variable bounds) -> NonnegativeCone (A rows + b entries)
             Expression[] linInqExprs = model.constraints().filter(constr -> !constr.isAnyQuadraticFactorNonZero())
-                    .filter(constr -> !constr.isEqualityConstraint()).map(expr -> expr.compensate(fixedVariables)).toArray(Expression[]::new);
+                    .filter(constr -> !constr.isEqualityConstraint()).toArray(Expression[]::new);
 
-            NonnegativeCone nonnegativeCone = SolverClarabel4j.makeNonnegativeCone(linInqExprs, freeVariables, bldrA, bldrB, model);
+            NonnegativeCone nonnegativeCone = SolverClarabel4j.makeNonnegativeCone(linInqExprs, variables, bldrA, bldrB, model);
             if (nonnegativeCone != null) {
                 cones.add(nonnegativeCone);
             }
 
             // Any quadratic constraints (potential SOC)
-            Expression[] quadExprs = model.constraints().filter(Expression::isAnyQuadraticFactorNonZero).map(expr -> expr.compensate(fixedVariables))
-                    .toArray(Expression[]::new);
+            Expression[] quadExprs = model.constraints().filter(Expression::isAnyQuadraticFactorNonZero).toArray(Expression[]::new);
 
             for (Expression expression : quadExprs) {
                 SecondOrderCone secondOrderCone = SolverClarabel4j.makeSecondOrderCone(expression, bldrA, bldrB, model);
@@ -174,22 +168,19 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
             boolean max = model.getOptimisationSense() == Optimisation.Sense.MAX;
 
-            Expression mObj = model.objective().compensate(fixedVariables);
+            Expression mObj = model.objective();
 
             double[] q = new double[n];
             for (IntIndex key : mObj.getLinearKeySet()) {
-                int col = model.indexOfFreeVariable(key.index);
                 double val = mObj.doubleValue(key, ADJUSTED);
-                q[col] = max ? -val : val;
+                q[key.index] = max ? -val : val;
             }
 
             MatrixBuilder bldrP = new MatrixBuilder(n, n);
             for (IntRowColumn key : mObj.getQuadraticKeySet()) {
-                int row = model.indexOfFreeVariable(key.row);
-                int col = model.indexOfFreeVariable(key.column);
                 double val = mObj.doubleValue(key, ADJUSTED);
-                bldrP.add(row, col, max ? -val : val);
-                bldrP.add(col, row, max ? -val : val);
+                bldrP.add(key.row, key.column, max ? -val : val);
+                bldrP.add(key.column, key.row, max ? -val : val);
             }
             Matrix mtrxP = bldrP.build();
 
@@ -220,16 +211,6 @@ public final class SolverClarabel4j implements Optimisation.Solver {
             return !model.isAnyVariableInteger();
         }
 
-        @Override
-        public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
-            return ExpressionsBasedModel.Integration.expandFreeToFull(solverState, model, ArrayR064.FACTORY);
-        }
-
-        @Override
-        public Result toSolverState(final Result modelState, final ExpressionsBasedModel model) {
-            return ExpressionsBasedModel.Integration.reduceFullToFree(modelState, model, ArrayR064.FACTORY);
-        }
-
     }
 
     public static final ExpressionsBasedModel.Integration<SolverClarabel4j> INTEGRATION = new Integration();
@@ -245,16 +226,11 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
         List<Integer> varIdx = new ArrayList<>();
         for (IntRowColumn key : constraint.getQuadraticKeySet()) {
-            int r = model.indexOfFreeVariable(key.row);
-            int c = model.indexOfFreeVariable(key.column);
-            if (r < 0 || c < 0) {
-                continue;
+            if (!varIdx.contains(key.row)) {
+                varIdx.add(key.row);
             }
-            if (!varIdx.contains(r)) {
-                varIdx.add(r);
-            }
-            if (!varIdx.contains(c)) {
-                varIdx.add(c);
+            if (!varIdx.contains(key.column)) {
+                varIdx.add(key.column);
             }
         }
 
@@ -265,13 +241,8 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
         PhysicalStore<Double> qStore = R064Store.FACTORY.make(dim, dim);
         for (IntRowColumn key : constraint.getQuadraticKeySet()) {
-            int r = model.indexOfFreeVariable(key.row);
-            int c = model.indexOfFreeVariable(key.column);
-            if (r < 0 || c < 0) {
-                continue;
-            }
-            int i = varIdx.indexOf(r);
-            int j = varIdx.indexOf(c);
+            int i = varIdx.indexOf(key.row);
+            int j = varIdx.indexOf(key.column);
             double val = HALF * constraint.doubleValue(key, ADJUSTED);
             if (negate) {
                 val = -val;
@@ -327,9 +298,7 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
             if (ub < POSITIVE_INFINITY) {
                 for (IntIndex key : expression.getLinearKeySet()) {
-                    int col = model.indexOfFreeVariable(key.index);
-                    double val = expression.doubleValue(key, ADJUSTED);
-                    bldrA.add(row, col, val);
+                    bldrA.add(row, key.index, expression.doubleValue(key, ADJUSTED));
                 }
                 bldrB.append(ub);
                 row++;
@@ -337,9 +306,7 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
             if (lb > NEGATIVE_INFINITY) {
                 for (IntIndex key : expression.getLinearKeySet()) {
-                    int col = model.indexOfFreeVariable(key.index);
-                    double val = -expression.doubleValue(key, ADJUSTED);
-                    bldrA.add(row, col, val);
+                    bldrA.add(row, key.index, -expression.doubleValue(key, ADJUSTED));
                 }
                 bldrB.append(-lb);
                 row++;
@@ -348,20 +315,20 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
         for (Variable variable : variables) {
 
+            int col = model.indexOf(variable);
+
             double lb = variable.getLowerLimit(ADJUSTED, NEGATIVE_INFINITY);
             double ub = variable.getUpperLimit(ADJUSTED, POSITIVE_INFINITY);
 
             double val = variable.getAdjustmentFactor();
 
             if (ub < POSITIVE_INFINITY) {
-                int col = model.indexOfFreeVariable(variable);
                 bldrA.add(row, col, val);
                 bldrB.append(ub);
                 row++;
             }
 
             if (lb > NEGATIVE_INFINITY) {
-                int col = model.indexOfFreeVariable(variable);
                 bldrA.add(row, col, -val);
                 bldrB.append(-lb);
                 row++;
@@ -407,9 +374,8 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
         for (Expression expression : expressions) {
             for (IntIndex key : expression.getLinearKeySet()) {
-                int col = model.indexOfFreeVariable(key.index);
                 double val = expression.doubleValue(key, ADJUSTED);
-                bldrA.add(row, col, val);
+                bldrA.add(row, key.index, val);
             }
             bldrB.append(expression.getUpperLimit(ADJUSTED, POSITIVE_INFINITY));
             row++;
