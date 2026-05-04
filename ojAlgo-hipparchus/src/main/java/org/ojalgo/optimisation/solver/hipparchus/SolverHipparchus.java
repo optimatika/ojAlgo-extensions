@@ -60,6 +60,11 @@ public final class SolverHipparchus implements Optimisation.Solver {
             return SimplexSolverImpl.INTEGRATION.isCapable(model) || ADMMQPOptimizerImpl.INTEGRATION.isCapable(model);
         }
 
+        @Override
+        protected Optimisation.Sense getSolverSense() {
+            return null;
+        }
+
     }
 
     public static final ExpressionsBasedModel.Integration<SolverHipparchus> INTEGRATION = new Integration();

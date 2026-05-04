@@ -327,6 +327,11 @@ public final class SolverORTools implements Optimisation.Solver {
             return !model.isAnyExpressionQuadratic();
         }
 
+        @Override
+        protected Optimisation.Sense getSolverSense() {
+            return null;
+        }
+
     }
 
     enum License {

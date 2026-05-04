@@ -142,6 +142,11 @@ public final class SolverACM implements Optimisation.Solver {
             return !model.isAnyVariableInteger() && !model.isAnyExpressionQuadratic();
         }
 
+        @Override
+        protected Optimisation.Sense getSolverSense() {
+            return null;
+        }
+
     }
 
     public static final ExpressionsBasedModel.Integration<SolverACM> INTEGRATION = new Integration();

@@ -141,6 +141,11 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
         abstract Set<OptimizationData> toOptimizationData(TwiceDifferentiable<Double> objective, boolean maximize, List<ConstraintTemplate> equalities,
                 List<ConstraintTemplate> ranges, boolean negative);
 
+        @Override
+        protected final Optimisation.Sense getSolverSense() {
+            return null;
+        }
+
     }
 
     private final Configurator<S> myConfigurator;

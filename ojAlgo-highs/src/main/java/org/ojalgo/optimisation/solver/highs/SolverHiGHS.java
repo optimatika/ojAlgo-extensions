@@ -28,7 +28,7 @@ import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
+import java.util.function.Supplier;
 
 import org.ojalgo.array.ArrayR064;
 import org.ojalgo.matrix.store.R064CSC;
@@ -39,6 +39,7 @@ import org.ojalgo.optimisation.ModelEntity;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.UpdatableSolver;
 import org.ojalgo.optimisation.Variable;
+import org.ojalgo.structure.Access1D;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
 import org.ojalgo.type.keyvalue.EntryPair;
@@ -347,12 +348,17 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
             return true;
         }
 
+        @Override
+        protected Optimisation.Sense getSolverSense() {
+            return null;
+        }
+
     }
 
     public static final ExpressionsBasedModel.Integration<SolverHiGHS> INTEGRATION = new Integration();
+
     private static final boolean ADJUSTED_BOUNDS = false;
     private static final boolean ADJUSTED_CONSTRAINTS = true;
-
     private static final boolean ADJUSTED_OBJECTIVE = true;
 
     static final Configurator DEFAULT = new Configurator();
@@ -451,6 +457,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         Optimisation.State state = SolverHiGHS.translate(modelStatus);
 
         if (state.isFeasible()) {
+
             double objectiveValue = HiGHSBindings.getObjectiveValue(myHighs);
 
             double[] solution = new double[myNumCol];
@@ -469,7 +476,13 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
                 HiGHSBindings.copyToJavaArray(rowDual, myRowDual);
             }
 
-            return Optimisation.Result.of(objectiveValue, state, solution);
+            // HiGHS was given the model's actual sense (MIN or MAX), so myColDual is already in the
+            // model's optimisation-sense convention and indexed by model variable (no presolve mapping
+            // is applied between model and HiGHS — all model variables are passed through).
+            double[] colDualSnapshot = myColDual;
+            Supplier<Access1D<?>> reducedGradient = () -> ArrayR064.wrap(colDualSnapshot);
+
+            return Optimisation.Result.of(objectiveValue, state, solution).withReducedGradient(reducedGradient);
 
         } else {
             myColDual = null;

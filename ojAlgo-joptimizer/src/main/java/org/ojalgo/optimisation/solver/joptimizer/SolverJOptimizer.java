@@ -261,6 +261,11 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             return ExpressionsBasedModel.Integration.reduceFullToFree(modelState, model, ArrayR064.FACTORY);
         }
 
+        @Override
+        protected Optimisation.Sense getSolverSense() {
+            return Optimisation.Sense.MIN;
+        }
+
     }
 
     public static final ExpressionsBasedModel.Integration<SolverJOptimizer> INTEGRATION = new Integration();

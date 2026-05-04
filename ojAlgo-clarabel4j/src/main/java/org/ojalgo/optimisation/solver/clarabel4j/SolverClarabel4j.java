@@ -211,6 +211,11 @@ public final class SolverClarabel4j implements Optimisation.Solver {
             return !model.isAnyVariableInteger();
         }
 
+        @Override
+        protected Optimisation.Sense getSolverSense() {
+            return Optimisation.Sense.MIN;
+        }
+
     }
 
     public static final ExpressionsBasedModel.Integration<SolverClarabel4j> INTEGRATION = new Integration();

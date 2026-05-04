@@ -194,6 +194,11 @@ public final class SolverCPLEX implements Optimisation.Solver {
             return true;
         }
 
+        @Override
+        protected Optimisation.Sense getSolverSense() {
+            return null;
+        }
+
         private void copyLinear(final Expression source, final IloNumVar[] variables, final IloLinearNumExpr destination) throws IloException {
             for (IntIndex key : source.getLinearKeySet()) {
                 destination.addTerm(source.doubleValue(key, ADJUST), variables[key.index]);

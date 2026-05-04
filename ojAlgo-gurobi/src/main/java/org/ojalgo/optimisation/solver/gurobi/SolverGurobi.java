@@ -181,6 +181,11 @@ public final class SolverGurobi implements Optimisation.Solver {
             return ExpressionsBasedModel.Integration.reduceFullToFree(modelState, model, ArrayR064.FACTORY);
         }
 
+        @Override
+        protected Optimisation.Sense getSolverSense() {
+            return null;
+        }
+
         private void dispose(final GRBEnv env) {
             try {
                 env.dispose();
