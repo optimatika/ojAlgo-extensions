@@ -28,6 +28,7 @@ import java.util.List;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
+import org.ojalgo.optimisation.UpdatableSolver;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
 
@@ -45,7 +46,7 @@ import com.google.ortools.modelbuilder.SolveStatus;
  * This solver integration is based on the {@link ModelBuilder} API. More specifically the
  * {@link ModelBuilderHelper} and {@link ModelSolverHelper} classes are used.
  */
-public final class SolverORTools implements Optimisation.Solver {
+public final class SolverORTools implements UpdatableSolver {
 
     /**
      * Configuration options for the underlying solver. The default implementation is suitable for most cases,
@@ -318,7 +319,7 @@ public final class SolverORTools implements Optimisation.Solver {
             String solverName = configurator.getSolverName(mip, false);
             ModelSolverHelper solver = configurator.newModelSolverHelper(solverName, model.options);
 
-            return new SolverORTools(builder, solver);
+            return new SolverORTools(builder, solver, nbVars);
         }
 
         @Override
@@ -381,26 +382,60 @@ public final class SolverORTools implements Optimisation.Solver {
      * Look at {@link ModelBuilder} for hints on how to use this.
      */
     private final ModelBuilderHelper myBuilder;
+    private final int myNumVars;
     /**
      * Look at {@link ModelSolver} for hints on how to use this.
      */
     private final ModelSolverHelper mySolver;
+    private boolean mySolutionAvailable;
 
-    SolverORTools(final ModelBuilderHelper builder, final ModelSolverHelper solver) {
+    SolverORTools(final ModelBuilderHelper builder, final ModelSolverHelper solver, final int numVars) {
 
         super();
 
         myBuilder = builder;
         mySolver = solver;
+        myNumVars = numVars;
     }
 
     @Override
     public void dispose() {
 
-        Solver.super.dispose();
+        UpdatableSolver.super.dispose();
 
         myBuilder.delete();
         mySolver.delete();
+    }
+
+    @Override
+    public boolean fixVariable(final int index, final double value) {
+        return this.updateRange(index, value, value);
+    }
+
+    /**
+     * The dual value of constraint {@code index} from the most recent feasible solve. OR-Tools' ModelBuilder
+     * API exposes no warm-start / basis controls, so this is purely informational.
+     */
+    @Override
+    public double getDualMultiplier(final int index) {
+
+        if (!mySolutionAvailable) {
+            throw new IllegalStateException();
+        }
+        return mySolver.getDualValue(index);
+    }
+
+    /**
+     * The reduced cost of variable {@code index} from the most recent feasible solve. OR-Tools' ModelBuilder
+     * API exposes no warm-start / basis controls, so this is purely informational.
+     */
+    @Override
+    public double getReducedGradient(final int index) {
+
+        if (!mySolutionAvailable) {
+            throw new IllegalStateException();
+        }
+        return mySolver.getReducedCost(index);
     }
 
     @Override
@@ -414,9 +449,11 @@ public final class SolverORTools implements Optimisation.Solver {
 
         if (retState.isFeasible()) {
 
+            mySolutionAvailable = true;
+
             double retValue = mySolver.getObjectiveValue();
 
-            double[] retSolution = new double[myBuilder.numVariables()];
+            double[] retSolution = new double[myNumVars];
             for (int i = 0; i < retSolution.length; i++) {
                 retSolution[i] = mySolver.getVariableValue(i);
             }
@@ -425,8 +462,29 @@ public final class SolverORTools implements Optimisation.Solver {
 
         } else {
 
+            mySolutionAvailable = false;
+
             return Optimisation.Result.of(retState);
         }
+    }
+
+    /**
+     * Update a single variable's bounds in the underlying {@link ModelBuilderHelper}. OR-Tools exposes only
+     * per-variable bound setters via SWIG — there is no native bulk / range / set / mask variant — so this is
+     * two JNI calls. The benefit over rebuilding the model is avoiding constraint matrix re-translation, not
+     * basis warm-start: the ModelBuilder API exposes no basis or solution-hint controls, so whether the
+     * underlying backend warm-starts on re-solve is opaque and solver-dependent.
+     */
+    @Override
+    public boolean updateRange(final int index, final double lower, final double upper) {
+
+        if (index < 0 || index >= myNumVars) {
+            return false;
+        }
+        myBuilder.setVarLowerBound(index, lower);
+        myBuilder.setVarUpperBound(index, upper);
+        mySolutionAvailable = false;
+        return true;
     }
 
 }

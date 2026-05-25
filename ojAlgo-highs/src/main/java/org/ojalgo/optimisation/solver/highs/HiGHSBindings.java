@@ -122,6 +122,9 @@ final class HiGHSBindings {
     private static final MethodHandle HIGHS_SET_STRING_OPTION_VALUE;
 
     private static final MethodHandle HIGHS_CHANGE_COL_BOUNDS;
+    private static final MethodHandle HIGHS_CHANGE_COLS_BOUNDS_BY_RANGE;
+    private static final MethodHandle HIGHS_CHANGE_COLS_BOUNDS_BY_SET;
+    private static final MethodHandle HIGHS_CHANGE_COLS_BOUNDS_BY_MASK;
 
     static {
 
@@ -217,6 +220,26 @@ final class HiGHSBindings {
                 ValueLayout.JAVA_INT, // col
                 ValueLayout.JAVA_DOUBLE, // lower
                 ValueLayout.JAVA_DOUBLE)); // upper
+
+        HIGHS_CHANGE_COLS_BOUNDS_BY_RANGE = HiGHSBindings.downcallHandle("Highs_changeColsBoundsByRange",
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                        ValueLayout.JAVA_INT, // from_col
+                        ValueLayout.JAVA_INT, // to_col
+                        ValueLayout.ADDRESS, // lower (double*)
+                        ValueLayout.ADDRESS)); // upper (double*)
+
+        HIGHS_CHANGE_COLS_BOUNDS_BY_SET = HiGHSBindings.downcallHandle("Highs_changeColsBoundsBySet",
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                        ValueLayout.JAVA_INT, // num_set_entries
+                        ValueLayout.ADDRESS, // set (int*)
+                        ValueLayout.ADDRESS, // lower (double*)
+                        ValueLayout.ADDRESS)); // upper (double*)
+
+        HIGHS_CHANGE_COLS_BOUNDS_BY_MASK = HiGHSBindings.downcallHandle("Highs_changeColsBoundsByMask",
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                        ValueLayout.ADDRESS, // mask (int*, length num_col)
+                        ValueLayout.ADDRESS, // lower (double*, length num_col)
+                        ValueLayout.ADDRESS)); // upper (double*, length num_col)
     }
 
     private static MethodHandle downcallHandle(final String name, final FunctionDescriptor descriptor) {
@@ -268,6 +291,62 @@ final class HiGHSBindings {
             return (int) HIGHS_CHANGE_COL_BOUNDS.invokeExact(highs, col, lower, upper);
         } catch (Throwable t) {
             throw new RuntimeException("Failed to change column bounds in HiGHS", t);
+        }
+    }
+
+    /**
+     * Change the bounds of a contiguous range of columns in a single native call.
+     *
+     * @param fromCol first column index (inclusive)
+     * @param toCol   last column index (inclusive)
+     * @param lower   native segment of length {@code toCol - fromCol + 1} with new lower bounds
+     * @param upper   native segment of length {@code toCol - fromCol + 1} with new upper bounds
+     * @return status code
+     */
+    static int changeColsBoundsByRange(final MemorySegment highs, final int fromCol, final int toCol, final MemorySegment lower, final MemorySegment upper) {
+
+        try {
+            return (int) HIGHS_CHANGE_COLS_BOUNDS_BY_RANGE.invokeExact(highs, fromCol, toCol, lower, upper);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to change column bounds range in HiGHS", t);
+        }
+    }
+
+    /**
+     * Change the bounds of a set of columns identified by an index array in a single native call. All three
+     * arrays must have the same length ({@code numEntries}).
+     *
+     * @param numEntries number of columns to update
+     * @param set        native segment of length {@code numEntries} with column indices
+     * @param lower      native segment of length {@code numEntries} with new lower bounds
+     * @param upper      native segment of length {@code numEntries} with new upper bounds
+     * @return status code
+     */
+    static int changeColsBoundsBySet(final MemorySegment highs, final int numEntries, final MemorySegment set, final MemorySegment lower,
+            final MemorySegment upper) {
+
+        try {
+            return (int) HIGHS_CHANGE_COLS_BOUNDS_BY_SET.invokeExact(highs, numEntries, set, lower, upper);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to change column bounds set in HiGHS", t);
+        }
+    }
+
+    /**
+     * Change the bounds of a subset of columns selected by a 0/1 mask in a single native call. All three
+     * arrays must be of length {@code num_col}; only entries flagged by the mask are applied.
+     *
+     * @param mask  native int segment of length {@code num_col} (1 = apply, 0 = skip)
+     * @param lower native segment of length {@code num_col} with new lower bounds
+     * @param upper native segment of length {@code num_col} with new upper bounds
+     * @return status code
+     */
+    static int changeColsBoundsByMask(final MemorySegment highs, final MemorySegment mask, final MemorySegment lower, final MemorySegment upper) {
+
+        try {
+            return (int) HIGHS_CHANGE_COLS_BOUNDS_BY_MASK.invokeExact(highs, mask, lower, upper);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to change column bounds mask in HiGHS", t);
         }
     }
 
