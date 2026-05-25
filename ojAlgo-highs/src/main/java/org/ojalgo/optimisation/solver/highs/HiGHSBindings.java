@@ -124,172 +124,158 @@ final class HiGHSBindings {
     private static final MethodHandle HIGHS_CHANGE_COL_BOUNDS;
 
     static {
+
         LOOKUP = NativeLoader.load();
 
-        HIGHS_CREATE = downcallHandle("Highs_create",
-                FunctionDescriptor.of(ValueLayout.ADDRESS));
+        HIGHS_CREATE = HiGHSBindings.downcallHandle("Highs_create", FunctionDescriptor.of(ValueLayout.ADDRESS));
 
-        HIGHS_DESTROY = downcallHandle("Highs_destroy",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
+        HIGHS_DESTROY = HiGHSBindings.downcallHandle("Highs_destroy", FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
 
-        HIGHS_RUN = downcallHandle("Highs_run",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+        HIGHS_RUN = HiGHSBindings.downcallHandle("Highs_run", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
 
-        HIGHS_CLEAR = downcallHandle("Highs_clear",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+        HIGHS_CLEAR = HiGHSBindings.downcallHandle("Highs_clear", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
 
-        HIGHS_CLEAR_MODEL = downcallHandle("Highs_clearModel",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+        HIGHS_CLEAR_MODEL = HiGHSBindings.downcallHandle("Highs_clearModel", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
 
-        HIGHS_CLEAR_SOLVER = downcallHandle("Highs_clearSolver",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+        HIGHS_CLEAR_SOLVER = HiGHSBindings.downcallHandle("Highs_clearSolver", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
 
-        HIGHS_PASS_LP = downcallHandle("Highs_passLp",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                        ValueLayout.ADDRESS,    // highs
-                        ValueLayout.JAVA_INT,   // num_col
-                        ValueLayout.JAVA_INT,   // num_row
-                        ValueLayout.JAVA_INT,   // num_nz
-                        ValueLayout.JAVA_INT,   // a_format (column-wise or row-wise)
-                        ValueLayout.JAVA_INT,   // sense (minimize = 1, maximize = -1)
-                        ValueLayout.JAVA_DOUBLE,// offset
-                        ValueLayout.ADDRESS,    // col_cost (double*)
-                        ValueLayout.ADDRESS,    // col_lower (double*)
-                        ValueLayout.ADDRESS,    // col_upper (double*)
-                        ValueLayout.ADDRESS,    // row_lower (double*)
-                        ValueLayout.ADDRESS,    // row_upper (double*)
-                        ValueLayout.ADDRESS,    // a_start (int*)
-                        ValueLayout.ADDRESS,    // a_index (int*)
-                        ValueLayout.ADDRESS));  // a_value (double*)
+        HIGHS_PASS_LP = HiGHSBindings.downcallHandle("Highs_passLp", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                ValueLayout.JAVA_INT, // num_col
+                ValueLayout.JAVA_INT, // num_row
+                ValueLayout.JAVA_INT, // num_nz
+                ValueLayout.JAVA_INT, // a_format (column-wise or row-wise)
+                ValueLayout.JAVA_INT, // sense (minimize = 1, maximize = -1)
+                ValueLayout.JAVA_DOUBLE, // offset
+                ValueLayout.ADDRESS, // col_cost (double*)
+                ValueLayout.ADDRESS, // col_lower (double*)
+                ValueLayout.ADDRESS, // col_upper (double*)
+                ValueLayout.ADDRESS, // row_lower (double*)
+                ValueLayout.ADDRESS, // row_upper (double*)
+                ValueLayout.ADDRESS, // a_start (int*)
+                ValueLayout.ADDRESS, // a_index (int*)
+                ValueLayout.ADDRESS)); // a_value (double*)
 
-        HIGHS_PASS_MIP = downcallHandle("Highs_passMip",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                        ValueLayout.ADDRESS,    // highs
-                        ValueLayout.JAVA_INT,   // num_col
-                        ValueLayout.JAVA_INT,   // num_row
-                        ValueLayout.JAVA_INT,   // num_nz
-                        ValueLayout.JAVA_INT,   // a_format
-                        ValueLayout.JAVA_INT,   // sense
-                        ValueLayout.JAVA_DOUBLE,// offset
-                        ValueLayout.ADDRESS,    // col_cost (double*)
-                        ValueLayout.ADDRESS,    // col_lower (double*)
-                        ValueLayout.ADDRESS,    // col_upper (double*)
-                        ValueLayout.ADDRESS,    // row_lower (double*)
-                        ValueLayout.ADDRESS,    // row_upper (double*)
-                        ValueLayout.ADDRESS,    // a_start (int*)
-                        ValueLayout.ADDRESS,    // a_index (int*)
-                        ValueLayout.ADDRESS,    // a_value (double*)
-                        ValueLayout.ADDRESS));  // integrality (int*)
+        HIGHS_PASS_MIP = HiGHSBindings.downcallHandle("Highs_passMip", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                ValueLayout.JAVA_INT, // num_col
+                ValueLayout.JAVA_INT, // num_row
+                ValueLayout.JAVA_INT, // num_nz
+                ValueLayout.JAVA_INT, // a_format
+                ValueLayout.JAVA_INT, // sense
+                ValueLayout.JAVA_DOUBLE, // offset
+                ValueLayout.ADDRESS, // col_cost (double*)
+                ValueLayout.ADDRESS, // col_lower (double*)
+                ValueLayout.ADDRESS, // col_upper (double*)
+                ValueLayout.ADDRESS, // row_lower (double*)
+                ValueLayout.ADDRESS, // row_upper (double*)
+                ValueLayout.ADDRESS, // a_start (int*)
+                ValueLayout.ADDRESS, // a_index (int*)
+                ValueLayout.ADDRESS, // a_value (double*)
+                ValueLayout.ADDRESS)); // integrality (int*)
 
-        HIGHS_PASS_HESSIAN = downcallHandle("Highs_passHessian",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                        ValueLayout.ADDRESS,    // highs
-                        ValueLayout.JAVA_INT,   // dim
-                        ValueLayout.JAVA_INT,   // num_nz
-                        ValueLayout.JAVA_INT,   // format (triangular or square)
-                        ValueLayout.ADDRESS,    // q_start (int*)
-                        ValueLayout.ADDRESS,    // q_index (int*)
-                        ValueLayout.ADDRESS));  // q_value (double*)
+        HIGHS_PASS_HESSIAN = HiGHSBindings.downcallHandle("Highs_passHessian", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                ValueLayout.JAVA_INT, // dim
+                ValueLayout.JAVA_INT, // num_nz
+                ValueLayout.JAVA_INT, // format (triangular or square)
+                ValueLayout.ADDRESS, // q_start (int*)
+                ValueLayout.ADDRESS, // q_index (int*)
+                ValueLayout.ADDRESS)); // q_value (double*)
 
-        HIGHS_GET_MODEL_STATUS = downcallHandle("Highs_getModelStatus",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+        HIGHS_GET_MODEL_STATUS = HiGHSBindings.downcallHandle("Highs_getModelStatus", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
 
-        HIGHS_GET_SOLUTION = downcallHandle("Highs_getSolution",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                        ValueLayout.ADDRESS,    // highs
-                        ValueLayout.ADDRESS,    // col_value (double*)
-                        ValueLayout.ADDRESS,    // col_dual (double*)
-                        ValueLayout.ADDRESS,    // row_value (double*)
-                        ValueLayout.ADDRESS));  // row_dual (double*)
+        HIGHS_GET_SOLUTION = HiGHSBindings.downcallHandle("Highs_getSolution", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                ValueLayout.ADDRESS, // col_value (double*)
+                ValueLayout.ADDRESS, // col_dual (double*)
+                ValueLayout.ADDRESS, // row_value (double*)
+                ValueLayout.ADDRESS)); // row_dual (double*)
 
-        HIGHS_GET_NUM_COL = downcallHandle("Highs_getNumCol",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+        HIGHS_GET_NUM_COL = HiGHSBindings.downcallHandle("Highs_getNumCol", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
 
-        HIGHS_GET_NUM_ROW = downcallHandle("Highs_getNumRow",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+        HIGHS_GET_NUM_ROW = HiGHSBindings.downcallHandle("Highs_getNumRow", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
 
-        HIGHS_GET_OBJECTIVE_VALUE = downcallHandle("Highs_getObjectiveValue",
+        HIGHS_GET_OBJECTIVE_VALUE = HiGHSBindings.downcallHandle("Highs_getObjectiveValue",
                 FunctionDescriptor.of(ValueLayout.JAVA_DOUBLE, ValueLayout.ADDRESS));
 
-        HIGHS_SET_BOOL_OPTION_VALUE = downcallHandle("Highs_setBoolOptionValue",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                        ValueLayout.ADDRESS,    // highs
-                        ValueLayout.ADDRESS,    // option (const char*)
-                        ValueLayout.JAVA_INT)); // value
+        HIGHS_SET_BOOL_OPTION_VALUE = HiGHSBindings.downcallHandle("Highs_setBoolOptionValue", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                ValueLayout.ADDRESS, // option (const char*)
+                ValueLayout.JAVA_INT)); // value
 
-        HIGHS_SET_INT_OPTION_VALUE = downcallHandle("Highs_setIntOptionValue",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                        ValueLayout.ADDRESS,    // highs
-                        ValueLayout.ADDRESS,    // option (const char*)
-                        ValueLayout.JAVA_INT)); // value
+        HIGHS_SET_INT_OPTION_VALUE = HiGHSBindings.downcallHandle("Highs_setIntOptionValue", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                ValueLayout.ADDRESS, // option (const char*)
+                ValueLayout.JAVA_INT)); // value
 
-        HIGHS_SET_DOUBLE_OPTION_VALUE = downcallHandle("Highs_setDoubleOptionValue",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                        ValueLayout.ADDRESS,    // highs
-                        ValueLayout.ADDRESS,    // option (const char*)
+        HIGHS_SET_DOUBLE_OPTION_VALUE = HiGHSBindings.downcallHandle("Highs_setDoubleOptionValue",
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                        ValueLayout.ADDRESS, // option (const char*)
                         ValueLayout.JAVA_DOUBLE)); // value
 
-        HIGHS_SET_STRING_OPTION_VALUE = downcallHandle("Highs_setStringOptionValue",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                        ValueLayout.ADDRESS,    // highs
-                        ValueLayout.ADDRESS,    // option (const char*)
-                        ValueLayout.ADDRESS));  // value (const char*)
+        HIGHS_SET_STRING_OPTION_VALUE = HiGHSBindings.downcallHandle("Highs_setStringOptionValue",
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                        ValueLayout.ADDRESS, // option (const char*)
+                        ValueLayout.ADDRESS)); // value (const char*)
 
-        HIGHS_CHANGE_COL_BOUNDS = downcallHandle("Highs_changeColBounds",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT,
-                        ValueLayout.ADDRESS,    // highs
-                        ValueLayout.JAVA_INT,   // col
-                        ValueLayout.JAVA_DOUBLE,// lower
-                        ValueLayout.JAVA_DOUBLE)); // upper
+        HIGHS_CHANGE_COL_BOUNDS = HiGHSBindings.downcallHandle("Highs_changeColBounds", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                ValueLayout.JAVA_INT, // col
+                ValueLayout.JAVA_DOUBLE, // lower
+                ValueLayout.JAVA_DOUBLE)); // upper
     }
 
-    private static MethodHandle downcallHandle(String name, FunctionDescriptor descriptor) {
-        MemorySegment symbol = LOOKUP.find(name)
-                .orElseThrow(() -> new UnsatisfiedLinkError("Symbol not found: " + name));
+    private static MethodHandle downcallHandle(final String name, final FunctionDescriptor descriptor) {
+
+        MemorySegment symbol = LOOKUP.find(name).orElseThrow(() -> new UnsatisfiedLinkError("Symbol not found: " + name));
         return LINKER.downcallHandle(symbol, descriptor);
     }
 
     /**
-     * Create a new HiGHS instance.
-     *
-     * @return pointer to the HiGHS instance
+     * Allocate a native double array and copy Java array contents.
      */
-    static MemorySegment create() {
-        try {
-            return (MemorySegment) HIGHS_CREATE.invokeExact();
-        } catch (Throwable t) {
-            throw new RuntimeException("Failed to create HiGHS instance", t);
-        }
+    static MemorySegment allocateDoubleArray(final Arena arena, final double[] values) {
+
+        MemorySegment segment = arena.allocate(ValueLayout.JAVA_DOUBLE, values.length);
+        MemorySegment.copy(values, 0, segment, ValueLayout.JAVA_DOUBLE, 0, values.length);
+        return segment;
     }
 
     /**
-     * Destroy a HiGHS instance and free associated memory.
+     * Allocate a native int array and copy Java array contents.
      */
-    static void destroy(MemorySegment highs) {
-        try {
-            HIGHS_DESTROY.invokeExact(highs);
-        } catch (Throwable t) {
-            throw new RuntimeException("Failed to destroy HiGHS instance", t);
-        }
+    static MemorySegment allocateIntArray(final Arena arena, final int[] values) {
+
+        MemorySegment segment = arena.allocate(ValueLayout.JAVA_INT, values.length);
+        MemorySegment.copy(values, 0, segment, ValueLayout.JAVA_INT, 0, values.length);
+        return segment;
     }
 
     /**
-     * Run HiGHS to solve the current model.
-     *
-     * @return status code (STATUS_OK, STATUS_WARNING, or STATUS_ERROR)
+     * Allocate a native C string (null-terminated).
      */
-    static int run(MemorySegment highs) {
+    static MemorySegment allocateString(final Arena arena, final String value) {
+        return arena.allocateFrom(value);
+    }
+
+    /**
+     * Change the bounds of a single column (variable).
+     * <p>
+     * This is the key method for {@link org.ojalgo.optimisation.UpdatableSolver} support.
+     *
+     * @param col   column index
+     * @param lower new lower bound
+     * @param upper new upper bound
+     * @return status code
+     */
+    static int changeColBounds(final MemorySegment highs, final int col, final double lower, final double upper) {
+
         try {
-            return (int) HIGHS_RUN.invokeExact(highs);
+            return (int) HIGHS_CHANGE_COL_BOUNDS.invokeExact(highs, col, lower, upper);
         } catch (Throwable t) {
-            throw new RuntimeException("Failed to run HiGHS", t);
+            throw new RuntimeException("Failed to change column bounds in HiGHS", t);
         }
     }
 
     /**
      * Clear the HiGHS instance completely.
      */
-    static int clear(MemorySegment highs) {
+    static int clear(final MemorySegment highs) {
+
         try {
             return (int) HIGHS_CLEAR.invokeExact(highs);
         } catch (Throwable t) {
@@ -300,7 +286,8 @@ final class HiGHSBindings {
     /**
      * Clear only the model from the HiGHS instance.
      */
-    static int clearModel(MemorySegment highs) {
+    static int clearModel(final MemorySegment highs) {
+
         try {
             return (int) HIGHS_CLEAR_MODEL.invokeExact(highs);
         } catch (Throwable t) {
@@ -311,11 +298,142 @@ final class HiGHSBindings {
     /**
      * Clear solver information (retains model).
      */
-    static int clearSolver(MemorySegment highs) {
+    static int clearSolver(final MemorySegment highs) {
+
         try {
             return (int) HIGHS_CLEAR_SOLVER.invokeExact(highs);
         } catch (Throwable t) {
             throw new RuntimeException("Failed to clear HiGHS solver", t);
+        }
+    }
+
+    /**
+     * Copy native double array to Java array.
+     */
+    static void copyToJavaArray(final MemorySegment segment, final double[] dest) {
+        MemorySegment.copy(segment, ValueLayout.JAVA_DOUBLE, 0, dest, 0, dest.length);
+    }
+
+    /**
+     * Create a new HiGHS instance.
+     *
+     * @return pointer to the HiGHS instance
+     */
+    static MemorySegment create() {
+
+        try {
+            return (MemorySegment) HIGHS_CREATE.invokeExact();
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to create HiGHS instance", t);
+        }
+    }
+
+    /**
+     * Destroy a HiGHS instance and free associated memory.
+     */
+    static void destroy(final MemorySegment highs) {
+
+        try {
+            HIGHS_DESTROY.invokeExact(highs);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to destroy HiGHS instance", t);
+        }
+    }
+
+    /**
+     * Get the model status after solving.
+     *
+     * @return model status code (see MODEL_STATUS_* constants)
+     */
+    static int getModelStatus(final MemorySegment highs) {
+
+        try {
+            return (int) HIGHS_GET_MODEL_STATUS.invokeExact(highs);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to get model status from HiGHS", t);
+        }
+    }
+
+    /**
+     * Get the number of columns (variables) in the model.
+     */
+    static int getNumCol(final MemorySegment highs) {
+
+        try {
+            return (int) HIGHS_GET_NUM_COL.invokeExact(highs);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to get number of columns from HiGHS", t);
+        }
+    }
+
+    /**
+     * Get the number of rows (constraints) in the model.
+     */
+    static int getNumRow(final MemorySegment highs) {
+
+        try {
+            return (int) HIGHS_GET_NUM_ROW.invokeExact(highs);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to get number of rows from HiGHS", t);
+        }
+    }
+
+    /**
+     * Get the objective function value.
+     */
+    static double getObjectiveValue(final MemorySegment highs) {
+
+        try {
+            return (double) HIGHS_GET_OBJECTIVE_VALUE.invokeExact(highs);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to get objective value from HiGHS", t);
+        }
+    }
+
+    /**
+     * Get the primal and dual solution values.
+     *
+     * @param colValue primal variable values (double[numCol])
+     * @param colDual  dual values for variable bounds (double[numCol])
+     * @param rowValue constraint activity values (double[numRow])
+     * @param rowDual  dual values for constraints (double[numRow])
+     * @return status code
+     */
+    static int getSolution(final MemorySegment highs, final MemorySegment colValue, final MemorySegment colDual, final MemorySegment rowValue,
+            final MemorySegment rowDual) {
+
+        try {
+            return (int) HIGHS_GET_SOLUTION.invokeExact(highs, colValue, colDual, rowValue, rowDual);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to get solution from HiGHS", t);
+        }
+    }
+
+    /**
+     * Pass a Hessian matrix for QP to HiGHS.
+     * <p>
+     * The Hessian should be in lower-triangular (half) sparse format. HiGHS solves:
+     *
+     * <pre>
+     * min  0.5 * x' * Q * x + c' * x
+     * </pre>
+     *
+     * @param highs  HiGHS instance pointer
+     * @param dim    dimension of Hessian (number of columns)
+     * @param numNz  number of non-zeros in the lower triangle
+     * @param format Hessian format (HESSIAN_FORMAT_TRIANGULAR)
+     * @param qStart column start indices (int[dim+1])
+     * @param qIndex row indices (int[numNz])
+     * @param qValue values (double[numNz])
+     * @return status code
+     */
+    static int passHessian(final MemorySegment highs, final int dim, final int numNz, final int format, final MemorySegment qStart, final MemorySegment qIndex,
+            final MemorySegment qValue) {
+
+        try {
+            return (int) HIGHS_PASS_HESSIAN.invokeExact(highs, dim, numNz, format, qStart, qIndex, qValue);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to pass Hessian to HiGHS", t);
         }
     }
 
@@ -339,13 +457,13 @@ final class HiGHSBindings {
      * @param aValue   values of non-zeros (double[numNz])
      * @return status code
      */
-    static int passLp(MemorySegment highs, int numCol, int numRow, int numNz, int aFormat, int sense, double offset,
-            MemorySegment colCost, MemorySegment colLower, MemorySegment colUpper,
-            MemorySegment rowLower, MemorySegment rowUpper,
-            MemorySegment aStart, MemorySegment aIndex, MemorySegment aValue) {
+    static int passLp(final MemorySegment highs, final int numCol, final int numRow, final int numNz, final int aFormat, final int sense, final double offset,
+            final MemorySegment colCost, final MemorySegment colLower, final MemorySegment colUpper, final MemorySegment rowLower, final MemorySegment rowUpper,
+            final MemorySegment aStart, final MemorySegment aIndex, final MemorySegment aValue) {
+
         try {
-            return (int) HIGHS_PASS_LP.invokeExact(highs, numCol, numRow, numNz, aFormat, sense, offset,
-                    colCost, colLower, colUpper, rowLower, rowUpper, aStart, aIndex, aValue);
+            return (int) HIGHS_PASS_LP.invokeExact(highs, numCol, numRow, numNz, aFormat, sense, offset, colCost, colLower, colUpper, rowLower, rowUpper,
+                    aStart, aIndex, aValue);
         } catch (Throwable t) {
             throw new RuntimeException("Failed to pass LP to HiGHS", t);
         }
@@ -357,113 +475,37 @@ final class HiGHSBindings {
      * @param integrality variable types (int[numCol], see VAR_TYPE_* constants)
      * @return status code
      */
-    static int passMip(MemorySegment highs, int numCol, int numRow, int numNz, int aFormat, int sense, double offset,
-            MemorySegment colCost, MemorySegment colLower, MemorySegment colUpper,
-            MemorySegment rowLower, MemorySegment rowUpper,
-            MemorySegment aStart, MemorySegment aIndex, MemorySegment aValue,
-            MemorySegment integrality) {
+    static int passMip(final MemorySegment highs, final int numCol, final int numRow, final int numNz, final int aFormat, final int sense, final double offset,
+            final MemorySegment colCost, final MemorySegment colLower, final MemorySegment colUpper, final MemorySegment rowLower, final MemorySegment rowUpper,
+            final MemorySegment aStart, final MemorySegment aIndex, final MemorySegment aValue, final MemorySegment integrality) {
+
         try {
-            return (int) HIGHS_PASS_MIP.invokeExact(highs, numCol, numRow, numNz, aFormat, sense, offset,
-                    colCost, colLower, colUpper, rowLower, rowUpper, aStart, aIndex, aValue, integrality);
+            return (int) HIGHS_PASS_MIP.invokeExact(highs, numCol, numRow, numNz, aFormat, sense, offset, colCost, colLower, colUpper, rowLower, rowUpper,
+                    aStart, aIndex, aValue, integrality);
         } catch (Throwable t) {
             throw new RuntimeException("Failed to pass MIP to HiGHS", t);
         }
     }
 
     /**
-     * Pass a Hessian matrix for QP to HiGHS.
-     * <p>
-     * The Hessian should be in lower-triangular (half) sparse format. HiGHS solves:
-     * <pre>
-     * min  0.5 * x' * Q * x + c' * x
-     * </pre>
+     * Run HiGHS to solve the current model.
      *
-     * @param highs  HiGHS instance pointer
-     * @param dim    dimension of Hessian (number of columns)
-     * @param numNz  number of non-zeros in the lower triangle
-     * @param format Hessian format (HESSIAN_FORMAT_TRIANGULAR)
-     * @param qStart column start indices (int[dim+1])
-     * @param qIndex row indices (int[numNz])
-     * @param qValue values (double[numNz])
-     * @return status code
+     * @return status code (STATUS_OK, STATUS_WARNING, or STATUS_ERROR)
      */
-    static int passHessian(MemorySegment highs, int dim, int numNz, int format,
-            MemorySegment qStart, MemorySegment qIndex, MemorySegment qValue) {
-        try {
-            return (int) HIGHS_PASS_HESSIAN.invokeExact(highs, dim, numNz, format, qStart, qIndex, qValue);
-        } catch (Throwable t) {
-            throw new RuntimeException("Failed to pass Hessian to HiGHS", t);
-        }
-    }
+    static int run(final MemorySegment highs) {
 
-    /**
-     * Get the model status after solving.
-     *
-     * @return model status code (see MODEL_STATUS_* constants)
-     */
-    static int getModelStatus(MemorySegment highs) {
         try {
-            return (int) HIGHS_GET_MODEL_STATUS.invokeExact(highs);
+            return (int) HIGHS_RUN.invokeExact(highs);
         } catch (Throwable t) {
-            throw new RuntimeException("Failed to get model status from HiGHS", t);
-        }
-    }
-
-    /**
-     * Get the primal and dual solution values.
-     *
-     * @param colValue primal variable values (double[numCol])
-     * @param colDual  dual values for variable bounds (double[numCol])
-     * @param rowValue constraint activity values (double[numRow])
-     * @param rowDual  dual values for constraints (double[numRow])
-     * @return status code
-     */
-    static int getSolution(MemorySegment highs, MemorySegment colValue, MemorySegment colDual,
-            MemorySegment rowValue, MemorySegment rowDual) {
-        try {
-            return (int) HIGHS_GET_SOLUTION.invokeExact(highs, colValue, colDual, rowValue, rowDual);
-        } catch (Throwable t) {
-            throw new RuntimeException("Failed to get solution from HiGHS", t);
-        }
-    }
-
-    /**
-     * Get the number of columns (variables) in the model.
-     */
-    static int getNumCol(MemorySegment highs) {
-        try {
-            return (int) HIGHS_GET_NUM_COL.invokeExact(highs);
-        } catch (Throwable t) {
-            throw new RuntimeException("Failed to get number of columns from HiGHS", t);
-        }
-    }
-
-    /**
-     * Get the number of rows (constraints) in the model.
-     */
-    static int getNumRow(MemorySegment highs) {
-        try {
-            return (int) HIGHS_GET_NUM_ROW.invokeExact(highs);
-        } catch (Throwable t) {
-            throw new RuntimeException("Failed to get number of rows from HiGHS", t);
-        }
-    }
-
-    /**
-     * Get the objective function value.
-     */
-    static double getObjectiveValue(MemorySegment highs) {
-        try {
-            return (double) HIGHS_GET_OBJECTIVE_VALUE.invokeExact(highs);
-        } catch (Throwable t) {
-            throw new RuntimeException("Failed to get objective value from HiGHS", t);
+            throw new RuntimeException("Failed to run HiGHS", t);
         }
     }
 
     /**
      * Set a boolean option value.
      */
-    static int setBoolOptionValue(MemorySegment highs, MemorySegment option, int value) {
+    static int setBoolOptionValue(final MemorySegment highs, final MemorySegment option, final int value) {
+
         try {
             return (int) HIGHS_SET_BOOL_OPTION_VALUE.invokeExact(highs, option, value);
         } catch (Throwable t) {
@@ -472,20 +514,10 @@ final class HiGHSBindings {
     }
 
     /**
-     * Set an integer option value.
-     */
-    static int setIntOptionValue(MemorySegment highs, MemorySegment option, int value) {
-        try {
-            return (int) HIGHS_SET_INT_OPTION_VALUE.invokeExact(highs, option, value);
-        } catch (Throwable t) {
-            throw new RuntimeException("Failed to set int option in HiGHS", t);
-        }
-    }
-
-    /**
      * Set a double option value.
      */
-    static int setDoubleOptionValue(MemorySegment highs, MemorySegment option, double value) {
+    static int setDoubleOptionValue(final MemorySegment highs, final MemorySegment option, final double value) {
+
         try {
             return (int) HIGHS_SET_DOUBLE_OPTION_VALUE.invokeExact(highs, option, value);
         } catch (Throwable t) {
@@ -494,9 +526,22 @@ final class HiGHSBindings {
     }
 
     /**
+     * Set an integer option value.
+     */
+    static int setIntOptionValue(final MemorySegment highs, final MemorySegment option, final int value) {
+
+        try {
+            return (int) HIGHS_SET_INT_OPTION_VALUE.invokeExact(highs, option, value);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to set int option in HiGHS", t);
+        }
+    }
+
+    /**
      * Set a string option value.
      */
-    static int setStringOptionValue(MemorySegment highs, MemorySegment option, MemorySegment value) {
+    static int setStringOptionValue(final MemorySegment highs, final MemorySegment option, final MemorySegment value) {
+
         try {
             return (int) HIGHS_SET_STRING_OPTION_VALUE.invokeExact(highs, option, value);
         } catch (Throwable t) {
@@ -504,57 +549,6 @@ final class HiGHSBindings {
         }
     }
 
-    /**
-     * Change the bounds of a single column (variable).
-     * <p>
-     * This is the key method for {@link org.ojalgo.optimisation.UpdatableSolver} support.
-     *
-     * @param col   column index
-     * @param lower new lower bound
-     * @param upper new upper bound
-     * @return status code
-     */
-    static int changeColBounds(MemorySegment highs, int col, double lower, double upper) {
-        try {
-            return (int) HIGHS_CHANGE_COL_BOUNDS.invokeExact(highs, col, lower, upper);
-        } catch (Throwable t) {
-            throw new RuntimeException("Failed to change column bounds in HiGHS", t);
-        }
-    }
-
-    /**
-     * Allocate a native double array and copy Java array contents.
-     */
-    static MemorySegment allocateDoubleArray(Arena arena, double[] values) {
-        MemorySegment segment = arena.allocate(ValueLayout.JAVA_DOUBLE, values.length);
-        MemorySegment.copy(values, 0, segment, ValueLayout.JAVA_DOUBLE, 0, values.length);
-        return segment;
-    }
-
-    /**
-     * Allocate a native int array and copy Java array contents.
-     */
-    static MemorySegment allocateIntArray(Arena arena, int[] values) {
-        MemorySegment segment = arena.allocate(ValueLayout.JAVA_INT, values.length);
-        MemorySegment.copy(values, 0, segment, ValueLayout.JAVA_INT, 0, values.length);
-        return segment;
-    }
-
-    /**
-     * Allocate a native C string (null-terminated).
-     */
-    static MemorySegment allocateString(Arena arena, String value) {
-        return arena.allocateFrom(value);
-    }
-
-    /**
-     * Copy native double array to Java array.
-     */
-    static void copyToJavaArray(MemorySegment segment, double[] dest) {
-        MemorySegment.copy(segment, ValueLayout.JAVA_DOUBLE, 0, dest, 0, dest.length);
-    }
-
-    private HiGHSBindings() {
-    }
+    private HiGHSBindings() {}
 
 }

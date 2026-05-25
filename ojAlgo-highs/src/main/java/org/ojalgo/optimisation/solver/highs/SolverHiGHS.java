@@ -414,6 +414,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
     @Override
     public boolean fixVariable(final int index, final double value) {
+
         if (index < 0 || index >= myNumCol) {
             return false;
         }
@@ -429,6 +430,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
     @Override
     public double getDualMultiplier(final int index) {
+
         if (myRowDual == null) {
             throw new IllegalStateException();
         }
@@ -442,6 +444,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
     @Override
     public double getReducedGradient(final int index) {
+
         if (myColDual == null) {
             throw new IllegalStateException();
         }
@@ -493,6 +496,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
     @Override
     public boolean updateRange(final int index, final double lower, final double upper) {
+
         if (index < 0 || index >= myNumCol) {
             return false;
         }

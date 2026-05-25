@@ -38,33 +38,9 @@ import java.nio.file.StandardCopyOption;
  */
 final class NativeLoader {
 
-    private static final String RESOURCE_PREFIX = "/native/";
-
     private static volatile SymbolLookup LOADED_LOOKUP;
 
-    /**
-     * Load the HiGHS native library and return a {@link SymbolLookup} for resolving symbols.
-     * <p>
-     * The library is loaded once and cached. Subsequent calls return the same lookup instance.
-     *
-     * @return symbol lookup for the loaded HiGHS library
-     * @throws UnsatisfiedLinkError if the library cannot be loaded
-     */
-    static synchronized SymbolLookup load() {
-        if (LOADED_LOOKUP != null) {
-            return LOADED_LOOKUP;
-        }
-
-        String platform = detectPlatform();
-        String libraryName = getLibraryName();
-        String resourcePath = RESOURCE_PREFIX + platform + "/" + libraryName;
-
-        Path tempFile = extractToTemp(resourcePath, libraryName);
-
-        LOADED_LOOKUP = SymbolLookup.libraryLookup(tempFile, Arena.ofAuto());
-
-        return LOADED_LOOKUP;
-    }
+    private static final String RESOURCE_PREFIX = "/native/";
 
     /**
      * Detect the current platform identifier.
@@ -72,6 +48,7 @@ final class NativeLoader {
      * @return platform string like "macos-arm64", "linux-x64", etc.
      */
     private static String detectPlatform() {
+
         String osName = System.getProperty("os.name").toLowerCase();
         String osArch = System.getProperty("os.arch").toLowerCase();
 
@@ -87,11 +64,11 @@ final class NativeLoader {
         }
 
         String arch;
-        if (osArch.equals("aarch64") || osArch.equals("arm64")) {
+        if ("aarch64".equals(osArch) || "arm64".equals(osArch)) {
             arch = "arm64";
-        } else if (osArch.equals("amd64") || osArch.equals("x86_64")) {
+        } else if ("amd64".equals(osArch) || "x86_64".equals(osArch)) {
             arch = "x64";
-        } else if (osArch.equals("ppc64le")) {
+        } else if ("ppc64le".equals(osArch)) {
             arch = "ppc64le";
         } else {
             throw new UnsatisfiedLinkError("Unsupported architecture: " + osArch);
@@ -101,30 +78,14 @@ final class NativeLoader {
     }
 
     /**
-     * Get the platform-specific library filename.
-     */
-    private static String getLibraryName() {
-        String osName = System.getProperty("os.name").toLowerCase();
-
-        if (osName.contains("mac") || osName.contains("darwin")) {
-            return "libhighs.dylib";
-        } else if (osName.contains("linux")) {
-            return "libhighs.so";
-        } else if (osName.contains("windows")) {
-            return "highs.dll";
-        } else {
-            throw new UnsatisfiedLinkError("Unsupported operating system: " + osName);
-        }
-    }
-
-    /**
      * Extract the native library from JAR resources to a temporary file.
      */
-    private static Path extractToTemp(String resourcePath, String libraryName) {
+    private static Path extractToTemp(final String resourcePath, final String libraryName) {
+
         try (InputStream in = NativeLoader.class.getResourceAsStream(resourcePath)) {
             if (in == null) {
-                throw new UnsatisfiedLinkError("Native library not found in JAR: " + resourcePath
-                        + ". Ensure HiGHS binaries are bundled for platform: " + detectPlatform());
+                throw new UnsatisfiedLinkError("Native library not found in JAR: " + resourcePath + ". Ensure HiGHS binaries are bundled for platform: "
+                        + NativeLoader.detectPlatform());
             }
 
             Path tempDir = Files.createTempDirectory("highs-native");
@@ -141,7 +102,49 @@ final class NativeLoader {
         }
     }
 
-    private NativeLoader() {
+    /**
+     * Get the platform-specific library filename.
+     */
+    private static String getLibraryName() {
+
+        String osName = System.getProperty("os.name").toLowerCase();
+
+        if (osName.contains("mac") || osName.contains("darwin")) {
+            return "libhighs.dylib";
+        } else if (osName.contains("linux")) {
+            return "libhighs.so";
+        } else if (osName.contains("windows")) {
+            return "highs.dll";
+        } else {
+            throw new UnsatisfiedLinkError("Unsupported operating system: " + osName);
+        }
     }
+
+    /**
+     * Load the HiGHS native library and return a {@link SymbolLookup} for resolving symbols.
+     * <p>
+     * The library is loaded once and cached. Subsequent calls return the same lookup instance.
+     *
+     * @return symbol lookup for the loaded HiGHS library
+     * @throws UnsatisfiedLinkError if the library cannot be loaded
+     */
+    static synchronized SymbolLookup load() {
+
+        if (LOADED_LOOKUP != null) {
+            return LOADED_LOOKUP;
+        }
+
+        String platform = NativeLoader.detectPlatform();
+        String libraryName = NativeLoader.getLibraryName();
+        String resourcePath = RESOURCE_PREFIX + platform + "/" + libraryName;
+
+        Path tempFile = NativeLoader.extractToTemp(resourcePath, libraryName);
+
+        LOADED_LOOKUP = SymbolLookup.libraryLookup(tempFile, Arena.ofAuto());
+
+        return LOADED_LOOKUP;
+    }
+
+    private NativeLoader() {}
 
 }
