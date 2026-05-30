@@ -1,0 +1,22 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.ojalgo</groupId>
+        <artifactId>ojalgo-extensions</artifactId>
+        <version>3.0.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>ojalgo-ssclp</artifactId>
+    <name>ojAlgo-ssclp</name>
+    <description>ojAlgo and SSC-LP integration</description>
+    <dependencies>
+        <!-- Source: https://mvnrepository.com/artifact/org.ssclab/SSC-LP -->
+        <dependency>
+            <groupId>org.ssclab</groupId>
+            <artifactId>SSC-LP</artifactId>
+            <version>4.7.8</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+</project>
