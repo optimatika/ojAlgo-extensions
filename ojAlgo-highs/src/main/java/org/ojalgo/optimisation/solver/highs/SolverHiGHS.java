@@ -198,6 +198,10 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverHiGHS> {
 
+        private static final boolean ADJUSTED_BOUNDS = false;
+        private static final boolean ADJUSTED_CONSTRAINTS = true;
+        private static final boolean ADJUSTED_OBJECTIVE = true;
+
         Integration() {
             super();
         }
@@ -358,10 +362,6 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
     public static final ExpressionsBasedModel.Integration<SolverHiGHS> INTEGRATION = new Integration();
 
-    private static final boolean ADJUSTED_BOUNDS = false;
-    private static final boolean ADJUSTED_CONSTRAINTS = true;
-    private static final boolean ADJUSTED_OBJECTIVE = true;
-
     static final Configurator DEFAULT = new Configurator();
 
     /**
@@ -484,14 +484,51 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         }
     }
 
-    @Override
-    public boolean updateRange(final int index, final double lower, final double upper) {
+    /**
+     * Masked bulk-update: change the bounds of the columns flagged in {@code mask} (HiGHS
+     * {@code changeColsBoundsByMask}). The bound arrays are full length; only the entries with
+     * {@code mask[i] == true} are applied.
+     * <p>
+     * <b>Use this when</b> the caller already maintains full-length bound vectors plus a parallel "changed"
+     * flag — common in incremental update patterns where it is cheaper to flip a boolean than to compact a
+     * sparse index list. HiGHS still walks all {@code numCol} mask entries, so for very sparse updates
+     * {@link #updateBounds(int[], double[], double[])} is faster.
+     * <p>
+     * All three arrays must be of length {@code numCol} and aligned with the solver's internal column
+     * ordering.
+     * <p>
+     * Compare with:
+     * <ul>
+     * <li>{@link #updateBounds(double[], double[])} — equivalent to an all-true mask, but skips the mask
+     * marshalling.</li>
+     * <li>{@link #updateBounds(int[], double[], double[])} — same selective semantics expressed as a
+     * compacted index list; preferable when the number of changed columns is much smaller than
+     * {@code numCol}.</li>
+     * </ul>
+     *
+     * @param mask  selection mask of length {@code numCol} ({@code true} = update column {@code i})
+     * @param lower new lower bounds, length {@code numCol}
+     * @param upper new upper bounds, length {@code numCol}
+     * @return {@code true} if successfully applied
+     */
+    public boolean updateBounds(final boolean[] mask, final double[] lower, final double[] upper) {
 
-        if (index < 0 || index >= myNumCol) {
+        if (mask.length != myNumCol || lower.length != myNumCol || upper.length != myNumCol) {
             return false;
         }
-        if (HiGHSBindings.changeColBounds(myHighs, index, lower, upper) != HiGHSBindings.STATUS_OK) {
-            return false;
+        if (myNumCol == 0) {
+            return true;
+        }
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment maskSeg = arena.allocate(ValueLayout.JAVA_INT, myNumCol);
+            for (int i = 0; i < myNumCol; i++) {
+                maskSeg.setAtIndex(ValueLayout.JAVA_INT, i, mask[i] ? 1 : 0);
+            }
+            MemorySegment lowerSeg = HiGHSBindings.allocateDoubleArray(arena, lower);
+            MemorySegment upperSeg = HiGHSBindings.allocateDoubleArray(arena, upper);
+            if (HiGHSBindings.changeColsBoundsByMask(myHighs, maskSeg, lowerSeg, upperSeg) != HiGHSBindings.STATUS_OK) {
+                return false;
+            }
         }
         myColDual = null;
         myRowDual = null;
@@ -515,8 +552,8 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
      * {@code numCol}. Convenient when bound vectors are already full-length and a "changed" flag is
      * maintained alongside them.</li>
      * </ul>
-     * Both arrays must be of length {@code numCol} and aligned with the solver's internal column ordering
-     * (as defined by the {@link HiGHSEntityMap}).
+     * Both arrays must be of length {@code numCol} and aligned with the solver's internal column ordering (as
+     * defined by the {@link HiGHSEntityMap}).
      *
      * @param lower new lower bounds for all columns
      * @param upper new upper bounds for all columns
@@ -587,51 +624,14 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         return true;
     }
 
-    /**
-     * Masked bulk-update: change the bounds of the columns flagged in {@code mask} (HiGHS
-     * {@code changeColsBoundsByMask}). The bound arrays are full length; only the entries with
-     * {@code mask[i] == true} are applied.
-     * <p>
-     * <b>Use this when</b> the caller already maintains full-length bound vectors plus a parallel "changed"
-     * flag — common in incremental update patterns where it is cheaper to flip a boolean than to compact a
-     * sparse index list. HiGHS still walks all {@code numCol} mask entries, so for very sparse updates
-     * {@link #updateBounds(int[], double[], double[])} is faster.
-     * <p>
-     * All three arrays must be of length {@code numCol} and aligned with the solver's internal column
-     * ordering.
-     * <p>
-     * Compare with:
-     * <ul>
-     * <li>{@link #updateBounds(double[], double[])} — equivalent to an all-true mask, but skips the mask
-     * marshalling.</li>
-     * <li>{@link #updateBounds(int[], double[], double[])} — same selective semantics expressed as a
-     * compacted index list; preferable when the number of changed columns is much smaller than
-     * {@code numCol}.</li>
-     * </ul>
-     *
-     * @param mask  selection mask of length {@code numCol} ({@code true} = update column {@code i})
-     * @param lower new lower bounds, length {@code numCol}
-     * @param upper new upper bounds, length {@code numCol}
-     * @return {@code true} if successfully applied
-     */
-    public boolean updateBounds(final boolean[] mask, final double[] lower, final double[] upper) {
+    @Override
+    public boolean updateRange(final int index, final double lower, final double upper) {
 
-        if (mask.length != myNumCol || lower.length != myNumCol || upper.length != myNumCol) {
+        if (index < 0 || index >= myNumCol) {
             return false;
         }
-        if (myNumCol == 0) {
-            return true;
-        }
-        try (Arena arena = Arena.ofConfined()) {
-            MemorySegment maskSeg = arena.allocate(ValueLayout.JAVA_INT, myNumCol);
-            for (int i = 0; i < myNumCol; i++) {
-                maskSeg.setAtIndex(ValueLayout.JAVA_INT, i, mask[i] ? 1 : 0);
-            }
-            MemorySegment lowerSeg = HiGHSBindings.allocateDoubleArray(arena, lower);
-            MemorySegment upperSeg = HiGHSBindings.allocateDoubleArray(arena, upper);
-            if (HiGHSBindings.changeColsBoundsByMask(myHighs, maskSeg, lowerSeg, upperSeg) != HiGHSBindings.STATUS_OK) {
-                return false;
-            }
+        if (HiGHSBindings.changeColBounds(myHighs, index, lower, upper) != HiGHSBindings.STATUS_OK) {
+            return false;
         }
         myColDual = null;
         myRowDual = null;
