@@ -367,6 +367,7 @@ public final class SolverORTools implements UpdatableSolver {
             case ABNORMAL:
                 return Optimisation.State.FAILED;
             case UNBOUNDED:
+                return Optimisation.State.UNBOUNDED;
             case INFEASIBLE:
                 return Optimisation.State.INFEASIBLE;
             case FEASIBLE:
@@ -447,7 +448,7 @@ public final class SolverORTools implements UpdatableSolver {
 
         Optimisation.State retState = SolverORTools.translate(status);
 
-        if (retState.isFeasible()) {
+        if (retState.isFeasible() && retState != Optimisation.State.UNBOUNDED) {
 
             mySolutionAvailable = true;
 

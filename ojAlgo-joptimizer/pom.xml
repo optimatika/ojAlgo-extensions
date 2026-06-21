@@ -9,7 +9,7 @@
     <artifactId>ojalgo-joptimizer</artifactId>
     <name>ojAlgo-joptimizer</name>
     <description>ojAlgo and JOptimizer integration</description>
-    <version>3.0.4-SNAPSHOT</version>
+    <version>3.0.4</version>
     <properties></properties>
     <dependencies>
         <!-- https://mvnrepository.com/artifact/com.joptimizer/joptimizer -->

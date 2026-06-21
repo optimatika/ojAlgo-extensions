@@ -306,7 +306,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
                             colUpperSeg, rowLowerSeg, rowUpperSeg, aStartSeg, aIndexSeg, aValueSeg);
                 }
 
-                if (status != HiGHSBindings.STATUS_OK) {
+                if (status == HiGHSBindings.STATUS_ERROR) {
                     HiGHSBindings.destroy(highs);
                     throw new RuntimeException("Failed to pass model to HiGHS, status: " + status);
                 }
@@ -319,7 +319,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
                     status = HiGHSBindings.passHessian(highs, n, mtrxQ.capacity(), HiGHSBindings.HESSIAN_FORMAT_TRIANGULAR, qStartSeg, qIndexSeg, qValueSeg);
 
-                    if (status != HiGHSBindings.STATUS_OK) {
+                    if (status == HiGHSBindings.STATUS_ERROR) {
                         HiGHSBindings.destroy(highs);
                         throw new RuntimeException("Failed to pass Hessian to HiGHS, status: " + status);
                     }

@@ -436,7 +436,7 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
         Optimisation.State state = SolverClarabel4j.translate(status);
 
-        if (state.isFeasible()) {
+        if (state.isFeasible() && state != Optimisation.State.UNBOUNDED) {
             double obj = NaN;
             try {
                 obj = myModel.objVal();
