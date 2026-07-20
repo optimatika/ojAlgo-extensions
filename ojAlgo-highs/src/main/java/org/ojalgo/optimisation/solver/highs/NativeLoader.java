@@ -21,126 +21,103 @@
  */
 package org.ojalgo.optimisation.solver.highs;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.lang.foreign.Arena;
+import java.lang.foreign.Linker;
 import java.lang.foreign.SymbolLookup;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 
 /**
- * Handles loading of the HiGHS native library from bundled resources.
+ * Handles loading of the HiGHS native library from the system.
  * <p>
- * The native library is extracted from the JAR to a temporary directory and loaded via
- * {@link SymbolLookup#libraryLookup(Path, Arena)}. Platform detection is automatic based on system
- * properties.
+ * HiGHS must be installed on the system (e.g. via Homebrew on macOS, or a package manager on Linux). The
+ * library is located by searching well-known installation paths for the current platform.
+ * <p>
+ * If HiGHS is already loaded in the process (e.g. by OR-Tools), the existing symbols are reused to avoid
+ * loading a second copy of the library.
  */
 final class NativeLoader {
 
+    private static final String PROBE_SYMBOL = "Highs_create";
+
     private static volatile SymbolLookup LOADED_LOOKUP;
 
-    private static final String RESOURCE_PREFIX = "/native/";
+    private static SymbolLookup findAlreadyLoaded() {
 
-    /**
-     * Detect the current platform identifier.
-     *
-     * @return platform string like "macos-arm64", "linux-x64", etc.
-     */
-    private static String detectPlatform() {
+        SymbolLookup loaderLookup = SymbolLookup.loaderLookup();
+        if (loaderLookup.find(PROBE_SYMBOL).isPresent()) {
+            return loaderLookup;
+        }
+
+        SymbolLookup defaultLookup = Linker.nativeLinker().defaultLookup();
+        if (defaultLookup.find(PROBE_SYMBOL).isPresent()) {
+            return defaultLookup;
+        }
+
+        return null;
+    }
+
+    private static Path findLibrary() {
 
         String osName = System.getProperty("os.name").toLowerCase();
         String osArch = System.getProperty("os.arch").toLowerCase();
 
-        String os;
+        String[] searchPaths;
+
         if (osName.contains("mac") || osName.contains("darwin")) {
-            os = "macos";
+
+            String brewPrefix = "aarch64".equals(osArch) || "arm64".equals(osArch) ? "/opt/homebrew" : "/usr/local";
+
+            searchPaths = new String[]{
+                    brewPrefix + "/opt/highs/lib/libhighs.dylib",
+                    brewPrefix + "/lib/libhighs.dylib",
+                    "/usr/local/lib/libhighs.dylib"
+            };
+
         } else if (osName.contains("linux")) {
-            os = "linux";
+
+            searchPaths = new String[]{
+                    "/usr/lib/libhighs.so",
+                    "/usr/local/lib/libhighs.so",
+                    "/usr/lib/x86_64-linux-gnu/libhighs.so",
+                    "/usr/lib/aarch64-linux-gnu/libhighs.so"
+            };
+
         } else if (osName.contains("windows")) {
-            os = "windows";
+
+            searchPaths = new String[]{
+                    "C:\\Program Files\\HiGHS\\bin\\highs.dll"
+            };
+
         } else {
             throw new UnsatisfiedLinkError("Unsupported operating system: " + osName);
         }
 
-        String arch;
-        if ("aarch64".equals(osArch) || "arm64".equals(osArch)) {
-            arch = "arm64";
-        } else if ("amd64".equals(osArch) || "x86_64".equals(osArch)) {
-            arch = "x64";
-        } else if ("ppc64le".equals(osArch)) {
-            arch = "ppc64le";
-        } else {
-            throw new UnsatisfiedLinkError("Unsupported architecture: " + osArch);
-        }
-
-        return os + "-" + arch;
-    }
-
-    /**
-     * Extract the native library from JAR resources to a temporary file.
-     */
-    private static Path extractToTemp(final String resourcePath, final String libraryName) {
-
-        try (InputStream in = NativeLoader.class.getResourceAsStream(resourcePath)) {
-            if (in == null) {
-                throw new UnsatisfiedLinkError("Native library not found in JAR: " + resourcePath + ". Ensure HiGHS binaries are bundled for platform: "
-                        + NativeLoader.detectPlatform());
+        for (String path : searchPaths) {
+            Path candidate = Path.of(path);
+            if (Files.exists(candidate)) {
+                return candidate;
             }
-
-            Path tempDir = Files.createTempDirectory("highs-native");
-            Path tempFile = tempDir.resolve(libraryName);
-
-            Files.copy(in, tempFile, StandardCopyOption.REPLACE_EXISTING);
-
-            tempFile.toFile().deleteOnExit();
-            tempDir.toFile().deleteOnExit();
-
-            return tempFile;
-        } catch (IOException e) {
-            throw new UnsatisfiedLinkError("Failed to extract native library: " + e.getMessage());
         }
+
+        throw new UnsatisfiedLinkError("HiGHS library not found. Install HiGHS on the system (e.g. 'brew install highs' on macOS).");
     }
 
-    /**
-     * Get the platform-specific library filename.
-     */
-    private static String getLibraryName() {
-
-        String osName = System.getProperty("os.name").toLowerCase();
-
-        if (osName.contains("mac") || osName.contains("darwin")) {
-            return "libhighs.dylib";
-        } else if (osName.contains("linux")) {
-            return "libhighs.so";
-        } else if (osName.contains("windows")) {
-            return "highs.dll";
-        } else {
-            throw new UnsatisfiedLinkError("Unsupported operating system: " + osName);
-        }
-    }
-
-    /**
-     * Load the HiGHS native library and return a {@link SymbolLookup} for resolving symbols.
-     * <p>
-     * The library is loaded once and cached. Subsequent calls return the same lookup instance.
-     *
-     * @return symbol lookup for the loaded HiGHS library
-     * @throws UnsatisfiedLinkError if the library cannot be loaded
-     */
     static synchronized SymbolLookup load() {
 
         if (LOADED_LOOKUP != null) {
             return LOADED_LOOKUP;
         }
 
-        String platform = NativeLoader.detectPlatform();
-        String libraryName = NativeLoader.getLibraryName();
-        String resourcePath = RESOURCE_PREFIX + platform + "/" + libraryName;
+        SymbolLookup alreadyLoaded = NativeLoader.findAlreadyLoaded();
+        if (alreadyLoaded != null) {
+            LOADED_LOOKUP = alreadyLoaded;
+            return LOADED_LOOKUP;
+        }
 
-        Path tempFile = NativeLoader.extractToTemp(resourcePath, libraryName);
+        Path libraryPath = NativeLoader.findLibrary();
 
-        LOADED_LOOKUP = SymbolLookup.libraryLookup(tempFile, Arena.ofAuto());
+        LOADED_LOOKUP = SymbolLookup.libraryLookup(libraryPath, Arena.ofAuto());
 
         return LOADED_LOOKUP;
     }

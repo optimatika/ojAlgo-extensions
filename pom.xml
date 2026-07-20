@@ -20,6 +20,8 @@
         <module>ojAlgo-ortools</module>
         <module>ojAlgo-rocksdb</module>
         <module>ojAlgo-ssclp</module>
+        <module>ojAlgo-scip</module>
+        <module>ojAlgo-clarabel</module>
     </modules>
     <licenses>
         <license>
