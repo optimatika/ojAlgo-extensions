@@ -133,18 +133,18 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
             Set<OptimizationData> optimisationdata = this.toOptimizationData(objective, model.getOptimisationSense() == Optimisation.Sense.MAX, equalities,
                     ranges, anyVariableNegative);
 
-            return this.newSolver(optimisationdata, model.options);
+            return this.newSolver(model, optimisationdata);
         }
-
-        abstract S newSolver(Set<OptimizationData> optimisationdata, Optimisation.Options options);
-
-        abstract Set<OptimizationData> toOptimizationData(TwiceDifferentiable<Double> objective, boolean maximize, List<ConstraintTemplate> equalities,
-                List<ConstraintTemplate> ranges, boolean negative);
 
         @Override
         protected final Optimisation.Sense getSolverSense() {
             return null;
         }
+
+        abstract S newSolver(ExpressionsBasedModel model, Set<OptimizationData> optimisationdata);
+
+        abstract Set<OptimizationData> toOptimizationData(TwiceDifferentiable<Double> objective, boolean maximize, List<ConstraintTemplate> equalities,
+                List<ConstraintTemplate> ranges, boolean negative);
 
     }
 
@@ -153,7 +153,9 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
     private final Optimisation.Options myOptions;
 
     AbstractImpl(final Set<OptimizationData> modelData, final Optimisation.Options options, final Configurator<S> configurator) {
+
         super();
+
         myModelData = modelData;
         myOptions = options;
         myConfigurator = configurator;

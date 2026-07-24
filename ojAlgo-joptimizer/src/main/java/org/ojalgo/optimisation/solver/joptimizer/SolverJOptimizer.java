@@ -90,6 +90,8 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         @Override
         public SolverJOptimizer build(final ExpressionsBasedModel model) {
 
+            Configurator configurator = model.getConfigurator(DEFAULT);
+
             boolean max = model.getOptimisationSense() == Optimisation.Sense.MAX;
 
             OptimizationRequest request;
@@ -243,7 +245,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                 }
             }
 
-            return new SolverJOptimizer(request, model.options);
+            return new SolverJOptimizer(configurator, request, model.options);
         }
 
         @Override
@@ -321,11 +323,15 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         return SolverJOptimizer.toFunction(expression, dim, false, model, -expression.getUpperLimit(true, Double.POSITIVE_INFINITY));
     }
 
+    private final Configurator myConfigurator;
     private final Optimisation.Options myOptions;
     private final OptimizationRequest myRequest;
 
-    SolverJOptimizer(final OptimizationRequest request, final Optimisation.Options options) {
+    SolverJOptimizer(final Configurator configurator, final OptimizationRequest request, final Optimisation.Options options) {
+
         super();
+
+        myConfigurator = configurator;
         myRequest = request;
         myOptions = options;
     }
@@ -333,11 +339,9 @@ public final class SolverJOptimizer implements Optimisation.Solver {
     @Override
     public Result solve(final Result kickStarter) {
 
-        Configurator configurator = myOptions.getConfigurator(Configurator.class).orElse(DEFAULT);
+        OptimizationRequestHandler handler = myConfigurator.newOptimizationRequestHandler(myRequest);
 
-        OptimizationRequestHandler handler = configurator.newOptimizationRequestHandler(myRequest);
-
-        configurator.configure(myRequest, handler, myOptions);
+        myConfigurator.configure(myRequest, handler, myOptions);
 
         Optimisation.State retState = Optimisation.State.UNEXPLORED;
         Access1D<Double> retSolution = null;

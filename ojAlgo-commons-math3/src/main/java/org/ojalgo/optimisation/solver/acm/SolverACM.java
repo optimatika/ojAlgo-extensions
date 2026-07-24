@@ -72,6 +72,8 @@ public final class SolverACM implements Optimisation.Solver {
         @Override
         public SolverACM build(final ExpressionsBasedModel model) {
 
+            Configurator configurator = model.getConfigurator(DEFAULT);
+
             Set<OptimizationData> optimizationData = new HashSet<>();
 
             List<Variable> variables = model.getVariables();
@@ -134,7 +136,7 @@ public final class SolverACM implements Optimisation.Solver {
 
             optimizationData.add(new NonNegativeConstraint(!anyVariableNegative));
 
-            return new SolverACM(optimizationData, model.options);
+            return new SolverACM(configurator, optimizationData, model.options);
         }
 
         @Override
@@ -153,19 +155,21 @@ public final class SolverACM implements Optimisation.Solver {
 
     static final Configurator DEFAULT = new Configurator();
 
+    private final Configurator myConfigurator;
     private final Set<OptimizationData> myModelData;
     private final Optimisation.Options myOptions;
 
-    SolverACM(final Set<OptimizationData> modelData, final Optimisation.Options options) {
+    SolverACM(final Configurator configurator, final Set<OptimizationData> modelData, final Optimisation.Options options) {
+
         super();
+
+        myConfigurator = configurator;
         myModelData = modelData;
         myOptions = options;
     }
 
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
-
-        Configurator configurator = myOptions.getConfigurator(Configurator.class).orElse(DEFAULT);
 
         //          InitialGuess guess = new InitialGuess(kickStarter.toRawCopy1D());
         //
@@ -177,7 +181,7 @@ public final class SolverACM implements Optimisation.Solver {
 
         try {
 
-            SimplexSolver solver = configurator.newSimplexSolver(myOptions);
+            SimplexSolver solver = myConfigurator.newSimplexSolver(myOptions);
 
             PointValuePair solutionAndValue = solver.optimize(myModelData.toArray(new OptimizationData[myModelData.size()]));
 

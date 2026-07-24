@@ -116,7 +116,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
             try {
 
-                Configurator configurator = model.options.getConfigurator(Configurator.class).orElse(DEFAULT);
+                Configurator configurator = model.getConfigurator(DEFAULT);
 
                 IloCplex solver = configurator.newIloCplex(model.options);
 
@@ -194,11 +194,6 @@ public final class SolverCPLEX implements Optimisation.Solver {
             return true;
         }
 
-        @Override
-        protected Optimisation.Sense getSolverSense() {
-            return null;
-        }
-
         private void copyLinear(final Expression source, final IloNumVar[] variables, final IloLinearNumExpr destination) throws IloException {
             for (IntIndex key : source.getLinearKeySet()) {
                 destination.addTerm(source.doubleValue(key, ADJUST), variables[key.index]);
@@ -209,6 +204,11 @@ public final class SolverCPLEX implements Optimisation.Solver {
             for (IntRowColumn key : source.getQuadraticKeySet()) {
                 destination.addTerm(source.doubleValue(key, ADJUST), variables[key.row], variables[key.column]);
             }
+        }
+
+        @Override
+        protected Optimisation.Sense getSolverSense() {
+            return null;
         }
 
         IloNumExpr buildExpression(final Expression expression, final IloCplex cplex, final IloNumVar[] variables) throws IloException {

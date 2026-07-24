@@ -25,6 +25,7 @@ import java.util.Set;
 
 import org.hipparchus.optim.OptimizationData;
 import org.hipparchus.optim.nonlinear.vector.constrained.SQPOptimizerGM;
+import org.ojalgo.optimisation.ExpressionsBasedModel;
 
 public final class SQPOptimizerImplGM extends ConvexImpl<SQPOptimizerGM> {
 
@@ -40,8 +41,8 @@ public final class SQPOptimizerImplGM extends ConvexImpl<SQPOptimizerGM> {
     static final class Integration extends ConvexImpl.Integration<SQPOptimizerImplGM> {
 
         @Override
-        SQPOptimizerImplGM newSolver(final Set<OptimizationData> optimisationdata, final Options options) {
-            return new SQPOptimizerImplGM(optimisationdata, options);
+        SQPOptimizerImplGM newSolver(final ExpressionsBasedModel model, final Set<OptimizationData> optimisationdata) {
+            return new SQPOptimizerImplGM(optimisationdata, model.options, model.getConfigurator(DEFAULT));
         }
 
     }
@@ -50,8 +51,9 @@ public final class SQPOptimizerImplGM extends ConvexImpl<SQPOptimizerGM> {
 
     static final Configurator DEFAULT = new Configurator();
 
-    SQPOptimizerImplGM(final Set<OptimizationData> modelData, final Options options) {
-        super(modelData, options, options.getConfigurator(Configurator.class).orElse(DEFAULT));
+    SQPOptimizerImplGM(final Set<OptimizationData> modelData, final Options options,
+            final org.ojalgo.optimisation.solver.hipparchus.AbstractImpl.Configurator<SQPOptimizerGM> configurator) {
+        super(modelData, options, configurator);
     }
 
 }

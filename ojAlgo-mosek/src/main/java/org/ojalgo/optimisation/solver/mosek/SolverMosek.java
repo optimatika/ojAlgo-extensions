@@ -92,7 +92,7 @@ public final class SolverMosek implements Optimisation.Solver {
 
             Env environment = this.getEnvironment();
 
-            Configurator configurator = options.getConfigurator(Configurator.class).orElse(DEFAULT);
+            Configurator configurator = model.getConfigurator(DEFAULT);
 
             List<Variable> freeVariables = model.getFreeVariables();
             Set<IntIndex> fixedVariables = model.getFixedVariables();
@@ -139,11 +139,6 @@ public final class SolverMosek implements Optimisation.Solver {
             return ExpressionsBasedModel.Integration.reduceFullToFree(modelState, model, ArrayR064.FACTORY);
         }
 
-        @Override
-        protected Optimisation.Sense getSolverSense() {
-            return null;
-        }
-
         private void dispose(final Env env) {
             env.dispose();
         }
@@ -160,6 +155,11 @@ public final class SolverMosek implements Optimisation.Solver {
             });
 
             return env;
+        }
+
+        @Override
+        protected Optimisation.Sense getSolverSense() {
+            return null;
         }
 
         Env getEnvironment() {

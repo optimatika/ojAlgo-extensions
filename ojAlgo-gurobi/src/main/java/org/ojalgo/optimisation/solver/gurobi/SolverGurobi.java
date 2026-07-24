@@ -94,7 +94,7 @@ public final class SolverGurobi implements Optimisation.Solver {
 
             GRBEnv environment = this.getEnvironment();
 
-            Configurator configurator = model.options.getConfigurator(Configurator.class).orElse(DEFAULT);
+            Configurator configurator = model.getConfigurator(DEFAULT);
 
             try {
 
@@ -181,11 +181,6 @@ public final class SolverGurobi implements Optimisation.Solver {
             return ExpressionsBasedModel.Integration.reduceFullToFree(modelState, model, ArrayR064.FACTORY);
         }
 
-        @Override
-        protected Optimisation.Sense getSolverSense() {
-            return null;
-        }
-
         private void dispose(final GRBEnv env) {
             try {
                 env.dispose();
@@ -200,6 +195,11 @@ public final class SolverGurobi implements Optimisation.Solver {
             } catch (GRBException cause) {
                 throw new RuntimeException(cause);
             }
+        }
+
+        @Override
+        protected Optimisation.Sense getSolverSense() {
+            return null;
         }
 
         GRBEnv getEnvironment() {

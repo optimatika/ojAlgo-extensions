@@ -25,6 +25,7 @@ import java.util.Set;
 
 import org.hipparchus.optim.OptimizationData;
 import org.hipparchus.optim.nonlinear.vector.constrained.ADMMQPOptimizer;
+import org.ojalgo.optimisation.ExpressionsBasedModel;
 
 public final class ADMMQPOptimizerImpl extends ConvexImpl<ADMMQPOptimizer> {
 
@@ -40,8 +41,8 @@ public final class ADMMQPOptimizerImpl extends ConvexImpl<ADMMQPOptimizer> {
     static final class Integration extends ConvexImpl.Integration<ADMMQPOptimizerImpl> {
 
         @Override
-        ADMMQPOptimizerImpl newSolver(final Set<OptimizationData> optimisationdata, final Options options) {
-            return new ADMMQPOptimizerImpl(optimisationdata, options);
+        ADMMQPOptimizerImpl newSolver(final ExpressionsBasedModel model, final Set<OptimizationData> optimisationdata) {
+            return new ADMMQPOptimizerImpl(optimisationdata, model.options, model.getConfigurator(DEFAULT));
         }
 
     }
@@ -50,8 +51,9 @@ public final class ADMMQPOptimizerImpl extends ConvexImpl<ADMMQPOptimizer> {
 
     static final Configurator DEFAULT = new Configurator();
 
-    ADMMQPOptimizerImpl(final Set<OptimizationData> modelData, final Options options) {
-        super(modelData, options, options.getConfigurator(Configurator.class).orElse(DEFAULT));
+    ADMMQPOptimizerImpl(final Set<OptimizationData> modelData, final Options options,
+            final org.ojalgo.optimisation.solver.hipparchus.AbstractImpl.Configurator<ADMMQPOptimizer> configurator) {
+        super(modelData, options, configurator);
     }
 
 }
