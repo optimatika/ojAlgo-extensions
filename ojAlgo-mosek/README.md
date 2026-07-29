@@ -1,9 +1,8 @@
-# ojAlgo Mosek integration
+# ojAlgo-mosek
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-mosek/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-mosek/)
 
 ```xml
-<!-- https://mvnrepository.com/artifact/org.ojalgo/ojalgo-mosek -->
 <dependency>
     <groupId>org.ojalgo</groupId>
     <artifactId>ojalgo-mosek</artifactId>
@@ -11,40 +10,33 @@
 </dependency>
 ```
 
-https://www.mosek.com
-
-Use [Mosek](https://www.mosek.com) from within ojAlgo – use Mosek as a solver from ExpressionsBasedModel.
-
-When/if ojAlgo's built-in optimisation solvers are not capable of solving your model (fast enough) it is possible to plug in other solvers. Mosek is one such solver where an integration already exists.
+ojAlgo integration with [Mosek](https://www.mosek.com). Use Mosek as a solver from `ExpressionsBasedModel`.
 
 ## Prerequisites
 
-* Basic knowledge of how to use ojAlgo to model and solve optimisation problems
-* Mosek is installed and functional
-
-## This is what you need to do
-
-* Add this dependency to your project.
-* That POM declares properties that are paths to where the jar and native binaries are installed. You need to set these properties to match your installation:
+* Mosek is installed and functional.
+* The POM declares properties for the Mosek jar and native library paths. You need to set these to match your installation:
 
 ```xml
 <properties>
-    <!-- You have to change this! -->
-    <path.installation.mosek>/Users/apete/Applications/mosek</path.installation.mosek>
-    <path.jar.mosek>${path.installation.mosek}/7/tools/platform/osx64x86/bin/mosek.jar</path.jar.mosek>
-    <path.native.mosek>${path.installation.mosek}/7/tools/platform/osx64x86/bin</path.native.mosek>
+    <path.installation.mosek>/path/to/mosek</path.installation.mosek>
+    <path.jar.mosek>${path.installation.mosek}/tools/platform/your-platform/bin/mosek.jar</path.jar.mosek>
+    <path.native.mosek>${path.installation.mosek}/tools/platform/your-platform/bin</path.native.mosek>
 </properties>
 ```
-* When you run your program the JVM property 'java.library.path' must contain the path to the Mosek binary. In my case the path is: '/Users/apete/Applications/mosek/7/tools/platform/osx64x86/bin'
 
-* To configure ExpressionsBasedModel to use Mosek rather than ojAlgo's built-in solvers execute this line of code:
+* When you run your program, the JVM property `java.library.path` must contain the path to the Mosek native library.
 
-```java
-ExpressionsBasedModel.addPreferredSolver(SolverMosek.INTEGRATION);
-```
-* If you only want to use Mosek when the built-in solvers cannot handle a particular model you should instead do this:
+## Usage
 
 ```java
-ExpressionsBasedModel.addFallbackSolver(SolverMosek.INTEGRATION);
+Optimisation.Environment environment = Optimisation.newEnvironment();
+environment.addIntegration(SolverMosek.INTEGRATION);
+ExpressionsBasedModel model = environment.newModel();
 ```
 
+or
+
+```java
+model.minimise(SolverMosek.INTEGRATION);
+```

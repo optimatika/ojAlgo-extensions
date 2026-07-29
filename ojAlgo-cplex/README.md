@@ -1,9 +1,8 @@
-# ojAlgo CPLEX integration
+# ojAlgo-cplex
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-cplex/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-cplex/)
 
 ```xml
-<!-- https://mvnrepository.com/artifact/org.ojalgo/ojalgo-cplex -->
 <dependency>
     <groupId>org.ojalgo</groupId>
     <artifactId>ojalgo-cplex</artifactId>
@@ -11,34 +10,33 @@
 </dependency>
 ```
 
-https://www.ibm.com/us-en/marketplace/ibm-ilog-cplex
-
-Use [CPLEX](https://www.ibm.com/products/ilog-cplex-optimization-studio) from within ojAlgo – use CPLEX as a solver from ExpressionsBasedModel.
-
-When/if ojAlgo's built-in optimisation solvers are not capable of solving your model (fast enough) it is possible to plug in other solvers. CPLEX is one such solver where an integration already exists.
+ojAlgo integration with [IBM ILOG CPLEX](https://www.ibm.com/products/ilog-cplex-optimization-studio). Use CPLEX as a solver from `ExpressionsBasedModel`.
 
 ## Prerequisites
 
-* Basic knowledge of how to use ojAlgo to model and solve optimisation problems
-* CPLEX is installed and functional
-
-## This is what you need to do
-
-* Add this dependency to your project.
-* That POM declares properties that are paths to where the jar and native binaries are installed. You need to set these properties to match your installation:
+* CPLEX is installed and functional.
+* The POM declares properties for the CPLEX jar and native library paths. You need to set these to match your installation:
 
 ```xml
 <properties>
-    <!-- You have to change this! -->
-    <path.installation.cplex>/Applications/CPLEX_Studio_Community128/cplex</path.installation.cplex>
+    <path.installation.cplex>/path/to/cplex</path.installation.cplex>
     <path.jar.cplex>${path.installation.cplex}/lib/cplex.jar</path.jar.cplex>
-    <path.native.cplex>${path.installation.cplex}/bin/x86-64_osx</path.native.cplex>
+    <path.native.cplex>${path.installation.cplex}/bin/your-platform</path.native.cplex>
 </properties>
 ```
-* When you run your program the JVM property 'java.library.path' must contain the path to the CPLEX binary. In my case the path is: '/Applications/CPLEX_Studio_Community128/cplex/bin/x86-64_osx'
 
-* To configure ExpressionsBasedModel to use CPLEX rather than ojAlgo's built-in solvers execute this line of code:
+* When you run your program, the JVM property `java.library.path` must contain the path to the CPLEX native library.
+
+## Usage
 
 ```java
-ExpressionsBasedModel.addIntegration(SolverCPLEX.INTEGRATION);
+Optimisation.Environment environment = Optimisation.newEnvironment();
+environment.addIntegration(SolverCPLEX.INTEGRATION);
+ExpressionsBasedModel model = environment.newModel();
+```
+
+or
+
+```java
+model.minimise(SolverCPLEX.INTEGRATION);
 ```

@@ -9,6 +9,7 @@
     </parent>
     <artifactId>ojalgo-clarabel4j</artifactId>
     <name>ojAlgo-clarabel4j</name>
+    <description>ojAlgo and Clarabel integration (via clarabel4j)</description>
     <version>1.0.0</version>
     <dependencies>
         <dependency>

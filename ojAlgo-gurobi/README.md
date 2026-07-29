@@ -1,9 +1,8 @@
-# ojAlgo Gurobi integration
+# ojAlgo-gurobi
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-gurobi/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-gurobi/)
 
 ```xml
-<!-- https://mvnrepository.com/artifact/org.ojalgo/ojalgo-gurobi -->
 <dependency>
     <groupId>org.ojalgo</groupId>
     <artifactId>ojalgo-gurobi</artifactId>
@@ -11,40 +10,23 @@
 </dependency>
 ```
 
-http://www.gurobi.com
-
-Use [Gurobi](http://www.gurobi.com) from within ojAlgo – use Gurobi as a solver from ExpressionsBasedModel.
-
-When/if ojAlgo's built-in optimisation solvers are not capable of solving your model (fast enough) it is possible to plug in other solvers. Gurobi is one such solver where an integration already exists.
+ojAlgo integration with [Gurobi](https://www.gurobi.com). Use Gurobi as a solver from `ExpressionsBasedModel`.
 
 ## Prerequisites
 
-* Basic knowledge of how to use ojAlgo to model and solve optimisation problems
-* Gurobi is installed and functional
+* Gurobi is installed and functional.
+* When you run your program, the JVM property `java.library.path` must contain the path to the Gurobi native library.
 
-## This is what you need to do
-
-* Add this dependency to your project.
-* That POM declares properties that are paths to where the jar and native binaries are installed. You need to set these properties to match your installation:
-
-```xml
-<properties>
-    <!-- You have to change this! -->
-    <path.installation.gurobi>/Library/gurobi751</path.installation.gurobi>
-    <path.jar.gurobi>${path.installation.gurobi}/mac64/lib/gurobi.jar</path.jar.gurobi>
-    <path.native.gurobi>${path.installation.gurobi}/mac64/bin</path.native.gurobi>
-</properties>
-```
-* When you run your program the JVM property 'java.library.path' must contain the path to the Gurobi binary. In my case the path is: '/Library/gurobi751/mac64/bin'
-
-* To configure ExpressionsBasedModel to use Gurobi rather than ojAlgo's built-in solvers execute this line of code:
+## Usage
 
 ```java
-ExpressionsBasedModel.addPreferredSolver(SolverGurobi.INTEGRATION);
+Optimisation.Environment environment = Optimisation.newEnvironment();
+environment.addIntegration(SolverGurobi.INTEGRATION);
+ExpressionsBasedModel model = environment.newModel();
 ```
-* If you only want to use Gurobi when the built-in solvers cannot handle a particular model you should instead do this:
+
+or
 
 ```java
-ExpressionsBasedModel.addFallbackSolver(SolverGurobi.INTEGRATION);
+model.minimise(SolverGurobi.INTEGRATION);
 ```
-

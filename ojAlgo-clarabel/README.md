@@ -1,5 +1,15 @@
 # ojAlgo-clarabel
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-clarabel/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-clarabel/)
+
+```xml
+<dependency>
+    <groupId>org.ojalgo</groupId>
+    <artifactId>ojalgo-clarabel</artifactId>
+    <version>X.Y.Z</version>
+</dependency>
+```
+
 ojAlgo integration with the [Clarabel](https://github.com/oxfordcontrol/Clarabel.rs) solver using Java's Foreign Function & Memory API (Panama FFI).
 
 Clarabel is an interior-point solver for convex conic programs supporting LP, QP, and QCQP.
@@ -25,8 +35,13 @@ The script clones [Clarabel.cpp](https://github.com/oxfordcontrol/Clarabel.cpp) 
 ## Usage
 
 ```java
-ExpressionsBasedModel model = new ExpressionsBasedModel();
-// ... build model ...
-model.addIntegration(SolverClarabel.INTEGRATION);
-Optimisation.Result result = model.minimise();
+Optimisation.Environment environment = Optimisation.newEnvironment();
+environment.addIntegration(SolverClarabel.INTEGRATION);
+ExpressionsBasedModel model = environment.newModel();
+```
+
+or
+
+```java
+model.minimise(SolverClarabel.INTEGRATION);
 ```
