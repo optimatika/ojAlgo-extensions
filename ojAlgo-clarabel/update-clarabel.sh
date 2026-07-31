@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)/Clarabel.cpp"
+# A sibling of the ojAlgo-extensions repository, not inside it - cloning into the working tree would
+# leave an untracked third-party repository sitting in the middle of this one.
+REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)/Clarabel.cpp"
 INSTALL_DIR="/usr/local/lib"
 
 if [ ! -d "${REPO_DIR}" ]; then

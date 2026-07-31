@@ -32,6 +32,7 @@ import java.util.List;
 import org.ojalgo.array.SparseArray;
 import org.ojalgo.array.SparseArray.NonzeroView;
 import org.ojalgo.matrix.decomposition.Cholesky;
+import org.ojalgo.matrix.decomposition.Eigenvalue;
 import org.ojalgo.matrix.store.ColumnsSupplier;
 import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.PhysicalStore;
@@ -47,8 +48,10 @@ import org.ojalgo.type.FloatingPointReceptacle;
 /**
  * Clarabel solver integration for ojAlgo using Panama FFI.
  * <p>
- * Clarabel is an interior-point solver for convex conic programs supporting LP, QP, SOCP, and SDP. This
- * integration calls the Clarabel C library directly via the Foreign Function &amp; Memory API.
+ * Clarabel is an interior-point solver for convex conic programs. This integration calls the Clarabel C
+ * library directly via the Foreign Function &amp; Memory API, and covers LP, QP and (convex) QCQP - the
+ * latter by translating quadratic constraints into second-order cones. Clarabel's semidefinite cones are not
+ * used.
  *
  * @see <a href="https://github.com/oxfordcontrol/Clarabel.rs">Clarabel.rs</a>
  */
@@ -119,7 +122,7 @@ public final class SolverClarabel implements Optimisation.Solver {
                     aRowDim++;
                     count++;
                 }
-                coneSpecs.add(new int[]{ ClarabelBindings.CONE_ZERO, count });
+                coneSpecs.add(new int[] { ClarabelBindings.CONE_ZERO, count });
             }
 
             // Linear inequality constraints + variable bounds -> NonnegativeCone
@@ -173,15 +176,15 @@ public final class SolverClarabel implements Optimisation.Solver {
                 }
             }
             if (nnCount > 0) {
-                coneSpecs.add(new int[]{ ClarabelBindings.CONE_NONNEGATIVE, nnCount });
+                coneSpecs.add(new int[] { ClarabelBindings.CONE_NONNEGATIVE, nnCount });
             }
 
             // Quadratic constraints -> SecondOrderCone
             Expression[] quadExprs = model.constraints().filter(Expression::isAnyQuadraticFactorNonZero).toArray(Expression[]::new);
             for (Expression expression : quadExprs) {
-                int socRows = SolverClarabel.addSecondOrderCone(expression, aColumns, bValues, aRowDim, aColDim, model);
+                int socRows = SolverClarabel.addSecondOrderCone(expression, aColumns, bValues, aRowDim, aColDim);
                 if (socRows > 0) {
-                    coneSpecs.add(new int[]{ ClarabelBindings.CONE_SECOND_ORDER, socRows });
+                    coneSpecs.add(new int[] { ClarabelBindings.CONE_SECOND_ORDER, socRows });
                     aRowDim += socRows;
                 }
             }
@@ -232,7 +235,7 @@ public final class SolverClarabel implements Optimisation.Solver {
                     int[] spec = coneSpecs.get(i);
                     MemorySegment slot = conesSeg.asSlice(i * ClarabelBindings.CONE_LAYOUT.byteSize(), ClarabelBindings.CONE_LAYOUT.byteSize());
                     slot.set(ValueLayout.JAVA_INT, 0, spec[0]);
-                    slot.set(ValueLayout.JAVA_LONG, 8, (long) spec[1]);
+                    slot.set(ValueLayout.JAVA_LONG, 8, spec[1]);
                 }
 
                 // Get default settings and configure
@@ -250,6 +253,13 @@ public final class SolverClarabel implements Optimisation.Solver {
             }
         }
 
+        /**
+         * Clarabel handles any continuous convex model - LP, QP and QCQP - but not integer variables.
+         * <p>
+         * Convexity of a quadratic constraint cannot be determined without factorising its quadratic form,
+         * which is too expensive to do here. It is checked when the solver is built, and a non-convex
+         * constraint is reported by {@link #build(ExpressionsBasedModel)} throwing.
+         */
         @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
             return !model.isAnyVariableInteger();
@@ -268,23 +278,42 @@ public final class SolverClarabel implements Optimisation.Solver {
 
     static final Configurator DEFAULT = new Configurator();
 
-    private static int addSecondOrderCone(final Expression constraint, final ColumnsSupplier<Double> aColumns,
-            final FloatingPointReceptacle bValues, int aRowDim, final int aColDim, final ExpressionsBasedModel model) {
+    /**
+     * Model a quadratic constraint x'Qx + c'x &lt;= bound as a second-order cone.
+     * <p>
+     * With Q factorised as M'M (so x'Qx = ||Mx||²) and t = bound - c'x, the constraint ||Mx||² &lt;= t is
+     * equivalent to ||(2Mx, t-1)||₂ &lt;= t+1. Clarabel expects s = b - Ax in the cone, with s₁ &gt;=
+     * ||s₂..||, which gives these rows:
+     * <ol>
+     * <li>s₁ = (bound + 1) - c'x
+     * <li>s₂ = (bound - 1) - c'x
+     * <li>s₃.. = -2Mx
+     * </ol>
+     * Note that this also enforces t &gt;= 0, as it must, since x'Qx is non-negative for convex Q.
+     *
+     * @return the number of rows added (the cone dimension)
+     */
+    private static int addSecondOrderCone(final Expression constraint, final ColumnsSupplier<Double> aColumns, final FloatingPointReceptacle bValues,
+            final int aRowDim, final int aColDim) {
 
         double ub = constraint.getUpperLimit(ADJUSTED, POSITIVE_INFINITY);
         double lb = constraint.getLowerLimit(ADJUSTED, NEGATIVE_INFINITY);
 
-        double bound;
-        boolean negate;
-        if (ub < POSITIVE_INFINITY) {
-            bound = ub;
-            negate = false;
-        } else if (lb > NEGATIVE_INFINITY) {
-            bound = lb;
-            negate = true;
-        } else {
+        boolean hasUpper = ub < POSITIVE_INFINITY;
+        boolean hasLower = lb > NEGATIVE_INFINITY;
+
+        if (!hasUpper && !hasLower) {
             return 0;
         }
+
+        if (hasUpper && hasLower) {
+            throw new IllegalArgumentException("Clarabel needs convex quadratic constraints, and '" + constraint.getName()
+                    + "' is two-sided (or an equality) - the region between two quadratic limits is not convex");
+        }
+
+        // Model as x'Qx + c'x <= bound, negating the coefficients of a lower-limited constraint
+        boolean negate = !hasUpper;
+        double bound = negate ? -lb : ub;
 
         List<Integer> varIdx = new ArrayList<>();
         for (IntRowColumn key : constraint.getQuadraticKeySet()) {
@@ -313,31 +342,37 @@ public final class SolverClarabel implements Optimisation.Solver {
             qStore.add(j, i, val);
         }
 
-        Cholesky<Double> cholesky = Cholesky.R064.make(qStore);
-        if (!cholesky.compute(qStore)) {
-            return 0;
-        }
-        MatrixStore<Double> lStore = cholesky.getL();
-
-        bValues.append(Math.sqrt(negate ? -bound : bound));
+        MatrixStore<Double> mtrxM = SolverClarabel.factorise(qStore, constraint);
+        int mRows = mtrxM.getRowDim();
 
         SolverClarabel.ensureColumns(aColumns, aColDim);
 
-        int rowsInA = 0;
-        for (int i = 0; i < dim; i++) {
-            int row = aRowDim + 1 + rowsInA;
+        // The two rows carrying t = bound - c'x. Both get the same linear coefficients; they differ only
+        // in the constant, which is where the +1 / -1 of the reformulation goes.
+        for (IntIndex key : constraint.getLinearKeySet()) {
+            double val = constraint.doubleValue(key, ADJUSTED);
+            if (negate) {
+                val = -val;
+            }
+            aColumns.add(aRowDim, key.index, val);
+            aColumns.add(aRowDim + 1, key.index, val);
+        }
+        bValues.append(bound + ONE);
+        bValues.append(bound - ONE);
+
+        for (int i = 0; i < mRows; i++) {
+            int row = aRowDim + 2 + i;
             for (int j = 0; j < dim; j++) {
-                double lij = lStore.doubleValue(i, j);
-                if (lij != ZERO) {
-                    int col = varIdx.get(j);
-                    aColumns.add(row, col, lij);
+                double mij = mtrxM.doubleValue(i, j);
+                if (mij != ZERO) {
+                    int col = varIdx.get(j).intValue();
+                    aColumns.add(row, col, TWO * mij);
                 }
             }
             bValues.append(ZERO);
-            rowsInA++;
         }
 
-        return 1 + rowsInA;
+        return 2 + mRows;
     }
 
     private static void ensureColumns(final ColumnsSupplier<Double> columns, final int required) {
@@ -346,8 +381,77 @@ public final class SolverClarabel implements Optimisation.Solver {
         }
     }
 
-    private static void initCscMatrix(final Arena arena, final MemorySegment cscSeg, final int rows, final int cols,
-            final ColumnsSupplier<Double> columns) {
+    /**
+     * Factorise a symmetric positive semi-definite Q as M'M, so that x'Qx = ||Mx||².
+     * <p>
+     * Cholesky does this in roughly n³/3 operations and doubles as the convexity test - it succeeds exactly
+     * when Q is positive definite. Since Q = LL' = R'R, the R factor is the M wanted here.
+     *
+     * @return a matrix M with M'M = Q
+     */
+    private static MatrixStore<Double> factorise(final PhysicalStore<Double> qStore, final Expression constraint) {
+
+        Cholesky<Double> cholesky = Cholesky.R064.make(qStore);
+
+        if (cholesky.decompose(qStore) && cholesky.isSPD()) {
+            return cholesky.getR();
+        }
+
+        return SolverClarabel.factoriseSemiDefinite(qStore, constraint);
+    }
+
+    /**
+     * The fallback for when Cholesky fails, which happens both for a positive <em>semi</em>-definite Q - a
+     * perfectly valid convex constraint - and for an indefinite, genuinely non-convex, one. Telling those
+     * two apart needs the eigenvalues, so that cost is only paid here, once Cholesky has already declined.
+     * Zero eigenvalues simply contribute no rows, and a negative one is reported.
+     *
+     * @return a matrix M with M'M = Q, having one row per strictly positive eigenvalue
+     */
+    private static MatrixStore<Double> factoriseSemiDefinite(final PhysicalStore<Double> qStore, final Expression constraint) {
+
+        int dim = qStore.getColDim();
+
+        Eigenvalue<Double> evd = Eigenvalue.R064.make(qStore, true);
+
+        if (!evd.decompose(qStore)) {
+            throw new IllegalArgumentException("Failed to factorise the quadratic form of constraint '" + constraint.getName() + "'");
+        }
+
+        MatrixStore<Double> mtrxD = evd.getD();
+        MatrixStore<Double> mtrxV = evd.getV();
+
+        double largest = ZERO;
+        for (int i = 0; i < dim; i++) {
+            largest = Math.max(largest, Math.abs(mtrxD.doubleValue(i, i)));
+        }
+        double tolerance = dim * Math.max(largest, ONE) * MACHINE_EPSILON;
+
+        List<Integer> positive = new ArrayList<>();
+        for (int i = 0; i < dim; i++) {
+            double eigenvalue = mtrxD.doubleValue(i, i);
+            if (eigenvalue < -tolerance) {
+                throw new IllegalArgumentException("Clarabel needs convex quadratic constraints, and '" + constraint.getName()
+                        + "' has an indefinite quadratic form (eigenvalue " + eigenvalue + ")");
+            }
+            if (eigenvalue > tolerance) {
+                positive.add(i);
+            }
+        }
+
+        PhysicalStore<Double> retVal = R064Store.FACTORY.make(positive.size(), dim);
+        for (int r = 0; r < positive.size(); r++) {
+            int i = positive.get(r).intValue();
+            double scale = Math.sqrt(mtrxD.doubleValue(i, i));
+            for (int j = 0; j < dim; j++) {
+                retVal.set(r, j, scale * mtrxV.doubleValue(j, i));
+            }
+        }
+
+        return retVal;
+    }
+
+    private static void initCscMatrix(final Arena arena, final MemorySegment cscSeg, final int rows, final int cols, final ColumnsSupplier<Double> columns) {
 
         int nnz = 0;
         for (int c = 0; c < cols; c++) {
@@ -386,13 +490,18 @@ public final class SolverClarabel implements Optimisation.Solver {
 
     static Optimisation.State translate(final int status) {
         return switch (status) {
-            case ClarabelBindings.STATUS_SOLVED -> Optimisation.State.OPTIMAL;
-            case ClarabelBindings.STATUS_ALMOST_SOLVED, ClarabelBindings.STATUS_ALMOST_PRIMAL_INFEASIBLE,
-                    ClarabelBindings.STATUS_ALMOST_DUAL_INFEASIBLE -> Optimisation.State.APPROXIMATE;
-            case ClarabelBindings.STATUS_PRIMAL_INFEASIBLE -> Optimisation.State.INFEASIBLE;
-            case ClarabelBindings.STATUS_DUAL_INFEASIBLE -> Optimisation.State.UNBOUNDED;
-            case ClarabelBindings.STATUS_UNSOLVED -> Optimisation.State.UNEXPLORED;
-            default -> Optimisation.State.FAILED;
+            case ClarabelBindings.STATUS_SOLVED                                                                                                          ->
+                Optimisation.State.OPTIMAL;
+            case ClarabelBindings.STATUS_ALMOST_SOLVED, ClarabelBindings.STATUS_ALMOST_PRIMAL_INFEASIBLE, ClarabelBindings.STATUS_ALMOST_DUAL_INFEASIBLE ->
+                Optimisation.State.APPROXIMATE;
+            case ClarabelBindings.STATUS_PRIMAL_INFEASIBLE                                                                                               ->
+                Optimisation.State.INFEASIBLE;
+            case ClarabelBindings.STATUS_DUAL_INFEASIBLE                                                                                                 ->
+                Optimisation.State.UNBOUNDED;
+            case ClarabelBindings.STATUS_UNSOLVED                                                                                                        ->
+                Optimisation.State.UNEXPLORED;
+            default                                                                                                                                      ->
+                Optimisation.State.FAILED;
         };
     }
 
@@ -437,7 +546,6 @@ public final class SolverClarabel implements Optimisation.Solver {
             MemorySegment xPtr = ClarabelBindings.solutionX(solution);
             long xLen = ClarabelBindings.solutionXLength(solution);
 
-            int n = (int) Math.min(xLen, myNumberOfVariables);
             double[] x = xPtr.reinterpret(xLen * ValueLayout.JAVA_DOUBLE.byteSize()).toArray(ValueLayout.JAVA_DOUBLE);
 
             if (x.length > myNumberOfVariables) {

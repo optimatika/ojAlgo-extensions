@@ -4,6 +4,7 @@ ojAlgo has zero dependencies, but through extensions it integrates with other to
 
 | Module | Version
 | --- | ---
+| [ojAlgo-clarabel](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-clarabel) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-clarabel/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-clarabel/)
 | [ojAlgo-commons-math3](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-commons-math3) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-commons-math3/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-commons-math3/)
 | [ojAlgo-cplex](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-cplex) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-cplex/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-cplex/)
 | [ojAlgo-gurobi](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-gurobi) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-gurobi/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-gurobi/)
@@ -13,6 +14,7 @@ ojAlgo has zero dependencies, but through extensions it integrates with other to
 | [ojAlgo-mosek](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-mosek) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-mosek/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-mosek/)
 | [ojAlgo-ortools](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-ortools) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-ortools/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-ortools/)
 | [ojAlgo-rocksdb](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-rocksdb) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-rocksdb/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-rocksdb/)
+| [ojAlgo-scip](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-scip) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-scip/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-scip/)
 | [ojAlgo-yahoofinance](https://github.com/optimatika/ojAlgo-extensions/tree/develop/ojAlgo-yahoofinance) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-yahoofinance/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-yahoofinance/)
 
 Read the individual README files in the respective modules / project directories for more info.

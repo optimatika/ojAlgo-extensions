@@ -40,9 +40,27 @@ import java.lang.invoke.MethodHandle;
  */
 final class SCIPBindings {
 
-    // SCIP_RETCODE values
+    // SCIP_RETCODE values - SCIP_OKAY is the only non-error outcome
     static final int SCIP_OKAY = 1;
     static final int SCIP_ERROR = 0;
+    static final int SCIP_NOMEMORY = -1;
+    static final int SCIP_READERROR = -2;
+    static final int SCIP_WRITEERROR = -3;
+    static final int SCIP_NOFILE = -4;
+    static final int SCIP_FILECREATEERROR = -5;
+    static final int SCIP_LPERROR = -6;
+    static final int SCIP_NOPROBLEM = -7;
+    static final int SCIP_INVALIDCALL = -8;
+    static final int SCIP_INVALIDDATA = -9;
+    static final int SCIP_INVALIDRESULT = -10;
+    static final int SCIP_PLUGINNOTFOUND = -11;
+    static final int SCIP_PARAMETERUNKNOWN = -12;
+    static final int SCIP_PARAMETERWRONGTYPE = -13;
+    static final int SCIP_PARAMETERWRONGVAL = -14;
+    static final int SCIP_KEYALREADYEXISTING = -15;
+    static final int SCIP_MAXDEPTHLEVEL = -16;
+    static final int SCIP_BRANCHERROR = -17;
+    static final int SCIP_NOTIMPLEMENTED = -18;
 
     // SCIP_STATUS values
     static final int STATUS_UNKNOWN = 0;
@@ -117,7 +135,8 @@ final class SCIPBindings {
         SCIP_FREE = SCIPBindings.downcallHandle("SCIPfree", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
 
         // SCIP_RETCODE SCIPincludeDefaultPlugins(SCIP* scip)
-        SCIP_INCLUDE_DEFAULT_PLUGINS = SCIPBindings.downcallHandle("SCIPincludeDefaultPlugins", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+        SCIP_INCLUDE_DEFAULT_PLUGINS = SCIPBindings.downcallHandle("SCIPincludeDefaultPlugins",
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
 
         // SCIP_RETCODE SCIPcreateProbBasic(SCIP* scip, const char* name)
         SCIP_CREATE_PROB_BASIC = SCIPBindings.downcallHandle("SCIPcreateProbBasic",
@@ -220,6 +239,45 @@ final class SCIPBindings {
                 FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_LONG));
     }
 
+    /**
+     * Verify the {@code SCIP_RETCODE} returned by a native call. Anything other than {@link #SCIP_OKAY} means
+     * the call did not do what was asked, and letting that pass would leave a silently incomplete model.
+     *
+     * @param retcode the value returned by the native function
+     * @param function the name of the native function, for the error message
+     */
+    private static void check(final int retcode, final String function) {
+        if (retcode != SCIP_OKAY) {
+            throw new IllegalStateException(function + " failed with " + SCIPBindings.describe(retcode));
+        }
+    }
+
+    private static String describe(final int retcode) {
+        String name = switch (retcode) {
+            case SCIP_ERROR -> "SCIP_ERROR";
+            case SCIP_NOMEMORY -> "SCIP_NOMEMORY";
+            case SCIP_READERROR -> "SCIP_READERROR";
+            case SCIP_WRITEERROR -> "SCIP_WRITEERROR";
+            case SCIP_NOFILE -> "SCIP_NOFILE";
+            case SCIP_FILECREATEERROR -> "SCIP_FILECREATEERROR";
+            case SCIP_LPERROR -> "SCIP_LPERROR";
+            case SCIP_NOPROBLEM -> "SCIP_NOPROBLEM";
+            case SCIP_INVALIDCALL -> "SCIP_INVALIDCALL";
+            case SCIP_INVALIDDATA -> "SCIP_INVALIDDATA";
+            case SCIP_INVALIDRESULT -> "SCIP_INVALIDRESULT";
+            case SCIP_PLUGINNOTFOUND -> "SCIP_PLUGINNOTFOUND";
+            case SCIP_PARAMETERUNKNOWN -> "SCIP_PARAMETERUNKNOWN";
+            case SCIP_PARAMETERWRONGTYPE -> "SCIP_PARAMETERWRONGTYPE";
+            case SCIP_PARAMETERWRONGVAL -> "SCIP_PARAMETERWRONGVAL";
+            case SCIP_KEYALREADYEXISTING -> "SCIP_KEYALREADYEXISTING";
+            case SCIP_MAXDEPTHLEVEL -> "SCIP_MAXDEPTHLEVEL";
+            case SCIP_BRANCHERROR -> "SCIP_BRANCHERROR";
+            case SCIP_NOTIMPLEMENTED -> "SCIP_NOTIMPLEMENTED";
+            default -> "unknown SCIP_RETCODE";
+        };
+        return name + " (" + retcode + ")";
+    }
+
     private static MethodHandle downcallHandle(final String name, final FunctionDescriptor descriptor) {
 
         MemorySegment symbol = LOOKUP.find(name).orElseThrow(() -> new UnsatisfiedLinkError("Symbol not found: " + name));
@@ -246,108 +304,130 @@ final class SCIPBindings {
         return arena.allocateFrom(value);
     }
 
-    static int addCons(final MemorySegment scip, final MemorySegment cons) {
+    static void addCons(final MemorySegment scip, final MemorySegment cons) {
 
+        int retcode;
         try {
-            return (int) SCIP_ADD_CONS.invokeExact(scip, cons);
+            retcode = (int) SCIP_ADD_CONS.invokeExact(scip, cons);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPaddCons failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPaddCons");
     }
 
-    static int addVar(final MemorySegment scip, final MemorySegment var) {
+    static void addVar(final MemorySegment scip, final MemorySegment var) {
 
+        int retcode;
         try {
-            return (int) SCIP_ADD_VAR.invokeExact(scip, var);
+            retcode = (int) SCIP_ADD_VAR.invokeExact(scip, var);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPaddVar failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPaddVar");
     }
 
-    static int chgVarLb(final MemorySegment scip, final MemorySegment var, final double newbound) {
+    static void chgVarLb(final MemorySegment scip, final MemorySegment var, final double newbound) {
 
+        int retcode;
         try {
-            return (int) SCIP_CHG_VAR_LB.invokeExact(scip, var, newbound);
+            retcode = (int) SCIP_CHG_VAR_LB.invokeExact(scip, var, newbound);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPchgVarLb failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPchgVarLb");
     }
 
-    static int chgVarUb(final MemorySegment scip, final MemorySegment var, final double newbound) {
+    static void chgVarUb(final MemorySegment scip, final MemorySegment var, final double newbound) {
 
+        int retcode;
         try {
-            return (int) SCIP_CHG_VAR_UB.invokeExact(scip, var, newbound);
+            retcode = (int) SCIP_CHG_VAR_UB.invokeExact(scip, var, newbound);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPchgVarUb failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPchgVarUb");
     }
 
-    static int create(final MemorySegment scipPtr) {
+    static void create(final MemorySegment scipPtr) {
 
+        int retcode;
         try {
-            return (int) SCIP_CREATE.invokeExact(scipPtr);
+            retcode = (int) SCIP_CREATE.invokeExact(scipPtr);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPcreate failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPcreate");
     }
 
-    static int createConsBasicLinear(final MemorySegment scip, final MemorySegment consPtr, final MemorySegment name, final int nvars,
+    static void createConsBasicLinear(final MemorySegment scip, final MemorySegment consPtr, final MemorySegment name, final int nvars,
             final MemorySegment vars, final MemorySegment vals, final double lhs, final double rhs) {
 
+        int retcode;
         try {
-            return (int) SCIP_CREATE_CONS_BASIC_LINEAR.invokeExact(scip, consPtr, name, nvars, vars, vals, lhs, rhs);
+            retcode = (int) SCIP_CREATE_CONS_BASIC_LINEAR.invokeExact(scip, consPtr, name, nvars, vars, vals, lhs, rhs);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPcreateConsBasicLinear failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPcreateConsBasicLinear");
     }
 
-    static int createConsBasicQuadraticNonlinear(final MemorySegment scip, final MemorySegment consPtr, final MemorySegment name, final int nlinvars,
+    static void createConsBasicQuadraticNonlinear(final MemorySegment scip, final MemorySegment consPtr, final MemorySegment name, final int nlinvars,
             final MemorySegment linvars, final MemorySegment lincoefs, final int nquadterms, final MemorySegment quadvars1, final MemorySegment quadvars2,
             final MemorySegment quadcoefs, final double lhs, final double rhs) {
 
+        int retcode;
         try {
-            return (int) SCIP_CREATE_CONS_BASIC_QUADRATIC_NONLINEAR.invokeExact(scip, consPtr, name, nlinvars, linvars, lincoefs, nquadterms, quadvars1,
+            retcode = (int) SCIP_CREATE_CONS_BASIC_QUADRATIC_NONLINEAR.invokeExact(scip, consPtr, name, nlinvars, linvars, lincoefs, nquadterms, quadvars1,
                     quadvars2, quadcoefs, lhs, rhs);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPcreateConsBasicQuadraticNonlinear failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPcreateConsBasicQuadraticNonlinear");
     }
 
-    static int createProbBasic(final MemorySegment scip, final MemorySegment name) {
+    static void createProbBasic(final MemorySegment scip, final MemorySegment name) {
 
+        int retcode;
         try {
-            return (int) SCIP_CREATE_PROB_BASIC.invokeExact(scip, name);
+            retcode = (int) SCIP_CREATE_PROB_BASIC.invokeExact(scip, name);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPcreateProbBasic failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPcreateProbBasic");
     }
 
-    static int createVarBasic(final MemorySegment scip, final MemorySegment varPtr, final MemorySegment name, final double lb, final double ub, final double obj,
-            final int vartype) {
+    static void createVarBasic(final MemorySegment scip, final MemorySegment varPtr, final MemorySegment name, final double lb, final double ub,
+            final double obj, final int vartype) {
 
+        int retcode;
         try {
-            return (int) SCIP_CREATE_VAR_BASIC.invokeExact(scip, varPtr, name, lb, ub, obj, vartype);
+            retcode = (int) SCIP_CREATE_VAR_BASIC.invokeExact(scip, varPtr, name, lb, ub, obj, vartype);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPcreateVarBasic failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPcreateVarBasic");
     }
 
-    static int free(final MemorySegment scipPtr) {
+    static void free(final MemorySegment scipPtr) {
 
+        int retcode;
         try {
-            return (int) SCIP_FREE.invokeExact(scipPtr);
+            retcode = (int) SCIP_FREE.invokeExact(scipPtr);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPfree failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPfree");
     }
 
-    static int freeTransform(final MemorySegment scip) {
+    static void freeTransform(final MemorySegment scip) {
 
+        int retcode;
         try {
-            return (int) SCIP_FREE_TRANSFORM.invokeExact(scip);
+            retcode = (int) SCIP_FREE_TRANSFORM.invokeExact(scip);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPfreeTransform failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPfreeTransform");
     }
 
     static MemorySegment getBestSol(final MemorySegment scip) {
@@ -377,6 +457,9 @@ final class SCIPBindings {
         }
     }
 
+    /**
+     * Note that this returns a {@code SCIP_STATUS}, not a {@code SCIP_RETCODE} - there is nothing to check.
+     */
     static int getStatus(final MemorySegment scip) {
 
         try {
@@ -386,76 +469,92 @@ final class SCIPBindings {
         }
     }
 
-    static int includeDefaultPlugins(final MemorySegment scip) {
+    static void includeDefaultPlugins(final MemorySegment scip) {
 
+        int retcode;
         try {
-            return (int) SCIP_INCLUDE_DEFAULT_PLUGINS.invokeExact(scip);
+            retcode = (int) SCIP_INCLUDE_DEFAULT_PLUGINS.invokeExact(scip);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPincludeDefaultPlugins failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPincludeDefaultPlugins");
     }
 
-    static int releaseCons(final MemorySegment scip, final MemorySegment consPtr) {
+    static void releaseCons(final MemorySegment scip, final MemorySegment consPtr) {
 
+        int retcode;
         try {
-            return (int) SCIP_RELEASE_CONS.invokeExact(scip, consPtr);
+            retcode = (int) SCIP_RELEASE_CONS.invokeExact(scip, consPtr);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPreleaseCons failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPreleaseCons");
     }
 
-    static int releaseVar(final MemorySegment scip, final MemorySegment varPtr) {
+    static void releaseVar(final MemorySegment scip, final MemorySegment varPtr) {
 
+        int retcode;
         try {
-            return (int) SCIP_RELEASE_VAR.invokeExact(scip, varPtr);
+            retcode = (int) SCIP_RELEASE_VAR.invokeExact(scip, varPtr);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPreleaseVar failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPreleaseVar");
     }
 
-    static int setIntParam(final MemorySegment scip, final MemorySegment name, final int value) {
+    static void setIntParam(final MemorySegment scip, final MemorySegment name, final int value) {
 
+        int retcode;
         try {
-            return (int) SCIP_SET_INT_PARAM.invokeExact(scip, name, value);
+            retcode = (int) SCIP_SET_INT_PARAM.invokeExact(scip, name, value);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPsetIntParam failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPsetIntParam");
     }
 
-    static int setLongintParam(final MemorySegment scip, final MemorySegment name, final long value) {
+    static void setLongintParam(final MemorySegment scip, final MemorySegment name, final long value) {
 
+        int retcode;
         try {
-            return (int) SCIP_SET_LONGINT_PARAM.invokeExact(scip, name, value);
+            retcode = (int) SCIP_SET_LONGINT_PARAM.invokeExact(scip, name, value);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPsetLongintParam failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPsetLongintParam");
     }
 
-    static int setObjsense(final MemorySegment scip, final int objsense) {
+    static void setObjsense(final MemorySegment scip, final int objsense) {
 
+        int retcode;
         try {
-            return (int) SCIP_SET_OBJ_SENSE.invokeExact(scip, objsense);
+            retcode = (int) SCIP_SET_OBJ_SENSE.invokeExact(scip, objsense);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPsetObjsense failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPsetObjsense");
     }
 
-    static int setRealParam(final MemorySegment scip, final MemorySegment name, final double value) {
+    static void setRealParam(final MemorySegment scip, final MemorySegment name, final double value) {
 
+        int retcode;
         try {
-            return (int) SCIP_SET_REAL_PARAM.invokeExact(scip, name, value);
+            retcode = (int) SCIP_SET_REAL_PARAM.invokeExact(scip, name, value);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPsetRealParam failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPsetRealParam");
     }
 
-    static int solve(final MemorySegment scip) {
+    static void solve(final MemorySegment scip) {
 
+        int retcode;
         try {
-            return (int) SCIP_SOLVE.invokeExact(scip);
+            retcode = (int) SCIP_SOLVE.invokeExact(scip);
         } catch (Throwable t) {
             throw new RuntimeException("SCIPsolve failed", t);
         }
+        SCIPBindings.check(retcode, "SCIPsolve");
     }
 
     private SCIPBindings() {}

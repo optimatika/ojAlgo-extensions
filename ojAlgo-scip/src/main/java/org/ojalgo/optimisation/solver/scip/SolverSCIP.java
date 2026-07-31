@@ -173,7 +173,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
                 // Quadratic objective terms
                 if (objective.isAnyQuadraticFactorNonZero()) {
-                    SolverSCIP.addQuadraticObjective(scip, arena, objective, varPtrs, sense);
+                    SolverSCIP.addQuadraticObjective(scip, arena, objective, varPtrs);
                 }
 
                 return new SolverSCIP(scip, varPtrs, n, arena);
@@ -200,8 +200,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
     static final Configurator DEFAULT = new Configurator();
 
-    private static void addQuadraticObjective(final MemorySegment scip, final Arena arena, final Expression objective, final MemorySegment[] varPtrs,
-            final int sense) {
+    private static void addQuadraticObjective(final MemorySegment scip, final Arena arena, final Expression objective, final MemorySegment[] varPtrs) {
 
         // Add an auxiliary variable for the quadratic part: obj_aux with objective coefficient 1
         MemorySegment auxVarPtr = arena.allocate(ValueLayout.ADDRESS);
@@ -213,12 +212,15 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
         // Build quadratic constraint: obj_aux = x'Qx (with adjusted coefficients)
         // As: x'Qx - obj_aux = 0, i.e. lhs = 0, rhs = 0
+        //
+        // The coefficients are used as-is, for both senses. SCIP optimises c'x + obj_aux, and obj_aux is
+        // pinned to x'Qx by this constraint, so c'x + obj_aux is the model objective whether SCIP is
+        // minimising or maximising. Negating for MAX would pin obj_aux to -x'Qx and silently optimise
+        // c'x - x'Qx instead.
 
         // Linear part: -1 * obj_aux (no linear terms from the quadratic part of the objective)
         MemorySegment[] linVars = new MemorySegment[]{ auxVar };
         double[] linCoefs = new double[]{ -ONE };
-
-        boolean maximise = sense == SCIPBindings.OBJSENSE_MAXIMIZE;
 
         var quadKeys = objective.getQuadraticKeySet();
         List<MemorySegment> qv1 = new ArrayList<>();
@@ -230,7 +232,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
             if (val != ZERO) {
                 qv1.add(varPtrs[key.row]);
                 qv2.add(varPtrs[key.column]);
-                qc.add(maximise ? -val : val);
+                qc.add(val);
             }
         }
 
