@@ -49,7 +49,7 @@ import org.ojalgo.type.keyvalue.EntryPair;
  * HiGHS solver integration for ojAlgo.
  * <p>
  * HiGHS is a high-performance open-source solver for linear programming (LP), mixed-integer programming
- * (MIP), and quadratic programming (QP). This integration uses Java's Foreign Function & Memory API (FFM) to
+ * (MIP), and quadratic programming (QP). This integration uses Java's Foreign Function &amp; Memory API (FFM) to
  * directly call the HiGHS C library.
  *
  * @see <a href="https://highs.dev">HiGHS</a>
@@ -60,8 +60,8 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
      * Configuration options for the HiGHS solver.
      * <p>
      * Subclass this to customize HiGHS-specific settings. Set via
-     * {@link Optimisation.Options#setConfigurator(Object)} or
-     * {@link OptimisationEnvironment#setConfigurator(Object)}.
+     * {@link ExpressionsBasedModel#setConfigurator(Object)} or
+     * {@link Optimisation.Environment#setConfigurator(Object)}.
      */
     public static class Configurator {
 

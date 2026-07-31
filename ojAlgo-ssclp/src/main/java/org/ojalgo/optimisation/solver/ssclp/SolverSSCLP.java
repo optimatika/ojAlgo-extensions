@@ -59,7 +59,7 @@ public final class SolverSSCLP implements Optimisation.Solver {
      * Configuration options for the SSC-LP solver. Subclass and override to customize.
      * <ol>
      * <li>Define a subclass of this class and override the methods you need to.
-     * <li>Set an instance of your subclass via {@link Optimisation.Options#setConfigurator(Object)}.
+     * <li>Set an instance of your subclass via {@link Optimisation.Environment#setConfigurator(Object)}.
      * </ol>
      */
     public static class Configurator {
