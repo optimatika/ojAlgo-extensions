@@ -59,6 +59,20 @@ public final class SolverGurobi implements Optimisation.Solver {
         protected void configure(final GRBEnv environment, final Optimisation.Options options) {
             try {
                 environment.set(GRB.IntParam.OutputFlag, 0);
+
+                if (options.time_abort > 0L && options.time_abort < Long.MAX_VALUE) {
+                    environment.set(GRB.DoubleParam.TimeLimit, options.time_abort / 1000.0);
+                }
+
+                if (options.iterations_abort > 0 && options.iterations_abort < Integer.MAX_VALUE) {
+                    environment.set(GRB.DoubleParam.IterationLimit, (double) options.iterations_abort);
+                }
+
+                int parallelism = options.getParallelism();
+                if (parallelism > 0) {
+                    environment.set(GRB.IntParam.Threads, parallelism);
+                }
+
             } catch (GRBException cause) {
                 throw new RuntimeException(cause);
             }

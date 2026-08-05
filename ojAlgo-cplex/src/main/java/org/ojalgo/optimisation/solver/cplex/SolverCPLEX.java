@@ -98,6 +98,11 @@ public final class SolverCPLEX implements Optimisation.Solver {
                 retVal.setParam(IloCplex.DoubleParam.EpOpt, feasTol);
             }
 
+            int parallelism = options.getParallelism();
+            if (parallelism > 0) {
+                retVal.setParam(IntParam.Threads, parallelism);
+            }
+
             return retVal;
         }
 

@@ -153,6 +153,7 @@ final class ClarabelBindings {
     private static final VarHandle SETTINGS_TOL_FEAS = SETTINGS_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("tol_feas"));
     private static final VarHandle SETTINGS_TOL_INFEAS_ABS = SETTINGS_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("tol_infeas_abs"));
     private static final VarHandle SETTINGS_TOL_INFEAS_REL = SETTINGS_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("tol_infeas_rel"));
+    private static final VarHandle SETTINGS_MAX_THREADS = SETTINGS_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("max_threads"));
 
     private static final Linker LINKER = Linker.nativeLinker();
     private static final SymbolLookup LOOKUP;
@@ -291,6 +292,10 @@ final class ClarabelBindings {
 
     static void setTolInfeasRel(final MemorySegment settings, final double value) {
         SETTINGS_TOL_INFEAS_REL.set(settings, 0L, value);
+    }
+
+    static void setMaxThreads(final MemorySegment settings, final int value) {
+        SETTINGS_MAX_THREADS.set(settings, 0L, value);
     }
 
     static MemorySegment allocateCscMatrix(final Arena arena) {

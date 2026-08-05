@@ -69,6 +69,21 @@ public final class SolverMosek implements Optimisation.Solver {
                 task.set_Stream(streamtype.log, stream);
             }
 
+            if (options.time_abort > 0L && options.time_abort < Long.MAX_VALUE) {
+                double seconds = options.time_abort / 1000.0;
+                task.putdouparam(dparam.optimizer_max_time, seconds);
+            }
+
+            if (options.iterations_abort > 0 && options.iterations_abort < Integer.MAX_VALUE) {
+                task.putintparam(iparam.sim_max_iterations, options.iterations_abort);
+                task.putintparam(iparam.intpnt_max_iterations, options.iterations_abort);
+            }
+
+            int parallelism = options.getParallelism();
+            if (parallelism > 0) {
+                task.putintparam(iparam.num_threads, parallelism);
+            }
+
             return task;
         }
 

@@ -82,6 +82,11 @@ public final class SolverClarabel implements Optimisation.Solver {
             ClarabelBindings.setTolInfeasAbs(settings, absoluteError);
             ClarabelBindings.setTolGapRel(settings, relativeError);
             ClarabelBindings.setTolGapAbs(settings, absoluteError);
+
+            int parallelism = options.getParallelism();
+            if (parallelism > 0) {
+                ClarabelBindings.setMaxThreads(settings, parallelism);
+            }
         }
 
     }

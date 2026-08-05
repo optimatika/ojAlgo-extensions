@@ -71,6 +71,12 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
                 MemorySegment nodeLimit = SCIPBindings.allocateString(arena, "limits/nodes");
                 SCIPBindings.setLongintParam(scip, nodeLimit, options.iterations_abort);
             }
+
+            int parallelism = options.getParallelism();
+            if (parallelism > 0) {
+                MemorySegment maxThreads = SCIPBindings.allocateString(arena, "parallel/maxnthreads");
+                SCIPBindings.setIntParam(scip, maxThreads, parallelism);
+            }
         }
 
     }

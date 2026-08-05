@@ -93,6 +93,12 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
                 HiGHSBindings.setIntOptionValue(highs, ipmIterLimit, limit);
             }
 
+            int parallelism = options.getParallelism();
+            if (parallelism > 0) {
+                MemorySegment threads = HiGHSBindings.allocateString(arena, "threads");
+                HiGHSBindings.setIntOptionValue(highs, threads, parallelism);
+            }
+
             //            double feasTol = options.feasibility.epsilon();
             //            if (feasTol > ZERO && feasTol < ONE) {
             //                MemorySegment primalFeasTol = HiGHSBindings.allocateString(arena, "primal_feasibility_tolerance");

@@ -75,6 +75,11 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
             parametersBuilder.reducedTolGapRel(Double.valueOf(relativeError));
             parametersBuilder.reducedTolGapAbs(Double.valueOf(absoluteError));
+
+            int parallelism = optimisationOptions.getParallelism();
+            if (parallelism > 0) {
+                parametersBuilder.maxThreads(Integer.valueOf(parallelism));
+            }
         }
 
         /**
