@@ -497,7 +497,8 @@ public final class SolverClarabel implements Optimisation.Solver {
         return switch (status) {
             case ClarabelBindings.STATUS_SOLVED                                                                                                          ->
                 Optimisation.State.OPTIMAL;
-            case ClarabelBindings.STATUS_ALMOST_SOLVED, ClarabelBindings.STATUS_ALMOST_PRIMAL_INFEASIBLE, ClarabelBindings.STATUS_ALMOST_DUAL_INFEASIBLE ->
+            case ClarabelBindings.STATUS_ALMOST_SOLVED, ClarabelBindings.STATUS_ALMOST_PRIMAL_INFEASIBLE, ClarabelBindings.STATUS_ALMOST_DUAL_INFEASIBLE,
+                    ClarabelBindings.STATUS_CALLBACK_TERMINATED                                                                                          ->
                 Optimisation.State.APPROXIMATE;
             case ClarabelBindings.STATUS_PRIMAL_INFEASIBLE                                                                                               ->
                 Optimisation.State.INFEASIBLE;
@@ -511,8 +512,17 @@ public final class SolverClarabel implements Optimisation.Solver {
     }
 
     private final Arena myArena;
+    /**
+     * The upcall stub Clarabel calls to ask whether it should stop. Kept in a field because the automatic arena
+     * it lives in frees it once nothing refers to it any more.
+     */
+    private MemorySegment myInterruptCallback = null;
     private final boolean myMaximisation;
     private final int myNumberOfVariables;
+    /**
+     * The thread inside {@link #solve(Result)}, whose interrupt flag the callback reports.
+     */
+    private volatile Thread mySolving = null;
     private final MemorySegment mySolver;
 
     SolverClarabel(final MemorySegment solver, final boolean maximisation, final int numberOfVariables, final Arena arena) {
@@ -531,10 +541,42 @@ public final class SolverClarabel implements Optimisation.Solver {
         myArena.close();
     }
 
+    /**
+     * Hands Clarabel a callback that lets an interrupt of the solving thread stop the solve. Clarabel asks it
+     * once per iteration, from the thread doing the solving, so nothing needs to watch that thread from
+     * outside.
+     * <p>
+     * Registered once and left in place. Silently skipped on a Clarabel too old to have the callback, since
+     * there is no way to stop such a build and failing the solve over it would be worse.
+     */
+    private void enableInterrupt() {
+
+        if (myInterruptCallback != null || !ClarabelBindings.hasTerminationCallback()) {
+            return;
+        }
+
+        myInterruptCallback = ClarabelBindings.setTerminationCallback(mySolver, this::isStopWanted);
+    }
+
+    /**
+     * Asked by Clarabel, once per iteration, while solving.
+     */
+    private boolean isStopWanted() {
+        Thread solving = mySolving;
+        return solving != null && solving.isInterrupted();
+    }
+
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
-        ClarabelBindings.solverSolve(mySolver);
+        mySolving = Thread.currentThread();
+        this.enableInterrupt();
+
+        try {
+            ClarabelBindings.solverSolve(mySolver);
+        } finally {
+            mySolving = null;
+        }
 
         MemorySegment solution = ClarabelBindings.solverSolution(myArena, mySolver);
 

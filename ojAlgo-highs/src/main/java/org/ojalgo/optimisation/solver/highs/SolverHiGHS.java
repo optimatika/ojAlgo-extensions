@@ -34,6 +34,7 @@ import java.util.function.Supplier;
 import org.ojalgo.array.ArrayR064;
 import org.ojalgo.matrix.store.R064CSC;
 import org.ojalgo.matrix.store.R064CSC.Builder;
+import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.ModelEntity;
@@ -399,7 +400,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
             case HiGHSBindings.MODEL_STATUS_MODEL_EMPTY,
                     HiGHSBindings.MODEL_STATUS_NOTSET                                                                                                                                                                                  ->
                 Optimisation.State.UNEXPLORED;
-            case HiGHSBindings.MODEL_STATUS_INTERRUPT                                                                                                                                                                                  ->
+            case HiGHSBindings.MODEL_STATUS_INTERRUPT, HiGHSBindings.MODEL_STATUS_HIGHS_INTERRUPT, HiGHSBindings.MODEL_STATUS_MEMORY_LIMIT                     ->
                 Optimisation.State.APPROXIMATE;
             default                                                                                                                                                                                                                    ->
                 Optimisation.State.FAILED;
@@ -409,9 +410,19 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
     private double[] myColDual;
     private final HiGHSEntityMap myEntityMap;
     private final MemorySegment myHighs;
+    /**
+     * The upcall stub HiGHS calls to ask whether it should stop. Kept in a field because the automatic arena it
+     * lives in frees it once nothing refers to it any more.
+     */
+    private MemorySegment myInterruptCallback = null;
     private final int myNumCol;
     private final int myNumRow;
     private double[] myRowDual;
+    /**
+     * The thread inside {@link #solve(Result)}. Read from the callback, which HiGHS may make from a thread of
+     * its own, so it is that thread's interrupt flag – not the calling one's – that has to be asked about.
+     */
+    private volatile Thread mySolving = null;
 
     SolverHiGHS(final MemorySegment highs, final int numCol, final int numRow, final HiGHSEntityMap entityMap) {
         super();
@@ -426,6 +437,46 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         if (myHighs != null && !myHighs.equals(MemorySegment.NULL)) {
             HiGHSBindings.destroy(myHighs);
         }
+    }
+
+    /**
+     * Registers a callback that lets an interrupt of the solving thread stop the solve. HiGHS polls it from
+     * inside its own algorithms, so – unlike a solver that has to be stopped from the outside – nothing needs
+     * to watch the thread.
+     * <p>
+     * Registered once and left in place; it costs a callback per iteration or node, which does nothing at all
+     * unless the flag is set. Silently skipped on a HiGHS too old to have callbacks, since there is no way to
+     * stop such a build and failing the solve over it would be worse.
+     */
+    private void enableInterrupt() {
+
+        if (myInterruptCallback != null || !HiGHSBindings.hasCallbacks()) {
+            return;
+        }
+
+        MemorySegment callback = HiGHSBindings.newInterruptCallback(this::isStopWanted);
+
+        if (HiGHSBindings.setCallback(myHighs, callback) == HiGHSBindings.STATUS_ERROR) {
+            BasicLogger.error("HiGHS would not accept the interrupt callback - this solve cannot be stopped!");
+            return;
+        }
+
+        myInterruptCallback = callback;
+
+        for (int callbackType : new int[] { HiGHSBindings.CALLBACK_SIMPLEX_INTERRUPT, HiGHSBindings.CALLBACK_IPM_INTERRUPT,
+                HiGHSBindings.CALLBACK_MIP_INTERRUPT }) {
+            if (HiGHSBindings.startCallback(myHighs, callbackType) == HiGHSBindings.STATUS_ERROR) {
+                BasicLogger.error("HiGHS would not start callback type {} - this solve may not be stoppable!", callbackType);
+            }
+        }
+    }
+
+    /**
+     * Asked by HiGHS, repeatedly, while solving.
+     */
+    private boolean isStopWanted() {
+        Thread solving = mySolving;
+        return solving != null && solving.isInterrupted();
     }
 
     @Override
@@ -459,7 +510,15 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
-        int runStatus = HiGHSBindings.run(myHighs);
+        mySolving = Thread.currentThread();
+        this.enableInterrupt();
+
+        int runStatus;
+        try {
+            runStatus = HiGHSBindings.run(myHighs);
+        } finally {
+            mySolving = null;
+        }
 
         int modelStatus = HiGHSBindings.getModelStatus(myHighs);
         Optimisation.State state = SolverHiGHS.translate(modelStatus);

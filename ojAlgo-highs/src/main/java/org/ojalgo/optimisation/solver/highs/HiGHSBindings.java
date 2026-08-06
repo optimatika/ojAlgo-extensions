@@ -28,6 +28,11 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.util.function.BooleanSupplier;
+
+import org.ojalgo.netio.BasicLogger;
 
 /**
  * FFM bindings for HiGHS C API.
@@ -61,6 +66,12 @@ final class HiGHSBindings {
     static final int MODEL_STATUS_UNKNOWN = 15;
     static final int MODEL_STATUS_SOLUTION_LIMIT = 16;
     static final int MODEL_STATUS_INTERRUPT = 17;
+    static final int MODEL_STATUS_MEMORY_LIMIT = 18;
+    /**
+     * HiGHS stopping itself rather than being asked to, which it reports separately from
+     * {@link #MODEL_STATUS_INTERRUPT}.
+     */
+    static final int MODEL_STATUS_HIGHS_INTERRUPT = 19;
 
     /**
      * HiGHS return status constants.
@@ -96,8 +107,23 @@ final class HiGHSBindings {
     static final int HESSIAN_FORMAT_TRIANGULAR = 1;
     static final int HESSIAN_FORMAT_SQUARE = 2;
 
+    /**
+     * {@code HighsCallbackType} values, of which only the ones that can stop a solve are of interest here. One
+     * per algorithm, because which of them runs depends on the model.
+     */
+    static final int CALLBACK_SIMPLEX_INTERRUPT = 1;
+    static final int CALLBACK_IPM_INTERRUPT = 2;
+    static final int CALLBACK_MIP_INTERRUPT = 6;
+
     private static final Linker LINKER = Linker.nativeLinker();
     private static final SymbolLookup LOOKUP;
+    /**
+     * {@code void (*)(int callback_type, const char* message, const HighsCallbackDataOut* data_out,
+     * HighsCallbackDataIn* data_in, void* user_callback_data)}
+     */
+    private static final FunctionDescriptor CALLBACK_DESCRIPTOR = FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
+            ValueLayout.ADDRESS, ValueLayout.ADDRESS);
+    private static final MethodHandle CALLBACK_TARGET;
 
     private static final MethodHandle HIGHS_CREATE;
     private static final MethodHandle HIGHS_DESTROY;
@@ -121,6 +147,9 @@ final class HiGHSBindings {
     private static final MethodHandle HIGHS_SET_DOUBLE_OPTION_VALUE;
     private static final MethodHandle HIGHS_SET_STRING_OPTION_VALUE;
 
+    private static final MethodHandle HIGHS_SET_CALLBACK;
+    private static final MethodHandle HIGHS_START_CALLBACK;
+
     private static final MethodHandle HIGHS_CHANGE_COL_BOUNDS;
     private static final MethodHandle HIGHS_CHANGE_COLS_BOUNDS_BY_RANGE;
     private static final MethodHandle HIGHS_CHANGE_COLS_BOUNDS_BY_SET;
@@ -129,6 +158,14 @@ final class HiGHSBindings {
     static {
 
         LOOKUP = NativeLoader.load();
+
+        try {
+            CALLBACK_TARGET = MethodHandles.lookup().findStatic(HiGHSBindings.class, "onCallback",
+                    MethodType.methodType(void.class, BooleanSupplier.class, int.class, MemorySegment.class, MemorySegment.class, MemorySegment.class,
+                            MemorySegment.class));
+        } catch (NoSuchMethodException | IllegalAccessException cause) {
+            throw new ExceptionInInitializerError(cause);
+        }
 
         HIGHS_CREATE = HiGHSBindings.downcallHandle("Highs_create", FunctionDescriptor.of(ValueLayout.ADDRESS));
 
@@ -216,6 +253,16 @@ final class HiGHSBindings {
                         ValueLayout.ADDRESS, // option (const char*)
                         ValueLayout.ADDRESS)); // value (const char*)
 
+        // HighsInt Highs_setCallback(void* highs, HighsCCallbackType user_callback, void* user_callback_data)
+        HIGHS_SET_CALLBACK = HiGHSBindings.downcallHandleOptional("Highs_setCallback",
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                        ValueLayout.ADDRESS, // user_callback
+                        ValueLayout.ADDRESS)); // user_callback_data
+
+        // HighsInt Highs_startCallback(void* highs, const HighsInt callback_type)
+        HIGHS_START_CALLBACK = HiGHSBindings.downcallHandleOptional("Highs_startCallback",
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+
         HIGHS_CHANGE_COL_BOUNDS = HiGHSBindings.downcallHandle("Highs_changeColBounds", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
                 ValueLayout.JAVA_INT, // col
                 ValueLayout.JAVA_DOUBLE, // lower
@@ -246,6 +293,75 @@ final class HiGHSBindings {
 
         MemorySegment symbol = LOOKUP.find(name).orElseThrow(() -> new UnsatisfiedLinkError("Symbol not found: " + name));
         return LINKER.downcallHandle(symbol, descriptor);
+    }
+
+    /**
+     * As {@link #downcallHandle(String, FunctionDescriptor)}, but null rather than an error when the symbol is
+     * missing – for functions that older HiGHS builds do not have.
+     */
+    private static MethodHandle downcallHandleOptional(final String name, final FunctionDescriptor descriptor) {
+
+        return LOOKUP.find(name).map(symbol -> LINKER.downcallHandle(symbol, descriptor)).orElse(null);
+    }
+
+    /**
+     * What HiGHS calls, on whichever thread is doing the solving. Must not throw: an exception crossing back
+     * into native code takes the process down, so anything unexpected is logged and swallowed.
+     */
+    private static void onCallback(final BooleanSupplier stopWanted, final int callbackType, final MemorySegment message, final MemorySegment dataOut,
+            final MemorySegment dataIn, final MemorySegment userData) {
+
+        try {
+            if (!MemorySegment.NULL.equals(dataIn) && stopWanted.getAsBoolean()) {
+                // user_interrupt is the first member of HighsCallbackDataIn, and HiGHS documents that as
+                // fixed - other language bindings depend on it too.
+                dataIn.reinterpret(Integer.BYTES).set(ValueLayout.JAVA_INT, 0L, 1);
+            }
+        } catch (Throwable cause) {
+            BasicLogger.error("HiGHS callback failed!", cause);
+        }
+    }
+
+    /**
+     * True if this HiGHS build has the callback functions at all. They arrived in HiGHS 1.6; without them a
+     * solve cannot be stopped.
+     */
+    static boolean hasCallbacks() {
+        return HIGHS_SET_CALLBACK != null && HIGHS_START_CALLBACK != null;
+    }
+
+    /**
+     * A native function pointer for a HiGHS callback that does one thing: ask the solve to stop, by setting
+     * {@code user_interrupt}, whenever {@code stopWanted} says so.
+     * <p>
+     * The stub is allocated in an automatic arena, so it stays valid as long as the caller keeps the returned
+     * segment reachable – and no longer. HiGHS may call it from a thread of its own, which is why the arena is
+     * not a confined one.
+     */
+    static MemorySegment newInterruptCallback(final BooleanSupplier stopWanted) {
+        return LINKER.upcallStub(CALLBACK_TARGET.bindTo(stopWanted), CALLBACK_DESCRIPTOR, Arena.ofAuto());
+    }
+
+    /**
+     * Registers the callback function pointer. Nothing calls it until
+     * {@link #startCallback(MemorySegment, int)} names a callback type.
+     */
+    static int setCallback(final MemorySegment highs, final MemorySegment callback) {
+
+        try {
+            return (int) HIGHS_SET_CALLBACK.invokeExact(highs, callback, MemorySegment.NULL);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to set the HiGHS callback", t);
+        }
+    }
+
+    static int startCallback(final MemorySegment highs, final int callbackType) {
+
+        try {
+            return (int) HIGHS_START_CALLBACK.invokeExact(highs, callbackType);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to start a HiGHS callback", t);
+        }
     }
 
     /**

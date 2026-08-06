@@ -354,7 +354,11 @@ public final class SolverGurobi implements Optimisation.Solver {
 
         try {
 
-            myGRBModel.optimize();
+            // Gurobi's own way of being stopped from elsewhere, which is what makes an interrupt of the
+            // solving thread reach it.
+            try (SolveInterrupter interrupter = SolveInterrupter.watch(myGRBModel::terminate)) {
+                myGRBModel.optimize();
+            }
 
             retState = SolverGurobi.translate(myGRBModel.get(GRB.IntAttr.Status));
 

@@ -23,7 +23,12 @@ package org.ojalgo.optimisation.solver.clarabel;
 
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
+import java.util.function.BooleanSupplier;
+
+import org.ojalgo.netio.BasicLogger;
 
 /**
  * FFM bindings for the Clarabel C API.
@@ -164,10 +169,24 @@ final class ClarabelBindings {
     private static final MethodHandle SOLVER_SOLVE;
     private static final MethodHandle SOLVER_SOLUTION;
     private static final MethodHandle SOLVER_FREE;
+    private static final MethodHandle SOLVER_SET_TERMINATION_CALLBACK;
+    /**
+     * {@code int (*ClarabelCallbackFcn_f64)(ClarabelDefaultInfo_f64* info, void* userdata)} – anything but zero
+     * stops the solve.
+     */
+    private static final FunctionDescriptor CALLBACK_DESCRIPTOR = FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS);
+    private static final MethodHandle CALLBACK_TARGET;
 
     static {
 
         LOOKUP = NativeLoader.load();
+
+        try {
+            CALLBACK_TARGET = MethodHandles.lookup().findStatic(ClarabelBindings.class, "onIteration",
+                    MethodType.methodType(int.class, BooleanSupplier.class, MemorySegment.class, MemorySegment.class));
+        } catch (NoSuchMethodException | IllegalAccessException cause) {
+            throw new ExceptionInInitializerError(cause);
+        }
 
         CSC_MATRIX_INIT = ClarabelBindings.downcallHandle("clarabel_CscMatrix_f64_init", FunctionDescriptor.ofVoid(
                 ValueLayout.ADDRESS, ValueLayout.JAVA_LONG, ValueLayout.JAVA_LONG,
@@ -188,11 +207,65 @@ final class ClarabelBindings {
 
         SOLVER_FREE = ClarabelBindings.downcallHandle("clarabel_DefaultSolver_f64_free",
                 FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
+
+        // void clarabel_DefaultSolver_f64_set_termination_callback(ClarabelDefaultSolver_f64* solver,
+        //     ClarabelCallbackFcn_f64 callback, void* userdata)
+        SOLVER_SET_TERMINATION_CALLBACK = ClarabelBindings.downcallHandleOptional("clarabel_DefaultSolver_f64_set_termination_callback",
+                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
     }
 
     private static MethodHandle downcallHandle(final String name, final FunctionDescriptor descriptor) {
         MemorySegment symbol = LOOKUP.find(name).orElseThrow(() -> new UnsatisfiedLinkError("Symbol not found: " + name));
         return LINKER.downcallHandle(symbol, descriptor);
+    }
+
+    /**
+     * As {@link #downcallHandle(String, FunctionDescriptor)}, but null rather than an error when the symbol is
+     * missing – for functions that older Clarabel builds do not have.
+     */
+    private static MethodHandle downcallHandleOptional(final String name, final FunctionDescriptor descriptor) {
+        return LOOKUP.find(name).map(symbol -> LINKER.downcallHandle(symbol, descriptor)).orElse(null);
+    }
+
+    /**
+     * What Clarabel calls once per iteration. Must not throw: an exception crossing back into native code takes
+     * the process down, so anything unexpected is logged and treated as "carry on".
+     */
+    private static int onIteration(final BooleanSupplier stopWanted, final MemorySegment info, final MemorySegment userdata) {
+
+        try {
+            return stopWanted.getAsBoolean() ? 1 : 0;
+        } catch (Throwable cause) {
+            BasicLogger.error("Clarabel callback failed!", cause);
+            return 0;
+        }
+    }
+
+    /**
+     * True if this Clarabel build can be asked to stop. The termination callback arrived in Clarabel 0.10.
+     */
+    static boolean hasTerminationCallback() {
+        return SOLVER_SET_TERMINATION_CALLBACK != null;
+    }
+
+    /**
+     * Hands Clarabel a function to call once per iteration, which stops the solve whenever
+     * {@code stopWanted} says so.
+     * <p>
+     * The returned stub is allocated in an automatic arena and must stay reachable for as long as the solver
+     * may call it – so the caller has to keep it.
+     */
+    static MemorySegment setTerminationCallback(final MemorySegment solver, final BooleanSupplier stopWanted) {
+
+        MemorySegment callback = LINKER.upcallStub(CALLBACK_TARGET.bindTo(stopWanted), CALLBACK_DESCRIPTOR, Arena.ofAuto());
+
+        try {
+            SOLVER_SET_TERMINATION_CALLBACK.invokeExact(solver, callback, MemorySegment.NULL);
+        } catch (Throwable t) {
+            throw new RuntimeException("clarabel_DefaultSolver_f64_set_termination_callback failed", t);
+        }
+
+        return callback;
     }
 
     static void cscMatrixInit(final MemorySegment ptr, final long m, final long n,

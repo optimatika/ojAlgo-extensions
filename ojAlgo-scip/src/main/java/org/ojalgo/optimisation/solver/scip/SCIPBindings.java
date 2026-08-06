@@ -114,6 +114,10 @@ final class SCIPBindings {
 
     private static final MethodHandle SCIP_SOLVE;
     private static final MethodHandle SCIP_SOLVE_CONCURRENT;
+    private static final MethodHandle SCIP_INTERRUPT_SOLVE;
+    private static final MethodHandle SCIP_GET_SYNCSTORE;
+    private static final MethodHandle SCIP_SYNCSTORE_IS_INITIALIZED;
+    private static final MethodHandle SCIP_SYNCSTORE_SET_SOLVE_IS_STOPPED;
     private static final MethodHandle SCIP_FREE_TRANSFORM;
     private static final MethodHandle SCIP_GET_STATUS;
 
@@ -212,6 +216,20 @@ final class SCIPBindings {
 
         // SCIP_RETCODE SCIPsolveConcurrent(SCIP* scip) — requires TPI-enabled build (e.g. TBB)
         SCIP_SOLVE_CONCURRENT = SCIPBindings.downcallHandleOptional("SCIPsolveConcurrent", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+
+        // SCIP_RETCODE SCIPinterruptSolve(SCIP* scip)
+        SCIP_INTERRUPT_SOLVE = SCIPBindings.downcallHandle("SCIPinterruptSolve", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+
+        // SCIP_SYNCSTORE* SCIPgetSyncstore(SCIP* scip)
+        SCIP_GET_SYNCSTORE = SCIPBindings.downcallHandle("SCIPgetSyncstore", FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+
+        // SCIP_Bool SCIPsyncstoreIsInitialized(SCIP_SYNCSTORE* syncstore)
+        SCIP_SYNCSTORE_IS_INITIALIZED = SCIPBindings.downcallHandle("SCIPsyncstoreIsInitialized",
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+
+        // void SCIPsyncstoreSetSolveIsStopped(SCIP_SYNCSTORE* syncstore, SCIP_Bool stopped)
+        SCIP_SYNCSTORE_SET_SOLVE_IS_STOPPED = SCIPBindings.downcallHandle("SCIPsyncstoreSetSolveIsStopped",
+                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
 
         // SCIP_RETCODE SCIPfreeTransform(SCIP* scip)
         SCIP_FREE_TRANSFORM = SCIPBindings.downcallHandle("SCIPfreeTransform", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
@@ -478,8 +496,65 @@ final class SCIPBindings {
         }
     }
 
+    private static MemorySegment getSyncstore(final MemorySegment scip) {
+
+        try {
+            return (MemorySegment) SCIP_GET_SYNCSTORE.invokeExact(scip);
+        } catch (Throwable t) {
+            throw new RuntimeException("SCIPgetSyncstore failed", t);
+        }
+    }
+
+    private static boolean syncstoreIsInitialized(final MemorySegment syncstore) {
+
+        try {
+            return (int) SCIP_SYNCSTORE_IS_INITIALIZED.invokeExact(syncstore) != 0;
+        } catch (Throwable t) {
+            throw new RuntimeException("SCIPsyncstoreIsInitialized failed", t);
+        }
+    }
+
+    private static void syncstoreSetSolveIsStopped(final MemorySegment syncstore) {
+
+        try {
+            SCIP_SYNCSTORE_SET_SOLVE_IS_STOPPED.invokeExact(syncstore, 1);
+        } catch (Throwable t) {
+            throw new RuntimeException("SCIPsyncstoreSetSolveIsStopped failed", t);
+        }
+    }
+
     static boolean hasSolveConcurrent() {
         return SCIP_SOLVE_CONCURRENT != null;
+    }
+
+    /**
+     * Asks SCIP to stop as soon as it can, leaving {@link #getStatus(MemorySegment)} reporting
+     * {@link #STATUS_USERINTERRUPT}. Meant to be called while {@link #solve(MemorySegment)} is running, from
+     * another thread – which is what SCIP's own Ctrl-C handling does. That much is prompt and reliable.
+     * <p>
+     * A {@link #solveConcurrent(MemorySegment)} solve is a different matter, and this only asks. Its work
+     * happens in sub-SCIPs that never see this instance's interrupt flag; what they watch is the stopped flag
+     * in the synchronisation store, which is set here too – it is documented as settable from any thread – but
+     * only observed at their own synchronisation points. Measured on a hard model, those can be minutes apart.
+     * The per-solver stop, {@code SCIPconcsolverStop}, is not exported, and neither is the global
+     * {@code SCIPtryTerminate}, so there is no way to do better from outside. Hence
+     * {@link SolverSCIP.Configurator#isConcurrent(Optimisation.Options)} defaulting to off.
+     */
+    static void interruptSolve(final MemorySegment scip) {
+
+        int retcode;
+        try {
+            retcode = (int) SCIP_INTERRUPT_SOLVE.invokeExact(scip);
+        } catch (Throwable t) {
+            throw new RuntimeException("SCIPinterruptSolve failed", t);
+        }
+        SCIPBindings.check(retcode, "SCIPinterruptSolve");
+
+        MemorySegment syncstore = SCIPBindings.getSyncstore(scip);
+
+        if (!MemorySegment.NULL.equals(syncstore) && SCIPBindings.syncstoreIsInitialized(syncstore)) {
+            SCIPBindings.syncstoreSetSolveIsStopped(syncstore);
+        }
     }
 
     static void includeDefaultPlugins(final MemorySegment scip) {

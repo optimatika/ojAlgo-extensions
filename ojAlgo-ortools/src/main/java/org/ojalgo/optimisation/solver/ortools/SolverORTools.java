@@ -24,7 +24,9 @@ package org.ojalgo.optimisation.solver.ortools;
 import static org.ojalgo.function.constant.PrimitiveMath.*;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
@@ -380,6 +382,20 @@ public final class SolverORTools implements UpdatableSolver {
     }
 
     /**
+     * Asks OR-Tools to stop, which is all that can be done from here – it sets a flag, and whether anything
+     * comes of it is up to the backend that is solving. Measured with OR-Tools 9.15 on a model that would
+     * otherwise run for hours: SAT stops within milliseconds, SCIP and HIGHS were still solving twenty seconds
+     * later. Nothing distinguishes those cases in advance, since the return value only says that the flag
+     * exists, not that the backend reads it.
+     */
+    private void interruptSolve() {
+
+        if (!mySolver.interruptSolve() && myInterruptRefused.compareAndSet(false, true)) {
+            BasicLogger.error("This OR-Tools backend will not interrupt a solve - it has to run to completion!");
+        }
+    }
+
+    /**
      * Look at {@link ModelBuilder} for hints on how to use this.
      */
     private final ModelBuilderHelper myBuilder;
@@ -389,6 +405,10 @@ public final class SolverORTools implements UpdatableSolver {
      */
     private final ModelSolverHelper mySolver;
     private boolean mySolutionAvailable;
+    /**
+     * Whether the backend has already been found not to support interrupting, so that saying so once is enough.
+     */
+    private final AtomicBoolean myInterruptRefused = new AtomicBoolean(false);
 
     SolverORTools(final ModelBuilderHelper builder, final ModelSolverHelper solver, final int numVars) {
 
@@ -442,7 +462,9 @@ public final class SolverORTools implements UpdatableSolver {
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
-        mySolver.solve(myBuilder);
+        try (SolveInterrupter interrupter = SolveInterrupter.watch(this::interruptSolve)) {
+            mySolver.solve(myBuilder);
+        }
 
         SolveStatus status = mySolver.hasResponse() ? mySolver.getStatus() : SolveStatus.UNKNOWN_STATUS;
 

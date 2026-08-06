@@ -277,6 +277,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
         }
     }
 
+    private IloCplex.Aborter myAborter = null;
     private final IloCplex mySolver;
     private final IloNumVar[] myVariables;
 
@@ -284,6 +285,20 @@ public final class SolverCPLEX implements Optimisation.Solver {
         super();
         mySolver = solver;
         myVariables = variables;
+    }
+
+    /**
+     * CPLEX's own way of being stopped from elsewhere, which is what makes an interrupt of the solving thread
+     * reach it. Registered once and kept – an aborter belongs to the {@link IloCplex} instance rather than to
+     * one solve.
+     */
+    private IloCplex.Aborter aborter() throws IloException {
+
+        if (myAborter == null) {
+            myAborter = mySolver.use(new IloCplex.Aborter());
+        }
+
+        return myAborter;
     }
 
     @Override
@@ -305,7 +320,18 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
         try {
 
-            if (mySolver.solve()) {
+            IloCplex.Aborter aborter = this.aborter();
+
+            // Latched from the last solve, if that one was aborted. The interrupt that caused it may since
+            // have been dealt with, and this solve is entitled to run.
+            aborter.clear();
+
+            boolean solved;
+            try (SolveInterrupter interrupter = SolveInterrupter.watch(aborter::abort)) {
+                solved = mySolver.solve();
+            }
+
+            if (solved) {
 
                 for (int i = 0; i < myVariables.length; i++) {
                     retSolution[i] = mySolver.getValue(myVariables[i]);

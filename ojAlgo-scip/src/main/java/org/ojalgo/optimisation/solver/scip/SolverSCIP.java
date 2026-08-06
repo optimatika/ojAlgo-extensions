@@ -57,6 +57,21 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
         private static final int PARALLELISM_THRESHOLD = 18;
 
+        /**
+         * Whether to hand the model to SCIP's concurrent portfolio, {@code SCIPsolveConcurrent}, rather than to
+         * {@code SCIPsolve}. Off unless overridden, and only available at all in a TPI-enabled SCIP build.
+         * <p>
+         * The portfolio races differently configured sub-SCIPs against each other, and on some models that
+         * wins. What it costs is the ability to stop: interrupting the solving thread stops a
+         * {@code SCIPsolve} within milliseconds, whereas the sub-SCIPs of a concurrent solve only look at the
+         * synchronisation store when they synchronise, which was measured minutes apart on a hard model.
+         * Nothing in SCIP's exported API reaches them sooner. A solve that cannot be abandoned is the worse
+         * default, so this trade has to be made deliberately.
+         */
+        protected boolean isConcurrent(final Optimisation.Options options) {
+            return false;
+        }
+
         protected void configure(final MemorySegment scip, final Arena arena, final Optimisation.Options options) {
 
             MemorySegment verbLevel = SCIPBindings.allocateString(arena, "display/verblevel");
@@ -185,7 +200,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
                     SolverSCIP.addQuadraticObjective(scip, arena, objective, varPtrs);
                 }
 
-                boolean concurrent = model.options.getParallelism() > 1 && SCIPBindings.hasSolveConcurrent() && !model.isAnyExpressionQuadratic();
+                boolean concurrent = configurator.isConcurrent(model.options) && SCIPBindings.hasSolveConcurrent() && !model.isAnyExpressionQuadratic();
 
                 return new SolverSCIP(scip, varPtrs, n, arena, concurrent);
 
@@ -347,8 +362,8 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
                 Optimisation.State.INVALID;
             case SCIPBindings.STATUS_GAPLIMIT, SCIPBindings.STATUS_SOLLIMIT, SCIPBindings.STATUS_BESTSOLLIMIT, SCIPBindings.STATUS_TIMELIMIT,
                     SCIPBindings.STATUS_NODELIMIT, SCIPBindings.STATUS_TOTALNODELIMIT, SCIPBindings.STATUS_STALLNODELIMIT, SCIPBindings.STATUS_PRIMALLIMIT,
-                    SCIPBindings.STATUS_DUALLIMIT,
-                    SCIPBindings.STATUS_RESTARTLIMIT                                                                                                                                                                                                                                                                                                  ->
+                    SCIPBindings.STATUS_DUALLIMIT, SCIPBindings.STATUS_RESTARTLIMIT, SCIPBindings.STATUS_USERINTERRUPT,
+                    SCIPBindings.STATUS_TERMINATE                                                                                                                                                                                                                                                                                                     ->
                 Optimisation.State.APPROXIMATE;
             case SCIPBindings.STATUS_UNKNOWN                                                                                                                                                                                                                                                                                                          ->
                 Optimisation.State.UNEXPLORED;
@@ -401,10 +416,12 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
-        if (myConcurrent) {
-            SCIPBindings.solveConcurrent(myScip);
-        } else {
-            SCIPBindings.solve(myScip);
+        try (SolveInterrupter interrupter = SolveInterrupter.watch(() -> SCIPBindings.interruptSolve(myScip))) {
+            if (myConcurrent) {
+                SCIPBindings.solveConcurrent(myScip);
+            } else {
+                SCIPBindings.solve(myScip);
+            }
         }
 
         int status = SCIPBindings.getStatus(myScip);

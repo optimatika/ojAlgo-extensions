@@ -189,6 +189,12 @@ public final class SolverMosek implements Optimisation.Solver {
 
     private final Optimisation.Options myOptions;
     private soltype mySolutionType = soltype.bas;
+    /**
+     * The thread inside {@link #solve(Result)}. Read from the progress callback, which MOSEK may make from a
+     * thread of its own, so it is that thread's interrupt flag – not the calling one's – that has to be asked
+     * about.
+     */
+    private volatile Thread mySolving = null;
     private final Task myTask;
 
     SolverMosek(final Task task, final Optimisation.Options options) {
@@ -197,6 +203,18 @@ public final class SolverMosek implements Optimisation.Solver {
 
         myTask = task;
         myOptions = options;
+
+        // MOSEK stops itself: it asks this while optimising, and anything but zero means stop. So an interrupt
+        // of the solving thread is all it takes, and nothing needs to watch that thread from outside.
+        myTask.set_Progress(new Progress() {
+
+            @Override
+            public int progress(final callbackcode caller) {
+                Thread solving = mySolving;
+                return solving != null && solving.isInterrupted() ? 1 : 0;
+            }
+
+        });
     }
 
     @Override
@@ -218,9 +236,11 @@ public final class SolverMosek implements Optimisation.Solver {
         double tmpValue = Double.NaN;
         double[] tmpSolution = new double[tmpNumberOfVariables];
 
+        mySolving = Thread.currentThread();
+
         try {
 
-            if (myTask.optimize() == rescode.ok) {
+            if (this.optimise() == rescode.ok) {
 
                 solsta[] tmpSolverState = new solsta[1];
                 myTask.getsolsta(mySolutionType, tmpSolverState);
@@ -244,9 +264,27 @@ public final class SolverMosek implements Optimisation.Solver {
 
         } catch (Exception xcptn) {
             throw xcptn;
+        } finally {
+            mySolving = null;
         }
 
         return new Optimisation.Result(tmpSate, tmpValue, ArrayR064.wrap(tmpSolution));
+    }
+
+    /**
+     * Wraps {@link Task#optimize()} to keep the interrupt out of the returned {@link rescode}: a solve stopped
+     * from the progress callback comes back as {@code trm_user_callback}, which is a termination code rather
+     * than something having gone wrong, but there is no solution to read either way.
+     */
+    private rescode optimise() {
+
+        rescode retVal = myTask.optimize();
+
+        if (retVal == rescode.trm_user_callback) {
+            BasicLogger.debug("MOSEK stopped on request");
+        }
+
+        return retVal;
     }
 
     boundkey getBoundKey(final Optimisation.Constraint modelEntity) {
