@@ -49,8 +49,8 @@ import org.ojalgo.type.keyvalue.EntryPair;
  * HiGHS solver integration for ojAlgo.
  * <p>
  * HiGHS is a high-performance open-source solver for linear programming (LP), mixed-integer programming
- * (MIP), and quadratic programming (QP). This integration uses Java's Foreign Function &amp; Memory API (FFM) to
- * directly call the HiGHS C library.
+ * (MIP), and quadratic programming (QP). This integration uses Java's Foreign Function &amp; Memory API (FFM)
+ * to directly call the HiGHS C library.
  *
  * @see <a href="https://highs.dev">HiGHS</a>
  */
@@ -72,7 +72,11 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
          * @param arena   arena for allocating option strings
          * @param options ojAlgo optimisation options
          */
-        protected void configure(final MemorySegment highs, final Arena arena, final Optimisation.Options options) {
+        protected void configure(final ExpressionsBasedModel model, final MemorySegment highs, final Arena arena) {
+
+            int nbVars = model.countVariables();
+
+            Optimisation.Options options = model.options;
 
             MemorySegment outputFlag = HiGHSBindings.allocateString(arena, "output_flag");
             boolean verbose = options.logger_appender != null && options.logger_detailed;
@@ -94,9 +98,14 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
             }
 
             int parallelism = options.getParallelism();
-            if (parallelism > 0) {
+            if (parallelism >= 4 && nbVars > 1_000) {
+
                 MemorySegment threads = HiGHSBindings.allocateString(arena, "threads");
-                HiGHSBindings.setIntOptionValue(highs, threads, parallelism);
+                HiGHSBindings.setIntOptionValue(highs, threads, Math.min(8, parallelism));
+
+                MemorySegment parallel = HiGHSBindings.allocateString(arena, "parallel");
+                MemorySegment on = HiGHSBindings.allocateString(arena, "on");
+                HiGHSBindings.setStringOptionValue(highs, parallel, on);
             }
 
             //            double feasTol = options.feasibility.epsilon();
@@ -291,7 +300,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
             try {
 
-                configurator.configure(highs, arena, model.options);
+                configurator.configure(model, highs, arena);
 
                 MemorySegment colCostSeg = HiGHSBindings.allocateDoubleArray(arena, colCost);
                 MemorySegment colLowerSeg = HiGHSBindings.allocateDoubleArray(arena, colLower);

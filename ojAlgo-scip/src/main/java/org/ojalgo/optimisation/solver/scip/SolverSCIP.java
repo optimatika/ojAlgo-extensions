@@ -55,6 +55,8 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
      */
     public static class Configurator {
 
+        private static final int PARALLELISM_THRESHOLD = 18;
+
         protected void configure(final MemorySegment scip, final Arena arena, final Optimisation.Options options) {
 
             MemorySegment verbLevel = SCIPBindings.allocateString(arena, "display/verblevel");
@@ -73,10 +75,11 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
             }
 
             int parallelism = options.getParallelism();
-            if (parallelism > 0) {
+            if (parallelism > PARALLELISM_THRESHOLD) {
                 MemorySegment maxThreads = SCIPBindings.allocateString(arena, "parallel/maxnthreads");
-                SCIPBindings.setIntParam(scip, maxThreads, parallelism);
+                SCIPBindings.setIntParam(scip, maxThreads, parallelism - PARALLELISM_THRESHOLD);
             }
+
         }
 
     }
@@ -182,7 +185,9 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
                     SolverSCIP.addQuadraticObjective(scip, arena, objective, varPtrs);
                 }
 
-                return new SolverSCIP(scip, varPtrs, n, arena);
+                boolean concurrent = model.options.getParallelism() > 1 && SCIPBindings.hasSolveConcurrent() && !model.isAnyExpressionQuadratic();
+
+                return new SolverSCIP(scip, varPtrs, n, arena, concurrent);
 
             } catch (RuntimeException e) {
                 arena.close();
@@ -225,8 +230,8 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
         // c'x - x'Qx instead.
 
         // Linear part: -1 * obj_aux (no linear terms from the quadratic part of the objective)
-        MemorySegment[] linVars = new MemorySegment[]{ auxVar };
-        double[] linCoefs = new double[]{ -ONE };
+        MemorySegment[] linVars = { auxVar };
+        double[] linCoefs = { -ONE };
 
         var quadKeys = objective.getQuadraticKeySet();
         List<MemorySegment> qv1 = new ArrayList<>();
@@ -332,31 +337,39 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
     static Optimisation.State translate(final int status) {
         return switch (status) {
-            case SCIPBindings.STATUS_OPTIMAL -> Optimisation.State.OPTIMAL;
-            case SCIPBindings.STATUS_INFEASIBLE -> Optimisation.State.INFEASIBLE;
-            case SCIPBindings.STATUS_UNBOUNDED -> Optimisation.State.UNBOUNDED;
-            case SCIPBindings.STATUS_INFORUNBD -> Optimisation.State.INVALID;
-            case SCIPBindings.STATUS_GAPLIMIT, SCIPBindings.STATUS_SOLLIMIT, SCIPBindings.STATUS_BESTSOLLIMIT,
-                    SCIPBindings.STATUS_TIMELIMIT, SCIPBindings.STATUS_NODELIMIT,
-                    SCIPBindings.STATUS_TOTALNODELIMIT, SCIPBindings.STATUS_STALLNODELIMIT,
-                    SCIPBindings.STATUS_PRIMALLIMIT, SCIPBindings.STATUS_DUALLIMIT,
-                    SCIPBindings.STATUS_RESTARTLIMIT -> Optimisation.State.APPROXIMATE;
-            case SCIPBindings.STATUS_UNKNOWN -> Optimisation.State.UNEXPLORED;
-            default -> Optimisation.State.FAILED;
+            case SCIPBindings.STATUS_OPTIMAL                                                                                                                                                                                                                                                                                                          ->
+                Optimisation.State.OPTIMAL;
+            case SCIPBindings.STATUS_INFEASIBLE                                                                                                                                                                                                                                                                                                       ->
+                Optimisation.State.INFEASIBLE;
+            case SCIPBindings.STATUS_UNBOUNDED                                                                                                                                                                                                                                                                                                        ->
+                Optimisation.State.UNBOUNDED;
+            case SCIPBindings.STATUS_INFORUNBD                                                                                                                                                                                                                                                                                                        ->
+                Optimisation.State.INVALID;
+            case SCIPBindings.STATUS_GAPLIMIT, SCIPBindings.STATUS_SOLLIMIT, SCIPBindings.STATUS_BESTSOLLIMIT, SCIPBindings.STATUS_TIMELIMIT,
+                    SCIPBindings.STATUS_NODELIMIT, SCIPBindings.STATUS_TOTALNODELIMIT, SCIPBindings.STATUS_STALLNODELIMIT, SCIPBindings.STATUS_PRIMALLIMIT,
+                    SCIPBindings.STATUS_DUALLIMIT,
+                    SCIPBindings.STATUS_RESTARTLIMIT                                                                                                                                                                                                                                                                                                  ->
+                Optimisation.State.APPROXIMATE;
+            case SCIPBindings.STATUS_UNKNOWN                                                                                                                                                                                                                                                                                                          ->
+                Optimisation.State.UNEXPLORED;
+            default                                                                                                                                                                                                                                                                                                                                   ->
+                Optimisation.State.FAILED;
         };
     }
 
     private final Arena myArena;
+    private final boolean myConcurrent;
     private final int myNumVars;
     private final MemorySegment myScip;
     private final MemorySegment[] myVarPtrs;
 
-    SolverSCIP(final MemorySegment scip, final MemorySegment[] varPtrs, final int numVars, final Arena arena) {
+    SolverSCIP(final MemorySegment scip, final MemorySegment[] varPtrs, final int numVars, final Arena arena, final boolean concurrent) {
         super();
         myScip = scip;
         myVarPtrs = varPtrs;
         myNumVars = numVars;
         myArena = arena;
+        myConcurrent = concurrent;
     }
 
     @Override
@@ -388,7 +401,11 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
-        SCIPBindings.solve(myScip);
+        if (myConcurrent) {
+            SCIPBindings.solveConcurrent(myScip);
+        } else {
+            SCIPBindings.solve(myScip);
+        }
 
         int status = SCIPBindings.getStatus(myScip);
         Optimisation.State state = SolverSCIP.translate(status);

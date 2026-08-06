@@ -10,3 +10,4 @@ buildNumber.properties
 .gradle
 .flattened-pom.xml
 .DS_Store
+hs_err_pid*.log

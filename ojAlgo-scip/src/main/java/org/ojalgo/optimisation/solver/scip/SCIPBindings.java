@@ -113,6 +113,7 @@ final class SCIPBindings {
     private static final MethodHandle SCIP_RELEASE_CONS;
 
     private static final MethodHandle SCIP_SOLVE;
+    private static final MethodHandle SCIP_SOLVE_CONCURRENT;
     private static final MethodHandle SCIP_FREE_TRANSFORM;
     private static final MethodHandle SCIP_GET_STATUS;
 
@@ -209,6 +210,9 @@ final class SCIPBindings {
         // SCIP_RETCODE SCIPsolve(SCIP* scip)
         SCIP_SOLVE = SCIPBindings.downcallHandle("SCIPsolve", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
 
+        // SCIP_RETCODE SCIPsolveConcurrent(SCIP* scip) — requires TPI-enabled build (e.g. TBB)
+        SCIP_SOLVE_CONCURRENT = SCIPBindings.downcallHandleOptional("SCIPsolveConcurrent", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+
         // SCIP_RETCODE SCIPfreeTransform(SCIP* scip)
         SCIP_FREE_TRANSFORM = SCIPBindings.downcallHandle("SCIPfreeTransform", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
 
@@ -243,7 +247,7 @@ final class SCIPBindings {
      * Verify the {@code SCIP_RETCODE} returned by a native call. Anything other than {@link #SCIP_OKAY} means
      * the call did not do what was asked, and letting that pass would leave a silently incomplete model.
      *
-     * @param retcode the value returned by the native function
+     * @param retcode  the value returned by the native function
      * @param function the name of the native function, for the error message
      */
     private static void check(final int retcode, final String function) {
@@ -254,26 +258,26 @@ final class SCIPBindings {
 
     private static String describe(final int retcode) {
         String name = switch (retcode) {
-            case SCIP_ERROR -> "SCIP_ERROR";
-            case SCIP_NOMEMORY -> "SCIP_NOMEMORY";
-            case SCIP_READERROR -> "SCIP_READERROR";
-            case SCIP_WRITEERROR -> "SCIP_WRITEERROR";
-            case SCIP_NOFILE -> "SCIP_NOFILE";
-            case SCIP_FILECREATEERROR -> "SCIP_FILECREATEERROR";
-            case SCIP_LPERROR -> "SCIP_LPERROR";
-            case SCIP_NOPROBLEM -> "SCIP_NOPROBLEM";
-            case SCIP_INVALIDCALL -> "SCIP_INVALIDCALL";
-            case SCIP_INVALIDDATA -> "SCIP_INVALIDDATA";
-            case SCIP_INVALIDRESULT -> "SCIP_INVALIDRESULT";
-            case SCIP_PLUGINNOTFOUND -> "SCIP_PLUGINNOTFOUND";
-            case SCIP_PARAMETERUNKNOWN -> "SCIP_PARAMETERUNKNOWN";
+            case SCIP_ERROR              -> "SCIP_ERROR";
+            case SCIP_NOMEMORY           -> "SCIP_NOMEMORY";
+            case SCIP_READERROR          -> "SCIP_READERROR";
+            case SCIP_WRITEERROR         -> "SCIP_WRITEERROR";
+            case SCIP_NOFILE             -> "SCIP_NOFILE";
+            case SCIP_FILECREATEERROR    -> "SCIP_FILECREATEERROR";
+            case SCIP_LPERROR            -> "SCIP_LPERROR";
+            case SCIP_NOPROBLEM          -> "SCIP_NOPROBLEM";
+            case SCIP_INVALIDCALL        -> "SCIP_INVALIDCALL";
+            case SCIP_INVALIDDATA        -> "SCIP_INVALIDDATA";
+            case SCIP_INVALIDRESULT      -> "SCIP_INVALIDRESULT";
+            case SCIP_PLUGINNOTFOUND     -> "SCIP_PLUGINNOTFOUND";
+            case SCIP_PARAMETERUNKNOWN   -> "SCIP_PARAMETERUNKNOWN";
             case SCIP_PARAMETERWRONGTYPE -> "SCIP_PARAMETERWRONGTYPE";
-            case SCIP_PARAMETERWRONGVAL -> "SCIP_PARAMETERWRONGVAL";
+            case SCIP_PARAMETERWRONGVAL  -> "SCIP_PARAMETERWRONGVAL";
             case SCIP_KEYALREADYEXISTING -> "SCIP_KEYALREADYEXISTING";
-            case SCIP_MAXDEPTHLEVEL -> "SCIP_MAXDEPTHLEVEL";
-            case SCIP_BRANCHERROR -> "SCIP_BRANCHERROR";
-            case SCIP_NOTIMPLEMENTED -> "SCIP_NOTIMPLEMENTED";
-            default -> "unknown SCIP_RETCODE";
+            case SCIP_MAXDEPTHLEVEL      -> "SCIP_MAXDEPTHLEVEL";
+            case SCIP_BRANCHERROR        -> "SCIP_BRANCHERROR";
+            case SCIP_NOTIMPLEMENTED     -> "SCIP_NOTIMPLEMENTED";
+            default                      -> "unknown SCIP_RETCODE";
         };
         return name + " (" + retcode + ")";
     }
@@ -284,24 +288,9 @@ final class SCIPBindings {
         return LINKER.downcallHandle(symbol, descriptor);
     }
 
-    static MemorySegment allocateDoubleArray(final Arena arena, final double[] values) {
+    private static MethodHandle downcallHandleOptional(final String name, final FunctionDescriptor descriptor) {
 
-        MemorySegment segment = arena.allocate(ValueLayout.JAVA_DOUBLE, values.length);
-        MemorySegment.copy(values, 0, segment, ValueLayout.JAVA_DOUBLE, 0, values.length);
-        return segment;
-    }
-
-    static MemorySegment allocatePointerArray(final Arena arena, final MemorySegment[] pointers) {
-
-        MemorySegment segment = arena.allocate(ValueLayout.ADDRESS, pointers.length);
-        for (int i = 0; i < pointers.length; i++) {
-            segment.setAtIndex(ValueLayout.ADDRESS, i, pointers[i]);
-        }
-        return segment;
-    }
-
-    static MemorySegment allocateString(final Arena arena, final String value) {
-        return arena.allocateFrom(value);
+        return LOOKUP.find(name).map(symbol -> LINKER.downcallHandle(symbol, descriptor)).orElse(null);
     }
 
     static void addCons(final MemorySegment scip, final MemorySegment cons) {
@@ -324,6 +313,26 @@ final class SCIPBindings {
             throw new RuntimeException("SCIPaddVar failed", t);
         }
         SCIPBindings.check(retcode, "SCIPaddVar");
+    }
+
+    static MemorySegment allocateDoubleArray(final Arena arena, final double[] values) {
+
+        MemorySegment segment = arena.allocate(ValueLayout.JAVA_DOUBLE, values.length);
+        MemorySegment.copy(values, 0, segment, ValueLayout.JAVA_DOUBLE, 0, values.length);
+        return segment;
+    }
+
+    static MemorySegment allocatePointerArray(final Arena arena, final MemorySegment[] pointers) {
+
+        MemorySegment segment = arena.allocate(ValueLayout.ADDRESS, pointers.length);
+        for (int i = 0; i < pointers.length; i++) {
+            segment.setAtIndex(ValueLayout.ADDRESS, i, pointers[i]);
+        }
+        return segment;
+    }
+
+    static MemorySegment allocateString(final Arena arena, final String value) {
+        return arena.allocateFrom(value);
     }
 
     static void chgVarLb(final MemorySegment scip, final MemorySegment var, final double newbound) {
@@ -469,6 +478,10 @@ final class SCIPBindings {
         }
     }
 
+    static boolean hasSolveConcurrent() {
+        return SCIP_SOLVE_CONCURRENT != null;
+    }
+
     static void includeDefaultPlugins(final MemorySegment scip) {
 
         int retcode;
@@ -555,6 +568,17 @@ final class SCIPBindings {
             throw new RuntimeException("SCIPsolve failed", t);
         }
         SCIPBindings.check(retcode, "SCIPsolve");
+    }
+
+    static void solveConcurrent(final MemorySegment scip) {
+
+        int retcode;
+        try {
+            retcode = (int) SCIP_SOLVE_CONCURRENT.invokeExact(scip);
+        } catch (Throwable t) {
+            throw new RuntimeException("SCIPsolveConcurrent failed", t);
+        }
+        SCIPBindings.check(retcode, "SCIPsolveConcurrent");
     }
 
     private SCIPBindings() {}
