@@ -56,6 +56,15 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
     public static class Configurator {
 
         private static final int PARALLELISM_THRESHOLD = 18;
+        /**
+         * Below this many constraints PaPILO's presolving is switched off at solve time. Constraints
+         * rather than variables because PaPILO's reductions are mostly row oriented - dominated rows,
+         * parallel rows, redundant constraints, singleton rows - so row count is the better measure of
+         * whether there is structure worth presolving. A first guess from the MIPLIB "easy set"
+         * measurements, where neither count actually predicted the outcome; worth tuning once there is
+         * data on larger models.
+         */
+        private static final int PAPILO_THRESHOLD = 1_000;
 
         /**
          * Whether to hand the model to SCIP's concurrent portfolio, {@code SCIPsolveConcurrent}, rather than to
@@ -72,7 +81,11 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
             return false;
         }
 
-        protected void configure(final MemorySegment scip, final Arena arena, final Optimisation.Options options) {
+        protected void configure(final ExpressionsBasedModel model, final MemorySegment scip, final Arena arena) {
+
+            int nbConstraints = model.countExpressions();
+
+            Optimisation.Options options = model.options;
 
             MemorySegment verbLevel = SCIPBindings.allocateString(arena, "display/verblevel");
             boolean verbose = options.logger_appender != null && options.logger_detailed;
@@ -95,6 +108,15 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
                 SCIPBindings.setIntParam(scip, maxThreads, parallelism - PARALLELISM_THRESHOLD);
             }
 
+            if (nbConstraints <= PAPILO_THRESHOLD) {
+                // PaPILO's reductions are meant to earn their scan cost on large models. Below the
+                // threshold they mostly don't, and sometimes leave a formulation that branches worse -
+                // measured over the 94 MIPLIB "easy set" models (all under 1k variables) it was a 10% net
+                // loss, with noswot taking 22x the nodes and neos-2624317-amur 7x. The parameter only
+                // exists in a PaPILO-enabled build, hence the tolerant setter.
+                MemorySegment maxRounds = SCIPBindings.allocateString(arena, "presolving/milp/maxrounds");
+                SCIPBindings.setIntParamIfPresent(scip, maxRounds, 0);
+            }
         }
 
     }
@@ -135,7 +157,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
                 SCIPBindings.setObjsense(scip, sense);
 
-                configurator.configure(scip, arena, model.options);
+                configurator.configure(model, scip, arena);
 
                 // Create variables
                 MemorySegment[] varPtrs = new MemorySegment[n];

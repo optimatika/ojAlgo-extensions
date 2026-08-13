@@ -23,7 +23,7 @@ public class NativeErrorsWithSCIP {
     static final class UnknownParameterConfigurator extends SolverSCIP.Configurator {
 
         @Override
-        protected void configure(final MemorySegment scip, final Arena arena, final Optimisation.Options options) {
+        protected void configure(final ExpressionsBasedModel model, final MemorySegment scip, final Arena arena) {
             MemorySegment name = SCIPBindings.allocateString(arena, "this/parameter/does/not/exist");
             SCIPBindings.setIntParam(scip, name, 1);
         }

@@ -29,6 +29,8 @@ import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 
+import org.ojalgo.optimisation.Optimisation;
+
 /**
  * FFM bindings for the SCIP C API.
  * <p>
@@ -40,94 +42,84 @@ import java.lang.invoke.MethodHandle;
  */
 final class SCIPBindings {
 
-    // SCIP_RETCODE values - SCIP_OKAY is the only non-error outcome
-    static final int SCIP_OKAY = 1;
-    static final int SCIP_ERROR = 0;
-    static final int SCIP_NOMEMORY = -1;
-    static final int SCIP_READERROR = -2;
-    static final int SCIP_WRITEERROR = -3;
-    static final int SCIP_NOFILE = -4;
-    static final int SCIP_FILECREATEERROR = -5;
-    static final int SCIP_LPERROR = -6;
-    static final int SCIP_NOPROBLEM = -7;
-    static final int SCIP_INVALIDCALL = -8;
-    static final int SCIP_INVALIDDATA = -9;
-    static final int SCIP_INVALIDRESULT = -10;
-    static final int SCIP_PLUGINNOTFOUND = -11;
-    static final int SCIP_PARAMETERUNKNOWN = -12;
-    static final int SCIP_PARAMETERWRONGTYPE = -13;
-    static final int SCIP_PARAMETERWRONGVAL = -14;
-    static final int SCIP_KEYALREADYEXISTING = -15;
-    static final int SCIP_MAXDEPTHLEVEL = -16;
-    static final int SCIP_BRANCHERROR = -17;
-    static final int SCIP_NOTIMPLEMENTED = -18;
+    private static final Linker LINKER = Linker.nativeLinker();
+    private static final SymbolLookup LOOKUP;
+    private static final MethodHandle SCIP_ADD_CONS;
+    private static final MethodHandle SCIP_ADD_VAR;
+    private static final MethodHandle SCIP_CHG_VAR_LB;
+    private static final MethodHandle SCIP_CHG_VAR_UB;
+    private static final MethodHandle SCIP_CREATE;
+    private static final MethodHandle SCIP_CREATE_CONS_BASIC_LINEAR;
+    private static final MethodHandle SCIP_CREATE_CONS_BASIC_QUADRATIC_NONLINEAR;
+    private static final MethodHandle SCIP_CREATE_PROB_BASIC;
+    private static final MethodHandle SCIP_CREATE_VAR_BASIC;
+    private static final MethodHandle SCIP_FREE;
+    private static final MethodHandle SCIP_FREE_TRANSFORM;
+    private static final MethodHandle SCIP_GET_BEST_SOL;
+    private static final MethodHandle SCIP_GET_SOL_ORIG_OBJ;
+    private static final MethodHandle SCIP_GET_SOL_VAL;
+    private static final MethodHandle SCIP_GET_STATUS;
+    private static final MethodHandle SCIP_GET_SYNCSTORE;
+    private static final MethodHandle SCIP_INCLUDE_DEFAULT_PLUGINS;
+    private static final MethodHandle SCIP_INTERRUPT_SOLVE;
+    private static final MethodHandle SCIP_RELEASE_CONS;
+    private static final MethodHandle SCIP_RELEASE_VAR;
+    private static final MethodHandle SCIP_SET_INT_PARAM;
+    private static final MethodHandle SCIP_SET_LONGINT_PARAM;
+    private static final MethodHandle SCIP_SET_OBJ_SENSE;
+    private static final MethodHandle SCIP_SET_REAL_PARAM;
+    private static final MethodHandle SCIP_SOLVE;
+    private static final MethodHandle SCIP_SOLVE_CONCURRENT;
+    private static final MethodHandle SCIP_SYNCSTORE_IS_INITIALIZED;
+    private static final MethodHandle SCIP_SYNCSTORE_SET_SOLVE_IS_STOPPED;
 
-    // SCIP_STATUS values
-    static final int STATUS_UNKNOWN = 0;
-    static final int STATUS_OPTIMAL = 1;
-    static final int STATUS_INFEASIBLE = 2;
-    static final int STATUS_UNBOUNDED = 3;
-    static final int STATUS_INFORUNBD = 4;
-    static final int STATUS_USERINTERRUPT = 10;
-    static final int STATUS_TERMINATE = 11;
-    static final int STATUS_NODELIMIT = 20;
-    static final int STATUS_TOTALNODELIMIT = 21;
-    static final int STATUS_STALLNODELIMIT = 22;
-    static final int STATUS_TIMELIMIT = 23;
-    static final int STATUS_MEMLIMIT = 24;
-    static final int STATUS_GAPLIMIT = 25;
-    static final int STATUS_PRIMALLIMIT = 26;
-    static final int STATUS_DUALLIMIT = 27;
-    static final int STATUS_SOLLIMIT = 28;
-    static final int STATUS_BESTSOLLIMIT = 29;
-    static final int STATUS_RESTARTLIMIT = 30;
-
-    // SCIP_OBJSENSE values
     static final int OBJSENSE_MAXIMIZE = -1;
     static final int OBJSENSE_MINIMIZE = 1;
 
-    // SCIP_VARTYPE values
+    static final int SCIP_BRANCHERROR = -17;
+    static final int SCIP_ERROR = 0;
+    static final int SCIP_FILECREATEERROR = -5;
+    static final int SCIP_INVALIDCALL = -8;
+    static final int SCIP_INVALIDDATA = -9;
+    static final int SCIP_INVALIDRESULT = -10;
+    static final int SCIP_KEYALREADYEXISTING = -15;
+    static final int SCIP_LPERROR = -6;
+    static final int SCIP_MAXDEPTHLEVEL = -16;
+    static final int SCIP_NOFILE = -4;
+    static final int SCIP_NOMEMORY = -1;
+    static final int SCIP_NOPROBLEM = -7;
+    static final int SCIP_NOTIMPLEMENTED = -18;
+    static final int SCIP_OKAY = 1;
+    static final int SCIP_PARAMETERUNKNOWN = -12;
+    static final int SCIP_PARAMETERWRONGTYPE = -13;
+    static final int SCIP_PARAMETERWRONGVAL = -14;
+    static final int SCIP_PLUGINNOTFOUND = -11;
+    static final int SCIP_READERROR = -2;
+    static final int SCIP_WRITEERROR = -3;
+
+    static final int STATUS_BESTSOLLIMIT = 29;
+    static final int STATUS_DUALLIMIT = 27;
+    static final int STATUS_GAPLIMIT = 25;
+    static final int STATUS_INFEASIBLE = 2;
+    static final int STATUS_INFORUNBD = 4;
+    static final int STATUS_MEMLIMIT = 24;
+    static final int STATUS_NODELIMIT = 20;
+    static final int STATUS_OPTIMAL = 1;
+    static final int STATUS_PRIMALLIMIT = 26;
+    static final int STATUS_RESTARTLIMIT = 30;
+    static final int STATUS_SOLLIMIT = 28;
+    static final int STATUS_STALLNODELIMIT = 22;
+    static final int STATUS_TERMINATE = 11;
+    static final int STATUS_TIMELIMIT = 23;
+    static final int STATUS_TOTALNODELIMIT = 21;
+    static final int STATUS_UNBOUNDED = 3;
+    static final int STATUS_UNKNOWN = 0;
+    static final int STATUS_USERINTERRUPT = 10;
+
     static final int VARTYPE_BINARY = 0;
-    static final int VARTYPE_INTEGER = 1;
-    static final int VARTYPE_IMPLINT = 2;
     static final int VARTYPE_CONTINUOUS = 3;
-
-    private static final Linker LINKER = Linker.nativeLinker();
-    private static final SymbolLookup LOOKUP;
-
-    private static final MethodHandle SCIP_CREATE;
-    private static final MethodHandle SCIP_FREE;
-    private static final MethodHandle SCIP_INCLUDE_DEFAULT_PLUGINS;
-    private static final MethodHandle SCIP_CREATE_PROB_BASIC;
-    private static final MethodHandle SCIP_SET_OBJ_SENSE;
-
-    private static final MethodHandle SCIP_CREATE_VAR_BASIC;
-    private static final MethodHandle SCIP_ADD_VAR;
-    private static final MethodHandle SCIP_RELEASE_VAR;
-    private static final MethodHandle SCIP_CHG_VAR_LB;
-    private static final MethodHandle SCIP_CHG_VAR_UB;
-
-    private static final MethodHandle SCIP_CREATE_CONS_BASIC_LINEAR;
-    private static final MethodHandle SCIP_CREATE_CONS_BASIC_QUADRATIC_NONLINEAR;
-    private static final MethodHandle SCIP_ADD_CONS;
-    private static final MethodHandle SCIP_RELEASE_CONS;
-
-    private static final MethodHandle SCIP_SOLVE;
-    private static final MethodHandle SCIP_SOLVE_CONCURRENT;
-    private static final MethodHandle SCIP_INTERRUPT_SOLVE;
-    private static final MethodHandle SCIP_GET_SYNCSTORE;
-    private static final MethodHandle SCIP_SYNCSTORE_IS_INITIALIZED;
-    private static final MethodHandle SCIP_SYNCSTORE_SET_SOLVE_IS_STOPPED;
-    private static final MethodHandle SCIP_FREE_TRANSFORM;
-    private static final MethodHandle SCIP_GET_STATUS;
-
-    private static final MethodHandle SCIP_GET_BEST_SOL;
-    private static final MethodHandle SCIP_GET_SOL_VAL;
-    private static final MethodHandle SCIP_GET_SOL_ORIG_OBJ;
-
-    private static final MethodHandle SCIP_SET_INT_PARAM;
-    private static final MethodHandle SCIP_SET_REAL_PARAM;
-    private static final MethodHandle SCIP_SET_LONGINT_PARAM;
+    static final int VARTYPE_IMPLINT = 2;
+    static final int VARTYPE_INTEGER = 1;
 
     static {
 
@@ -309,6 +301,33 @@ final class SCIPBindings {
     private static MethodHandle downcallHandleOptional(final String name, final FunctionDescriptor descriptor) {
 
         return LOOKUP.find(name).map(symbol -> LINKER.downcallHandle(symbol, descriptor)).orElse(null);
+    }
+
+    private static MemorySegment getSyncstore(final MemorySegment scip) {
+
+        try {
+            return (MemorySegment) SCIP_GET_SYNCSTORE.invokeExact(scip);
+        } catch (Throwable t) {
+            throw new RuntimeException("SCIPgetSyncstore failed", t);
+        }
+    }
+
+    private static boolean syncstoreIsInitialized(final MemorySegment syncstore) {
+
+        try {
+            return (int) SCIP_SYNCSTORE_IS_INITIALIZED.invokeExact(syncstore) != 0;
+        } catch (Throwable t) {
+            throw new RuntimeException("SCIPsyncstoreIsInitialized failed", t);
+        }
+    }
+
+    private static void syncstoreSetSolveIsStopped(final MemorySegment syncstore) {
+
+        try {
+            SCIP_SYNCSTORE_SET_SOLVE_IS_STOPPED.invokeExact(syncstore, 1);
+        } catch (Throwable t) {
+            throw new RuntimeException("SCIPsyncstoreSetSolveIsStopped failed", t);
+        }
     }
 
     static void addCons(final MemorySegment scip, final MemorySegment cons) {
@@ -496,35 +515,19 @@ final class SCIPBindings {
         }
     }
 
-    private static MemorySegment getSyncstore(final MemorySegment scip) {
-
-        try {
-            return (MemorySegment) SCIP_GET_SYNCSTORE.invokeExact(scip);
-        } catch (Throwable t) {
-            throw new RuntimeException("SCIPgetSyncstore failed", t);
-        }
-    }
-
-    private static boolean syncstoreIsInitialized(final MemorySegment syncstore) {
-
-        try {
-            return (int) SCIP_SYNCSTORE_IS_INITIALIZED.invokeExact(syncstore) != 0;
-        } catch (Throwable t) {
-            throw new RuntimeException("SCIPsyncstoreIsInitialized failed", t);
-        }
-    }
-
-    private static void syncstoreSetSolveIsStopped(final MemorySegment syncstore) {
-
-        try {
-            SCIP_SYNCSTORE_SET_SOLVE_IS_STOPPED.invokeExact(syncstore, 1);
-        } catch (Throwable t) {
-            throw new RuntimeException("SCIPsyncstoreSetSolveIsStopped failed", t);
-        }
-    }
-
     static boolean hasSolveConcurrent() {
         return SCIP_SOLVE_CONCURRENT != null;
+    }
+
+    static void includeDefaultPlugins(final MemorySegment scip) {
+
+        int retcode;
+        try {
+            retcode = (int) SCIP_INCLUDE_DEFAULT_PLUGINS.invokeExact(scip);
+        } catch (Throwable t) {
+            throw new RuntimeException("SCIPincludeDefaultPlugins failed", t);
+        }
+        SCIPBindings.check(retcode, "SCIPincludeDefaultPlugins");
     }
 
     /**
@@ -534,9 +537,9 @@ final class SCIPBindings {
      * <p>
      * A {@link #solveConcurrent(MemorySegment)} solve is a different matter, and this only asks. Its work
      * happens in sub-SCIPs that never see this instance's interrupt flag; what they watch is the stopped flag
-     * in the synchronisation store, which is set here too – it is documented as settable from any thread – but
-     * only observed at their own synchronisation points. Measured on a hard model, those can be minutes apart.
-     * The per-solver stop, {@code SCIPconcsolverStop}, is not exported, and neither is the global
+     * in the synchronisation store, which is set here too – it is documented as settable from any thread –
+     * but only observed at their own synchronisation points. Measured on a hard model, those can be minutes
+     * apart. The per-solver stop, {@code SCIPconcsolverStop}, is not exported, and neither is the global
      * {@code SCIPtryTerminate}, so there is no way to do better from outside. Hence
      * {@link SolverSCIP.Configurator#isConcurrent(Optimisation.Options)} defaulting to off.
      */
@@ -555,17 +558,6 @@ final class SCIPBindings {
         if (!MemorySegment.NULL.equals(syncstore) && SCIPBindings.syncstoreIsInitialized(syncstore)) {
             SCIPBindings.syncstoreSetSolveIsStopped(syncstore);
         }
-    }
-
-    static void includeDefaultPlugins(final MemorySegment scip) {
-
-        int retcode;
-        try {
-            retcode = (int) SCIP_INCLUDE_DEFAULT_PLUGINS.invokeExact(scip);
-        } catch (Throwable t) {
-            throw new RuntimeException("SCIPincludeDefaultPlugins failed", t);
-        }
-        SCIPBindings.check(retcode, "SCIPincludeDefaultPlugins");
     }
 
     static void releaseCons(final MemorySegment scip, final MemorySegment consPtr) {
@@ -595,10 +587,34 @@ final class SCIPBindings {
         int retcode;
         try {
             retcode = (int) SCIP_SET_INT_PARAM.invokeExact(scip, name, value);
-        } catch (Throwable t) {
-            throw new RuntimeException("SCIPsetIntParam failed", t);
+        } catch (Throwable cause) {
+            throw new RuntimeException("SCIPsetIntParam failed", cause);
         }
         SCIPBindings.check(retcode, "SCIPsetIntParam");
+    }
+
+    /**
+     * Set an int parameter that a given SCIP build may not have. Which parameters exist depends on what was
+     * compiled in - {@code presolving/milp/*} only exists with PaPILO, for instance - and asking for one that
+     * isn't there is not an error, just nothing to do.
+     *
+     * @return Whether the parameter existed and was set.
+     */
+    static boolean setIntParamIfPresent(final MemorySegment scip, final MemorySegment name, final int value) {
+
+        int retcode;
+        try {
+            retcode = (int) SCIP_SET_INT_PARAM.invokeExact(scip, name, value);
+        } catch (Throwable cause) {
+            throw new RuntimeException("SCIPsetIntParam failed", cause);
+        }
+
+        if (retcode == SCIP_PARAMETERUNKNOWN) {
+            return false;
+        }
+
+        SCIPBindings.check(retcode, "SCIPsetIntParam");
+        return true;
     }
 
     static void setLongintParam(final MemorySegment scip, final MemorySegment name, final long value) {
@@ -606,8 +622,8 @@ final class SCIPBindings {
         int retcode;
         try {
             retcode = (int) SCIP_SET_LONGINT_PARAM.invokeExact(scip, name, value);
-        } catch (Throwable t) {
-            throw new RuntimeException("SCIPsetLongintParam failed", t);
+        } catch (Throwable cause) {
+            throw new RuntimeException("SCIPsetLongintParam failed", cause);
         }
         SCIPBindings.check(retcode, "SCIPsetLongintParam");
     }
