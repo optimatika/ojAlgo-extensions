@@ -110,7 +110,9 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverCPLEX> {
 
-        private static final boolean ADJUST = false;
+        private static final boolean ADJUSTED_BOUNDS = false;
+        private static final boolean ADJUSTED_CONSTRAINTS = false;
+        private static final boolean ADJUSTED_OBJECTIVE = false;
 
         Integration() {
             super();
@@ -144,8 +146,8 @@ public final class SolverCPLEX implements Optimisation.Solver {
                             type = IloNumVarType.Int;
                         }
                     }
-                    double lb = mVar.getLowerLimit(false, NEGATIVE_INFINITY);
-                    double ub = mVar.getUpperLimit(false, POSITIVE_INFINITY);
+                    double lb = mVar.getLowerLimit(ADJUSTED_BOUNDS, NEGATIVE_INFINITY);
+                    double ub = mVar.getUpperLimit(ADJUSTED_BOUNDS, POSITIVE_INFINITY);
                     String name = mVar.getName();
 
                     solver.add(sVars[i] = solver.numVar(lb, ub, type, name));
@@ -155,16 +157,16 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
                     try {
 
-                        IloNumExpr sConstr = this.buildExpression(mConstr, solver, sVars);
+                        IloNumExpr sConstr = this.buildExpression(mConstr, solver, sVars, ADJUSTED_CONSTRAINTS);
 
                         if (mConstr.isEqualityConstraint()) {
-                            solver.addEq(mConstr.getLowerLimit(ADJUST, ZERO), sConstr);
+                            solver.addEq(mConstr.getLowerLimit(ADJUSTED_CONSTRAINTS, ZERO), sConstr);
                         } else {
                             if (mConstr.isLowerConstraint()) {
-                                solver.addLe(mConstr.getLowerLimit(ADJUST, NEGATIVE_INFINITY), sConstr);
+                                solver.addLe(mConstr.getLowerLimit(ADJUSTED_CONSTRAINTS, NEGATIVE_INFINITY), sConstr);
                             }
                             if (mConstr.isUpperConstraint()) {
-                                solver.addGe(mConstr.getUpperLimit(ADJUST, POSITIVE_INFINITY), sConstr);
+                                solver.addGe(mConstr.getUpperLimit(ADJUSTED_CONSTRAINTS, POSITIVE_INFINITY), sConstr);
                             }
                         }
 
@@ -174,7 +176,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
                 });
 
                 Expression mObj = model.objective();
-                IloNumExpr sObj = this.buildExpression(mObj, solver, sVars);
+                IloNumExpr sObj = this.buildExpression(mObj, solver, sVars, ADJUSTED_OBJECTIVE);
 
                 if (model.getOptimisationSense() == Optimisation.Sense.MAX) {
                     solver.addMaximize(sObj);
@@ -199,15 +201,17 @@ public final class SolverCPLEX implements Optimisation.Solver {
             return true;
         }
 
-        private void copyLinear(final Expression source, final IloNumVar[] variables, final IloLinearNumExpr destination) throws IloException {
+        private void copyLinear(final Expression source, final IloNumVar[] variables, final IloLinearNumExpr destination, final boolean adjusted)
+                throws IloException {
             for (IntIndex key : source.getLinearKeySet()) {
-                destination.addTerm(source.doubleValue(key, ADJUST), variables[key.index]);
+                destination.addTerm(source.doubleValue(key, adjusted), variables[key.index]);
             }
         }
 
-        private void copyQuadratic(final Expression source, final IloNumVar[] variables, final IloQuadNumExpr destination) throws IloException {
+        private void copyQuadratic(final Expression source, final IloNumVar[] variables, final IloQuadNumExpr destination, final boolean adjusted)
+                throws IloException {
             for (IntRowColumn key : source.getQuadraticKeySet()) {
-                destination.addTerm(source.doubleValue(key, ADJUST), variables[key.row], variables[key.column]);
+                destination.addTerm(source.doubleValue(key, adjusted), variables[key.row], variables[key.column]);
             }
         }
 
@@ -216,14 +220,14 @@ public final class SolverCPLEX implements Optimisation.Solver {
             return null;
         }
 
-        IloNumExpr buildExpression(final Expression expression, final IloCplex cplex, final IloNumVar[] variables) throws IloException {
+        IloNumExpr buildExpression(final Expression expression, final IloCplex cplex, final IloNumVar[] variables, final boolean adjusted) throws IloException {
 
             if (expression.isFunctionQuadratic()) {
 
                 IloLQNumExpr tmpIloLQNumExpr = cplex.lqNumExpr();
 
-                this.copyQuadratic(expression, variables, tmpIloLQNumExpr);
-                this.copyLinear(expression, variables, tmpIloLQNumExpr);
+                this.copyQuadratic(expression, variables, tmpIloLQNumExpr, adjusted);
+                this.copyLinear(expression, variables, tmpIloLQNumExpr, adjusted);
 
                 return tmpIloLQNumExpr;
 
@@ -231,7 +235,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
                 IloQuadNumExpr tmpIloQuadNumExpr = cplex.quadNumExpr();
 
-                this.copyQuadratic(expression, variables, tmpIloQuadNumExpr);
+                this.copyQuadratic(expression, variables, tmpIloQuadNumExpr, adjusted);
 
                 return tmpIloQuadNumExpr;
 
@@ -239,7 +243,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
                 IloLinearNumExpr tmpIloLinearNumExpr = cplex.linearNumExpr();
 
-                this.copyLinear(expression, variables, tmpIloLinearNumExpr);
+                this.copyLinear(expression, variables, tmpIloLinearNumExpr, adjusted);
 
                 return tmpIloLinearNumExpr;
 

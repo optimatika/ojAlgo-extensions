@@ -106,6 +106,10 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverClarabel4j> {
 
+        private static final boolean ADJUSTED_BOUNDS = true;
+        private static final boolean ADJUSTED_CONSTRAINTS = true;
+        private static final boolean ADJUSTED_OBJECTIVE = true;
+
         Integration() {
             super();
         }
@@ -177,13 +181,13 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
             double[] q = new double[n];
             for (IntIndex key : mObj.getLinearKeySet()) {
-                double val = mObj.doubleValue(key, ADJUSTED);
+                double val = mObj.doubleValue(key, ADJUSTED_OBJECTIVE);
                 q[key.index] = max ? -val : val;
             }
 
             MatrixBuilder bldrP = new MatrixBuilder(n, n);
             for (IntRowColumn key : mObj.getQuadraticKeySet()) {
-                double val = mObj.doubleValue(key, ADJUSTED);
+                double val = mObj.doubleValue(key, ADJUSTED_OBJECTIVE);
                 bldrP.add(key.row, key.column, max ? -val : val);
                 bldrP.add(key.column, key.row, max ? -val : val);
             }

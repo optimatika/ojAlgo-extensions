@@ -105,7 +105,9 @@ public final class SolverSSCLP implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverSSCLP> {
 
-        private static final boolean ADJUSTED = true;
+        private static final boolean ADJUSTED_BOUNDS = false;
+        private static final boolean ADJUSTED_CONSTRAINTS = true;
+        private static final boolean ADJUSTED_OBJECTIVE = true;
 
         Integration() {
             super();
@@ -128,7 +130,7 @@ public final class SolverSSCLP implements Optimisation.Solver {
 
                 double[] objCoeffs = new double[n];
                 for (IntIndex key : objective.getLinearKeySet()) {
-                    objCoeffs[key.index] = objective.doubleValue(key, ADJUSTED);
+                    objCoeffs[key.index] = objective.doubleValue(key, ADJUSTED_OBJECTIVE);
                 }
 
                 GoalType goal = model.getOptimisationSense() == Optimisation.Sense.MAX ? GoalType.MAX : GoalType.MIN;
@@ -139,21 +141,21 @@ public final class SolverSSCLP implements Optimisation.Solver {
                 model.constraints().forEach(mConstr -> {
                     double[] row = new double[n];
                     for (IntIndex key : mConstr.getLinearKeySet()) {
-                        row[key.index] = mConstr.doubleValue(key, ADJUSTED);
+                        row[key.index] = mConstr.doubleValue(key, ADJUSTED_CONSTRAINTS);
                     }
 
                     String name = mConstr.getName();
                     try {
                         if (mConstr.isEqualityConstraint()) {
-                            double rhs = mConstr.getLowerLimit(ADJUSTED, ZERO);
+                            double rhs = mConstr.getLowerLimit(ADJUSTED_CONSTRAINTS, ZERO);
                             constraints.add(new org.ssclab.pl.milp.Constraint(row, ConsType.EQ, rhs, name));
                         } else {
                             if (mConstr.isLowerConstraint()) {
-                                double rhs = mConstr.getLowerLimit(ADJUSTED, NEGATIVE_INFINITY);
+                                double rhs = mConstr.getLowerLimit(ADJUSTED_CONSTRAINTS, NEGATIVE_INFINITY);
                                 constraints.add(new org.ssclab.pl.milp.Constraint(row, ConsType.GE, rhs, name));
                             }
                             if (mConstr.isUpperConstraint()) {
-                                double rhs = mConstr.getUpperLimit(ADJUSTED, POSITIVE_INFINITY);
+                                double rhs = mConstr.getUpperLimit(ADJUSTED_CONSTRAINTS, POSITIVE_INFINITY);
                                 // Range constraints need a second row with a fresh array — SSC-LP keeps the
                                 // reference to the array we pass in.
                                 double[] rowUpper = mConstr.isLowerConstraint() ? row.clone() : row;
@@ -176,8 +178,8 @@ public final class SolverSSCLP implements Optimisation.Solver {
 
                 for (int v = 0; v < n; v++) {
                     Variable variable = variables.get(v);
-                    lowers[v] = variable.getLowerLimit(false, NEGATIVE_INFINITY);
-                    uppers[v] = variable.getUpperLimit(false, POSITIVE_INFINITY);
+                    lowers[v] = variable.getLowerLimit(ADJUSTED_BOUNDS, NEGATIVE_INFINITY);
+                    uppers[v] = variable.getUpperLimit(ADJUSTED_BOUNDS, POSITIVE_INFINITY);
                     if (mip) {
                         if (variable.isBinary()) {
                             binaries[v] = ONE;

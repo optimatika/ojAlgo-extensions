@@ -93,6 +93,10 @@ public final class SolverClarabel implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverClarabel> {
 
+        private static final boolean ADJUSTED_BOUNDS = true;
+        private static final boolean ADJUSTED_CONSTRAINTS = true;
+        private static final boolean ADJUSTED_OBJECTIVE = true;
+
         Integration() {
             super();
         }
@@ -121,9 +125,9 @@ public final class SolverClarabel implements Optimisation.Solver {
                 for (Expression expression : linEquExprs) {
                     SolverClarabel.ensureColumns(aColumns, aColDim);
                     for (IntIndex key : expression.getLinearKeySet()) {
-                        aColumns.add(aRowDim, key.index, expression.doubleValue(key, ADJUSTED));
+                        aColumns.add(aRowDim, key.index, expression.doubleValue(key, ADJUSTED_CONSTRAINTS));
                     }
-                    bValues.append(expression.getUpperLimit(ADJUSTED, POSITIVE_INFINITY));
+                    bValues.append(expression.getUpperLimit(ADJUSTED_CONSTRAINTS, POSITIVE_INFINITY));
                     aRowDim++;
                     count++;
                 }
@@ -136,14 +140,14 @@ public final class SolverClarabel implements Optimisation.Solver {
 
             int nnCount = 0;
             for (Expression expression : linInqExprs) {
-                double lb = expression.getLowerLimit(ADJUSTED, NEGATIVE_INFINITY);
-                double ub = expression.getUpperLimit(ADJUSTED, POSITIVE_INFINITY);
+                double lb = expression.getLowerLimit(ADJUSTED_CONSTRAINTS, NEGATIVE_INFINITY);
+                double ub = expression.getUpperLimit(ADJUSTED_CONSTRAINTS, POSITIVE_INFINITY);
 
                 SolverClarabel.ensureColumns(aColumns, aColDim);
 
                 if (ub < POSITIVE_INFINITY) {
                     for (IntIndex key : expression.getLinearKeySet()) {
-                        aColumns.add(aRowDim, key.index, expression.doubleValue(key, ADJUSTED));
+                        aColumns.add(aRowDim, key.index, expression.doubleValue(key, ADJUSTED_CONSTRAINTS));
                     }
                     bValues.append(ub);
                     aRowDim++;
@@ -151,7 +155,7 @@ public final class SolverClarabel implements Optimisation.Solver {
                 }
                 if (lb > NEGATIVE_INFINITY) {
                     for (IntIndex key : expression.getLinearKeySet()) {
-                        aColumns.add(aRowDim, key.index, -expression.doubleValue(key, ADJUSTED));
+                        aColumns.add(aRowDim, key.index, -expression.doubleValue(key, ADJUSTED_CONSTRAINTS));
                     }
                     bValues.append(-lb);
                     aRowDim++;
@@ -161,8 +165,8 @@ public final class SolverClarabel implements Optimisation.Solver {
 
             for (Variable variable : variables) {
                 int col = model.indexOf(variable);
-                double lb = variable.getLowerLimit(ADJUSTED, NEGATIVE_INFINITY);
-                double ub = variable.getUpperLimit(ADJUSTED, POSITIVE_INFINITY);
+                double lb = variable.getLowerLimit(ADJUSTED_BOUNDS, NEGATIVE_INFINITY);
+                double ub = variable.getUpperLimit(ADJUSTED_BOUNDS, POSITIVE_INFINITY);
                 double val = variable.getAdjustmentFactor();
 
                 SolverClarabel.ensureColumns(aColumns, aColDim);
@@ -199,14 +203,14 @@ public final class SolverClarabel implements Optimisation.Solver {
             Expression mObj = model.objective();
             double[] q = new double[nbProbVars];
             for (IntIndex key : mObj.getLinearKeySet()) {
-                double val = mObj.doubleValue(key, ADJUSTED);
+                double val = mObj.doubleValue(key, ADJUSTED_OBJECTIVE);
                 q[key.index] = max ? -val : val;
             }
 
             // Build P (upper triangle of objective Hessian) in CSC
             ColumnsSupplier<Double> pColumns = R064Store.FACTORY.makeColumnsSupplier(Integer.MAX_VALUE);
             for (IntRowColumn key : mObj.getQuadraticKeySet()) {
-                double val = mObj.doubleValue(key, ADJUSTED);
+                double val = mObj.doubleValue(key, ADJUSTED_OBJECTIVE);
                 if (key.row <= key.column) {
                     SolverClarabel.ensureColumns(pColumns, nbProbVars);
                     pColumns.add(key.row, key.column, max ? -val : val);

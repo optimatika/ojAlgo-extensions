@@ -91,6 +91,10 @@ public final class SolverGurobi implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverGurobi> {
 
+        private static final boolean ADJUSTED_BOUNDS = false;
+        private static final boolean ADJUSTED_CONSTRAINTS = true;
+        private static final boolean ADJUSTED_OBJECTIVE = true;
+
         private final boolean myEmpty;
         private final ForgetfulMap.ValueCache<GRBEnv> myEnvironmentCache;
 
@@ -132,8 +136,8 @@ public final class SolverGurobi implements Optimisation.Solver {
                 for (int v = 0; v < numberOfVariables; v++) {
                     Variable variable = freeModVars.get(v);
 
-                    lb[v] = variable.getLowerLimit(false, NEGATIVE_INFINITY);
-                    ub[v] = variable.getUpperLimit(false, POSITIVE_INFINITY);
+                    lb[v] = variable.getLowerLimit(ADJUSTED_BOUNDS, NEGATIVE_INFINITY);
+                    ub[v] = variable.getUpperLimit(ADJUSTED_BOUNDS, POSITIVE_INFINITY);
 
                     BigDecimal weight = variable.getContributionWeight();
                     obj[v] = weight != null ? weight.doubleValue() : ZERO;
@@ -156,12 +160,12 @@ public final class SolverGurobi implements Optimisation.Solver {
                 List<Expression> tmpCollect = model.constraints().map(e -> e.compensate(fixedModVars)).collect(Collectors.toList());
                 for (Expression expr : tmpCollect) {
 
-                    GRBExpr solExpr = SolverGurobi.buildExpression(expr, model, delegateVariables);
+                    GRBExpr solExpr = SolverGurobi.buildExpression(expr, model, delegateVariables, ADJUSTED_CONSTRAINTS);
 
-                    SolverGurobi.setBounds(solExpr, expr, delegateSolver);
+                    SolverGurobi.setBounds(solExpr, expr, delegateSolver, ADJUSTED_CONSTRAINTS);
                 }
 
-                GRBExpr solObj = SolverGurobi.buildExpression(modObj, model, delegateVariables);
+                GRBExpr solObj = SolverGurobi.buildExpression(modObj, model, delegateVariables, ADJUSTED_OBJECTIVE);
 
                 if (model.getOptimisationSense() == Optimisation.Sense.MAX) {
                     delegateSolver.setObjective(solObj, GRB.MAXIMIZE);
@@ -247,7 +251,8 @@ public final class SolverGurobi implements Optimisation.Solver {
         }
     }
 
-    static GRBExpr buildExpression(final Expression expression, final ExpressionsBasedModel model, final GRBVar[] vars) throws GRBException {
+    static GRBExpr buildExpression(final Expression expression, final ExpressionsBasedModel model, final GRBVar[] vars, final boolean adjusted)
+            throws GRBException {
 
         GRBLinExpr linExpr = null;
         GRBQuadExpr quadExpr;
@@ -261,7 +266,7 @@ public final class SolverGurobi implements Optimisation.Solver {
 
                 int freeInd = model.indexOfFreeVariable(key.index);
                 if (freeInd >= 0) {
-                    linExpr.addTerm(expression.doubleValue(key, true), vars[freeInd]);
+                    linExpr.addTerm(expression.doubleValue(key, adjusted), vars[freeInd]);
                 }
             }
         }
@@ -279,7 +284,7 @@ public final class SolverGurobi implements Optimisation.Solver {
                 int freeRow = model.indexOfFreeVariable(key.row);
                 int freeCol = model.indexOfFreeVariable(key.column);
                 if (freeRow >= 0 && freeCol >= 0) {
-                    quadExpr.addTerm(expression.doubleValue(key, true), vars[freeRow], vars[freeCol]);
+                    quadExpr.addTerm(expression.doubleValue(key, adjusted), vars[freeRow], vars[freeCol]);
                 }
             }
         }
@@ -287,15 +292,15 @@ public final class SolverGurobi implements Optimisation.Solver {
         return retVal;
     }
 
-    static void setBounds(final GRBExpr solExpr, final Expression modExpr, final GRBModel delegateSolver) {
+    static void setBounds(final GRBExpr solExpr, final Expression modExpr, final GRBModel delegateSolver, final boolean adjusted) {
         if (modExpr.isEqualityConstraint()) {
-            SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.EQUAL, modExpr.getLowerLimit(true, ZERO), modExpr.getName());
+            SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.EQUAL, modExpr.getLowerLimit(adjusted, ZERO), modExpr.getName());
         } else {
             if (modExpr.isLowerConstraint()) {
-                SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.GREATER_EQUAL, modExpr.getLowerLimit(true, NEGATIVE_INFINITY), modExpr.getName());
+                SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.GREATER_EQUAL, modExpr.getLowerLimit(adjusted, NEGATIVE_INFINITY), modExpr.getName());
             }
             if (modExpr.isUpperConstraint()) {
-                SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.LESS_EQUAL, modExpr.getUpperLimit(true, POSITIVE_INFINITY), modExpr.getName());
+                SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.LESS_EQUAL, modExpr.getUpperLimit(adjusted, POSITIVE_INFINITY), modExpr.getName());
             }
         }
     }

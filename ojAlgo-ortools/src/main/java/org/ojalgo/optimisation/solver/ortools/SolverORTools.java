@@ -259,6 +259,10 @@ public final class SolverORTools implements UpdatableSolver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverORTools> {
 
+        private static final boolean ADJUSTED_BOUNDS = false;
+        private static final boolean ADJUSTED_CONSTRAINTS = false;
+        private static final boolean ADJUSTED_OBJECTIVE = false;
+
         Integration() {
             super();
         }
@@ -281,8 +285,8 @@ public final class SolverORTools implements UpdatableSolver {
 
                 String name = mVar.getName();
                 boolean integer = mip && mVar.isInteger();
-                double lb = mVar.getLowerLimit(false, NEGATIVE_INFINITY);
-                double ub = mVar.getUpperLimit(false, POSITIVE_INFINITY);
+                double lb = mVar.getLowerLimit(ADJUSTED_BOUNDS, NEGATIVE_INFINITY);
+                double ub = mVar.getUpperLimit(ADJUSTED_BOUNDS, POSITIVE_INFINITY);
 
                 int index = builder.addVar();
                 if (index != i) {
@@ -297,13 +301,13 @@ public final class SolverORTools implements UpdatableSolver {
 
             model.constraints().forEach(mConstr -> {
 
-                double lb = mConstr.getLowerLimit(false, NEGATIVE_INFINITY);
-                double ub = mConstr.getUpperLimit(false, POSITIVE_INFINITY);
+                double lb = mConstr.getLowerLimit(ADJUSTED_CONSTRAINTS, NEGATIVE_INFINITY);
+                double ub = mConstr.getUpperLimit(ADJUSTED_CONSTRAINTS, POSITIVE_INFINITY);
 
                 int index = builder.addLinearConstraint();
 
                 for (IntIndex key : mConstr.getLinearKeySet()) {
-                    double coefficient = mConstr.doubleValue(key, false);
+                    double coefficient = mConstr.doubleValue(key, ADJUSTED_CONSTRAINTS);
                     builder.addConstraintTerm(index, key.index, coefficient);
                 }
 
@@ -313,7 +317,7 @@ public final class SolverORTools implements UpdatableSolver {
 
             Expression mObj = model.objective();
             for (IntIndex key : mObj.getLinearKeySet()) {
-                double coefficient = mObj.doubleValue(key, false);
+                double coefficient = mObj.doubleValue(key, ADJUSTED_OBJECTIVE);
                 builder.setVarObjectiveCoefficient(key.index, coefficient);
             }
             builder.setMaximize(model.getOptimisationSense() == Optimisation.Sense.MAX);

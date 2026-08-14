@@ -73,7 +73,9 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
 
     static abstract class Integration<S extends Optimisation.Solver> extends ExpressionsBasedModel.Integration<S> {
 
-        static final boolean ADJUSTED = true;
+        static final boolean ADJUSTED_BOUNDS = true;
+        static final boolean ADJUSTED_CONSTRAINTS = true;
+        static final boolean ADJUSTED_OBJECTIVE = true;
 
         @Override
         public final S build(final ExpressionsBasedModel model) {
@@ -92,11 +94,11 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
                 double[] coeffs = template.body;
 
                 for (IntIndex key : expr.getLinearKeySet()) {
-                    coeffs[key.index] = expr.doubleValue(key, ADJUSTED);
+                    coeffs[key.index] = expr.doubleValue(key, ADJUSTED_CONSTRAINTS);
                 }
 
-                template.lower = expr.getLowerLimit(ADJUSTED, Double.NEGATIVE_INFINITY);
-                template.upper = expr.getUpperLimit(ADJUSTED, Double.POSITIVE_INFINITY);
+                template.lower = expr.getLowerLimit(ADJUSTED_CONSTRAINTS, Double.NEGATIVE_INFINITY);
+                template.upper = expr.getUpperLimit(ADJUSTED_CONSTRAINTS, Double.POSITIVE_INFINITY);
 
                 if (expr.isEqualityConstraint()) {
                     equalities.add(template);
@@ -117,10 +119,10 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
                     ConstraintTemplate template = new ConstraintTemplate(nbVariables);
                     double[] coeffs = template.body;
 
-                    coeffs[i] = ADJUSTED ? tmpVariable.getAdjustmentFactor() : 1.0;
+                    coeffs[i] = ADJUSTED_BOUNDS ? tmpVariable.getAdjustmentFactor() : 1.0;
 
-                    template.lower = tmpVariable.getLowerLimit(ADJUSTED, Double.NEGATIVE_INFINITY);
-                    template.upper = tmpVariable.getUpperLimit(ADJUSTED, Double.POSITIVE_INFINITY);
+                    template.lower = tmpVariable.getLowerLimit(ADJUSTED_BOUNDS, Double.NEGATIVE_INFINITY);
+                    template.upper = tmpVariable.getUpperLimit(ADJUSTED_BOUNDS, Double.POSITIVE_INFINITY);
 
                     if (tmpVariable.isEqualityConstraint()) {
                         equalities.add(template);

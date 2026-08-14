@@ -65,6 +65,10 @@ public final class SolverACM implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverACM> {
 
+        private static final boolean ADJUSTED_BOUNDS = true;
+        private static final boolean ADJUSTED_CONSTRAINTS = true;
+        private static final boolean ADJUSTED_OBJECTIVE = true;
+
         Integration() {
             super();
         }
@@ -93,17 +97,17 @@ public final class SolverACM implements Optimisation.Solver {
                 double[] coeffs = new double[nbVariables];
 
                 for (IntIndex key : expr.getLinearKeySet()) {
-                    coeffs[key.index] = expr.doubleValue(key, true);
+                    coeffs[key.index] = expr.doubleValue(key, ADJUSTED_CONSTRAINTS);
                 }
 
                 if (expr.isEqualityConstraint()) {
-                    constraints.add(new LinearConstraint(coeffs, Relationship.EQ, expr.getUpperLimit(true, Double.POSITIVE_INFINITY)));
+                    constraints.add(new LinearConstraint(coeffs, Relationship.EQ, expr.getUpperLimit(ADJUSTED_CONSTRAINTS, Double.POSITIVE_INFINITY)));
                 } else {
                     if (expr.isLowerConstraint()) {
-                        constraints.add(new LinearConstraint(coeffs, Relationship.GEQ, expr.getLowerLimit(true, Double.NEGATIVE_INFINITY)));
+                        constraints.add(new LinearConstraint(coeffs, Relationship.GEQ, expr.getLowerLimit(ADJUSTED_CONSTRAINTS, Double.NEGATIVE_INFINITY)));
                     }
                     if (expr.isUpperConstraint()) {
-                        constraints.add(new LinearConstraint(coeffs, Relationship.LEQ, expr.getUpperLimit(true, Double.POSITIVE_INFINITY)));
+                        constraints.add(new LinearConstraint(coeffs, Relationship.LEQ, expr.getUpperLimit(ADJUSTED_CONSTRAINTS, Double.POSITIVE_INFINITY)));
                     }
                 }
             });
@@ -121,13 +125,13 @@ public final class SolverACM implements Optimisation.Solver {
                     coeffs[i] = tmpVariable.getAdjustmentFactor();
 
                     if (tmpVariable.isEqualityConstraint()) {
-                        constraints.add(new LinearConstraint(coeffs, Relationship.EQ, tmpVariable.getUpperLimit(true, Double.POSITIVE_INFINITY)));
+                        constraints.add(new LinearConstraint(coeffs, Relationship.EQ, tmpVariable.getUpperLimit(ADJUSTED_BOUNDS, Double.POSITIVE_INFINITY)));
                     } else {
                         if (tmpVariable.isLowerConstraint()) {
-                            constraints.add(new LinearConstraint(coeffs, Relationship.GEQ, tmpVariable.getLowerLimit(true, Double.NEGATIVE_INFINITY)));
+                            constraints.add(new LinearConstraint(coeffs, Relationship.GEQ, tmpVariable.getLowerLimit(ADJUSTED_BOUNDS, Double.NEGATIVE_INFINITY)));
                         }
                         if (tmpVariable.isUpperConstraint()) {
-                            constraints.add(new LinearConstraint(coeffs, Relationship.LEQ, tmpVariable.getUpperLimit(true, Double.POSITIVE_INFINITY)));
+                            constraints.add(new LinearConstraint(coeffs, Relationship.LEQ, tmpVariable.getUpperLimit(ADJUSTED_BOUNDS, Double.POSITIVE_INFINITY)));
                         }
                     }
                 }

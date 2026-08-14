@@ -91,6 +91,10 @@ public final class SolverMosek implements Optimisation.Solver {
 
     public static final class Integration extends ExpressionsBasedModel.Integration<SolverMosek> {
 
+        private static final boolean ADJUSTED_BOUNDS = false;
+        private static final boolean ADJUSTED_CONSTRAINTS = true;
+        private static final boolean ADJUSTED_OBJECTIVE = true;
+
         private final ForgetfulMap.ValueCache<Env> myEnvironmentCache;
 
         Integration() {
@@ -123,16 +127,16 @@ public final class SolverMosek implements Optimisation.Solver {
 
             for (int v = 0; v < nbVariables; v++) {
                 Variable tmpVariable = freeVariables.get(v);
-                retVal.putVariable(v, tmpVariable);
+                retVal.putVariable(v, tmpVariable, ADJUSTED_BOUNDS);
             }
 
             for (int c = 0; c < nbConstraints; c++) {
                 Expression tmpConstraint = constraints.get(c).compensate(fixedVariables);
-                retVal.putConstraint(c, tmpConstraint, model);
+                retVal.putConstraint(c, tmpConstraint, model, ADJUSTED_CONSTRAINTS);
             }
 
             Expression tmpObjective = model.objective().compensate(fixedVariables);
-            retVal.putObjective(tmpObjective, model);
+            retVal.putObjective(tmpObjective, model, ADJUSTED_OBJECTIVE);
 
             retVal.setSolutionType(model);
 
@@ -304,7 +308,7 @@ public final class SolverMosek implements Optimisation.Solver {
         return boundkey.fr;
     }
 
-    void putConstraint(final int index, final Expression constraint, final ExpressionsBasedModel model) {
+    void putConstraint(final int index, final Expression constraint, final ExpressionsBasedModel model, final boolean adjusted) {
 
         Set<IntIndex> tmpLinearFactorKeys = constraint.getLinearKeySet();
         int tmpLinearSize = tmpLinearFactorKeys.size();
@@ -318,7 +322,7 @@ public final class SolverMosek implements Optimisation.Solver {
                 int tmpRow = tmpKey.index;
                 if (tmpRow >= 0) {
                     tmpCols[i] = tmpRow;
-                    tmpVals[i] = constraint.doubleValue(tmpKey, true);
+                    tmpVals[i] = constraint.doubleValue(tmpKey, adjusted);
                 } else {
                     tmpCols[i] = 0;
                     tmpVals[i] = 0.0;
@@ -344,11 +348,11 @@ public final class SolverMosek implements Optimisation.Solver {
                     if (tmpRow == tmpCol) {
                         tmpRows[i] = tmpRow;
                         tmpCols[i] = tmpCol;
-                        tmpVals[i] = 2.0 * constraint.doubleValue(tmpKey, true);
+                        tmpVals[i] = 2.0 * constraint.doubleValue(tmpKey, adjusted);
                     } else {
                         tmpRows[i] = Math.max(tmpRow, tmpCol);
                         tmpCols[i] = Math.min(tmpRow, tmpCol);
-                        tmpVals[i] = constraint.doubleValue(tmpKey, true);
+                        tmpVals[i] = constraint.doubleValue(tmpKey, adjusted);
                     }
                 } else {
                     tmpRows[i] = 0;
@@ -361,13 +365,13 @@ public final class SolverMosek implements Optimisation.Solver {
         }
 
         boundkey tmpBoundType = this.getBoundKey(constraint);
-        double tmpLowerBound = constraint.getLowerLimit(true, Double.NEGATIVE_INFINITY);
-        double tmpUpperBound = constraint.getUpperLimit(true, Double.POSITIVE_INFINITY);
+        double tmpLowerBound = constraint.getLowerLimit(adjusted, Double.NEGATIVE_INFINITY);
+        double tmpUpperBound = constraint.getUpperLimit(adjusted, Double.POSITIVE_INFINITY);
 
         myTask.putconbound(index, tmpBoundType, tmpLowerBound, tmpUpperBound);
     }
 
-    void putObjective(final Expression objective, final ExpressionsBasedModel model) {
+    void putObjective(final Expression objective, final ExpressionsBasedModel model, final boolean adjusted) {
 
         Set<IntIndex> tmpLinearFactorKeys = objective.getLinearKeySet();
         int tmpLinearSize = tmpLinearFactorKeys.size();
@@ -381,7 +385,7 @@ public final class SolverMosek implements Optimisation.Solver {
                 int tmpRow = tmpKey.index;
                 if (tmpRow >= 0) {
                     tmpRows[i] = tmpRow;
-                    tmpVals[i] = objective.doubleValue(tmpKey, true);
+                    tmpVals[i] = objective.doubleValue(tmpKey, adjusted);
                 } else {
                     tmpRows[i] = 0;
                     tmpVals[i] = 0.0;
@@ -407,11 +411,11 @@ public final class SolverMosek implements Optimisation.Solver {
                     if (tmpRow == tmpCol) {
                         tmpRows[i] = tmpRow;
                         tmpCols[i] = tmpCol;
-                        tmpVals[i] = 2.0 * objective.doubleValue(tmpKey, true);
+                        tmpVals[i] = 2.0 * objective.doubleValue(tmpKey, adjusted);
                     } else {
                         tmpRows[i] = Math.max(tmpRow, tmpCol);
                         tmpCols[i] = Math.min(tmpRow, tmpCol);
-                        tmpVals[i] = objective.doubleValue(tmpKey, true);
+                        tmpVals[i] = objective.doubleValue(tmpKey, adjusted);
                     }
                 } else {
                     tmpRows[i] = 0;
@@ -426,11 +430,11 @@ public final class SolverMosek implements Optimisation.Solver {
         myTask.putobjsense(model.getOptimisationSense() == Optimisation.Sense.MIN ? objsense.minimize : objsense.maximize);
     }
 
-    void putVariable(final int index, final Variable variable) {
+    void putVariable(final int index, final Variable variable, final boolean adjusted) {
 
         boundkey boundType = this.getBoundKey(variable);
-        double lowerBound = variable.getLowerLimit(false, Double.NEGATIVE_INFINITY);
-        double upperBound = variable.getUpperLimit(false, Double.POSITIVE_INFINITY);
+        double lowerBound = variable.getLowerLimit(adjusted, Double.NEGATIVE_INFINITY);
+        double upperBound = variable.getUpperLimit(adjusted, Double.POSITIVE_INFINITY);
         variabletype variableType = variable.isInteger() ? variabletype.type_int : variabletype.type_cont;
 
         myTask.putvarbound(index, boundType, lowerBound, upperBound);

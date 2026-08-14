@@ -123,6 +123,10 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverSCIP> {
 
+        private static final boolean ADJUSTED_BOUNDS = false;
+        private static final boolean ADJUSTED_CONSTRAINTS = true;
+        private static final boolean ADJUSTED_OBJECTIVE = true;
+
         Integration() {
             super();
         }
@@ -165,13 +169,13 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
                 for (int v = 0; v < n; v++) {
                     Variable variable = variables.get(v);
 
-                    double lb = variable.getLowerLimit(false, NEGATIVE_INFINITY);
-                    double ub = variable.getUpperLimit(false, POSITIVE_INFINITY);
+                    double lb = variable.getLowerLimit(ADJUSTED_BOUNDS, NEGATIVE_INFINITY);
+                    double ub = variable.getUpperLimit(ADJUSTED_BOUNDS, POSITIVE_INFINITY);
 
                     double obj = ZERO;
                     IntIndex key = new IntIndex(v);
                     if (objective.getLinearKeySet().contains(key)) {
-                        obj = objective.doubleValue(key, true);
+                        obj = objective.doubleValue(key, ADJUSTED_OBJECTIVE);
                     }
 
                     int vartype;
@@ -200,16 +204,16 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
                 for (int c = 0; c < m; c++) {
                     Expression constraint = constraints.get(c);
 
-                    double lhs = constraint.getLowerLimit(true, NEGATIVE_INFINITY);
-                    double rhs = constraint.getUpperLimit(true, POSITIVE_INFINITY);
+                    double lhs = constraint.getLowerLimit(ADJUSTED_CONSTRAINTS, NEGATIVE_INFINITY);
+                    double rhs = constraint.getUpperLimit(ADJUSTED_CONSTRAINTS, POSITIVE_INFINITY);
 
                     MemorySegment consPtr = arena.allocate(ValueLayout.ADDRESS);
                     MemorySegment consName = SCIPBindings.allocateString(arena, "c" + c);
 
                     if (constraint.isAnyQuadraticFactorNonZero()) {
-                        SolverSCIP.createQuadraticConstraint(scip, arena, consPtr, consName, constraint, varPtrs, lhs, rhs);
+                        SolverSCIP.createQuadraticConstraint(scip, arena, consPtr, consName, constraint, varPtrs, lhs, rhs, ADJUSTED_CONSTRAINTS);
                     } else {
-                        SolverSCIP.createLinearConstraint(scip, arena, consPtr, consName, constraint, varPtrs, lhs, rhs);
+                        SolverSCIP.createLinearConstraint(scip, arena, consPtr, consName, constraint, varPtrs, lhs, rhs, ADJUSTED_CONSTRAINTS);
                     }
 
                     MemorySegment cons = consPtr.get(ValueLayout.ADDRESS, 0);
@@ -219,7 +223,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
                 // Quadratic objective terms
                 if (objective.isAnyQuadraticFactorNonZero()) {
-                    SolverSCIP.addQuadraticObjective(scip, arena, objective, varPtrs);
+                    SolverSCIP.addQuadraticObjective(scip, arena, objective, varPtrs, ADJUSTED_OBJECTIVE);
                 }
 
                 boolean concurrent = configurator.isConcurrent(model.options) && SCIPBindings.hasSolveConcurrent() && !model.isAnyExpressionQuadratic();
@@ -248,7 +252,8 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
     static final Configurator DEFAULT = new Configurator();
 
-    private static void addQuadraticObjective(final MemorySegment scip, final Arena arena, final Expression objective, final MemorySegment[] varPtrs) {
+    private static void addQuadraticObjective(final MemorySegment scip, final Arena arena, final Expression objective, final MemorySegment[] varPtrs,
+            final boolean adjusted) {
 
         // Add an auxiliary variable for the quadratic part: obj_aux with objective coefficient 1
         MemorySegment auxVarPtr = arena.allocate(ValueLayout.ADDRESS);
@@ -276,7 +281,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
         List<Double> qc = new ArrayList<>();
 
         for (IntRowColumn key : quadKeys) {
-            double val = objective.doubleValue(key, true);
+            double val = objective.doubleValue(key, adjusted);
             if (val != ZERO) {
                 qv1.add(varPtrs[key.row]);
                 qv2.add(varPtrs[key.column]);
@@ -306,7 +311,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
     }
 
     private static void createLinearConstraint(final MemorySegment scip, final Arena arena, final MemorySegment consPtr, final MemorySegment consName,
-            final Expression constraint, final MemorySegment[] varPtrs, final double lhs, final double rhs) {
+            final Expression constraint, final MemorySegment[] varPtrs, final double lhs, final double rhs, final boolean adjusted) {
 
         var linearKeys = constraint.getLinearKeySet();
         int nvars = linearKeys.size();
@@ -317,7 +322,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
         int idx = 0;
         for (IntIndex ckey : linearKeys) {
             consVarPtrs[idx] = varPtrs[ckey.index];
-            consVals[idx] = constraint.doubleValue(ckey, true);
+            consVals[idx] = constraint.doubleValue(ckey, adjusted);
             idx++;
         }
 
@@ -328,7 +333,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
     }
 
     private static void createQuadraticConstraint(final MemorySegment scip, final Arena arena, final MemorySegment consPtr, final MemorySegment consName,
-            final Expression constraint, final MemorySegment[] varPtrs, final double lhs, final double rhs) {
+            final Expression constraint, final MemorySegment[] varPtrs, final double lhs, final double rhs, final boolean adjusted) {
 
         var linearKeys = constraint.getLinearKeySet();
         int nlin = linearKeys.size();
@@ -339,7 +344,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
         int idx = 0;
         for (IntIndex key : linearKeys) {
             linVars[idx] = varPtrs[key.index];
-            linCoefs[idx] = constraint.doubleValue(key, true);
+            linCoefs[idx] = constraint.doubleValue(key, adjusted);
             idx++;
         }
 
@@ -349,7 +354,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
         List<Double> qc = new ArrayList<>();
 
         for (IntRowColumn key : quadKeys) {
-            double val = constraint.doubleValue(key, true);
+            double val = constraint.doubleValue(key, adjusted);
             if (val != ZERO) {
                 qv1.add(varPtrs[key.row]);
                 qv2.add(varPtrs[key.column]);
