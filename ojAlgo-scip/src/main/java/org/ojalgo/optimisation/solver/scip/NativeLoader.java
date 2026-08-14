@@ -68,26 +68,16 @@ final class NativeLoader {
 
             String brewPrefix = "aarch64".equals(osArch) || "arm64".equals(osArch) ? "/opt/homebrew" : "/usr/local";
 
-            searchPaths = new String[]{
-                    brewPrefix + "/opt/scip/lib/libscip.dylib",
-                    brewPrefix + "/lib/libscip.dylib",
-                    "/usr/local/lib/libscip.dylib"
-            };
+            searchPaths = new String[] { brewPrefix + "/opt/scip/lib/libscip.dylib", brewPrefix + "/lib/libscip.dylib", "/usr/local/lib/libscip.dylib" };
 
         } else if (osName.contains("linux")) {
 
-            searchPaths = new String[]{
-                    "/usr/lib/libscip.so",
-                    "/usr/local/lib/libscip.so",
-                    "/usr/lib/x86_64-linux-gnu/libscip.so",
-                    "/usr/lib/aarch64-linux-gnu/libscip.so"
-            };
+            searchPaths = new String[] { "/usr/lib/libscip.so", "/usr/local/lib/libscip.so", "/usr/lib/x86_64-linux-gnu/libscip.so",
+                    "/usr/lib/aarch64-linux-gnu/libscip.so" };
 
         } else if (osName.contains("windows")) {
 
-            searchPaths = new String[]{
-                    "C:\\Program Files\\SCIPOptSuite\\bin\\libscip.dll"
-            };
+            searchPaths = new String[] { "C:\\Program Files\\SCIPOptSuite\\bin\\libscip.dll" };
 
         } else {
             throw new UnsatisfiedLinkError("Unsupported operating system: " + osName);

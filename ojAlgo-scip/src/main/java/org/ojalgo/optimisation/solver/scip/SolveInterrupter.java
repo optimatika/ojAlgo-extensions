@@ -43,7 +43,7 @@ final class SolveInterrupter implements AutoCloseable {
      * {@link #close()} as soon as it returns – which a try-with-resources does.
      *
      * @param stopSolver How to tell the solver to stop. Called repeatedly, from the watching thread, so it
-     *        must be safe to call while the solver is running and to call more than once.
+     *                   must be safe to call while the solver is running and to call more than once.
      */
     static SolveInterrupter watch(final Runnable stopSolver) {
 

@@ -57,29 +57,13 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
         private static final int PARALLELISM_THRESHOLD = 18;
         /**
-         * Below this many constraints PaPILO's presolving is switched off at solve time. Constraints
-         * rather than variables because PaPILO's reductions are mostly row oriented - dominated rows,
-         * parallel rows, redundant constraints, singleton rows - so row count is the better measure of
-         * whether there is structure worth presolving. A first guess from the MIPLIB "easy set"
-         * measurements, where neither count actually predicted the outcome; worth tuning once there is
-         * data on larger models.
+         * Below this many constraints PaPILO's presolving is switched off at solve time. Constraints rather
+         * than variables because PaPILO's reductions are mostly row oriented - dominated rows, parallel rows,
+         * redundant constraints, singleton rows - so row count is the better measure of whether there is
+         * structure worth presolving. A first guess from the MIPLIB "easy set" measurements, where neither
+         * count actually predicted the outcome; worth tuning once there is data on larger models.
          */
         private static final int PAPILO_THRESHOLD = 1_000;
-
-        /**
-         * Whether to hand the model to SCIP's concurrent portfolio, {@code SCIPsolveConcurrent}, rather than to
-         * {@code SCIPsolve}. Off unless overridden, and only available at all in a TPI-enabled SCIP build.
-         * <p>
-         * The portfolio races differently configured sub-SCIPs against each other, and on some models that
-         * wins. What it costs is the ability to stop: interrupting the solving thread stops a
-         * {@code SCIPsolve} within milliseconds, whereas the sub-SCIPs of a concurrent solve only look at the
-         * synchronisation store when they synchronise, which was measured minutes apart on a hard model.
-         * Nothing in SCIP's exported API reaches them sooner. A solve that cannot be abandoned is the worse
-         * default, so this trade has to be made deliberately.
-         */
-        protected boolean isConcurrent(final Optimisation.Options options) {
-            return false;
-        }
 
         protected void configure(final ExpressionsBasedModel model, final MemorySegment scip, final Arena arena) {
 
@@ -108,15 +92,26 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
                 SCIPBindings.setIntParam(scip, maxThreads, parallelism - PARALLELISM_THRESHOLD);
             }
 
-            if (nbConstraints <= PAPILO_THRESHOLD) {
-                // PaPILO's reductions are meant to earn their scan cost on large models. Below the
-                // threshold they mostly don't, and sometimes leave a formulation that branches worse -
-                // measured over the 94 MIPLIB "easy set" models (all under 1k variables) it was a 10% net
-                // loss, with noswot taking 22x the nodes and neos-2624317-amur 7x. The parameter only
-                // exists in a PaPILO-enabled build, hence the tolerant setter.
-                MemorySegment maxRounds = SCIPBindings.allocateString(arena, "presolving/milp/maxrounds");
-                SCIPBindings.setIntParamIfPresent(scip, maxRounds, 0);
-            }
+            // 0 disables PaPILO, -1 is SCIP's own default of unlimited rounds. Set either way rather than
+            // relying on that default. Off below the threshold takes neos-2624317-amur from a timeout to
+            // 23s; it costs ~13% on the easy set models that solved regardless.
+            MemorySegment maxRounds = SCIPBindings.allocateString(arena, "presolving/milp/maxrounds");
+            SCIPBindings.setIntParamIfPresent(scip, maxRounds, nbConstraints <= PAPILO_THRESHOLD ? 0 : -1);
+        }
+
+        /**
+         * Whether to hand the model to SCIP's concurrent portfolio, {@code SCIPsolveConcurrent}, rather than
+         * to {@code SCIPsolve}. Off unless overridden, and only available at all in a TPI-enabled SCIP build.
+         * <p>
+         * The portfolio races differently configured sub-SCIPs against each other, and on some models that
+         * wins. What it costs is the ability to stop: interrupting the solving thread stops a
+         * {@code SCIPsolve} within milliseconds, whereas the sub-SCIPs of a concurrent solve only look at the
+         * synchronisation store when they synchronise, which was measured minutes apart on a hard model.
+         * Nothing in SCIP's exported API reaches them sooner. A solve that cannot be abandoned is the worse
+         * default, so this trade has to be made deliberately.
+         */
+        protected boolean isConcurrent(final Optimisation.Options options) {
+            return false;
         }
 
     }
@@ -379,22 +374,22 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
     static Optimisation.State translate(final int status) {
         return switch (status) {
-            case SCIPBindings.STATUS_OPTIMAL                                                                                                                                                                                                                                                                                                          ->
+            case SCIPBindings.STATUS_OPTIMAL                                                                                                                                                                                                                                                                                                                                                                            ->
                 Optimisation.State.OPTIMAL;
-            case SCIPBindings.STATUS_INFEASIBLE                                                                                                                                                                                                                                                                                                       ->
+            case SCIPBindings.STATUS_INFEASIBLE                                                                                                                                                                                                                                                                                                                                                                         ->
                 Optimisation.State.INFEASIBLE;
-            case SCIPBindings.STATUS_UNBOUNDED                                                                                                                                                                                                                                                                                                        ->
+            case SCIPBindings.STATUS_UNBOUNDED                                                                                                                                                                                                                                                                                                                                                                          ->
                 Optimisation.State.UNBOUNDED;
-            case SCIPBindings.STATUS_INFORUNBD                                                                                                                                                                                                                                                                                                        ->
+            case SCIPBindings.STATUS_INFORUNBD                                                                                                                                                                                                                                                                                                                                                                          ->
                 Optimisation.State.INVALID;
             case SCIPBindings.STATUS_GAPLIMIT, SCIPBindings.STATUS_SOLLIMIT, SCIPBindings.STATUS_BESTSOLLIMIT, SCIPBindings.STATUS_TIMELIMIT,
                     SCIPBindings.STATUS_NODELIMIT, SCIPBindings.STATUS_TOTALNODELIMIT, SCIPBindings.STATUS_STALLNODELIMIT, SCIPBindings.STATUS_PRIMALLIMIT,
                     SCIPBindings.STATUS_DUALLIMIT, SCIPBindings.STATUS_RESTARTLIMIT, SCIPBindings.STATUS_USERINTERRUPT,
-                    SCIPBindings.STATUS_TERMINATE                                                                                                                                                                                                                                                                                                     ->
+                    SCIPBindings.STATUS_TERMINATE                                                                                                                                                                                                                                                                                                                                                                       ->
                 Optimisation.State.APPROXIMATE;
-            case SCIPBindings.STATUS_UNKNOWN                                                                                                                                                                                                                                                                                                          ->
+            case SCIPBindings.STATUS_UNKNOWN                                                                                                                                                                                                                                                                                                                                                                            ->
                 Optimisation.State.UNEXPLORED;
-            default                                                                                                                                                                                                                                                                                                                                   ->
+            default                                                                                                                                                                                                                                                                                                                                                                                                     ->
                 Optimisation.State.FAILED;
         };
     }
