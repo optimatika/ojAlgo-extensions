@@ -69,9 +69,9 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         /**
          * Configure HiGHS options before solving.
          *
-         * @param highs   HiGHS instance pointer
-         * @param arena   arena for allocating option strings
-         * @param options ojAlgo optimisation options
+         * @param model the expressions-based model
+         * @param highs HiGHS instance pointer
+         * @param arena arena for allocating option strings
          */
         protected void configure(final ExpressionsBasedModel model, final MemorySegment highs, final Arena arena) {
 
