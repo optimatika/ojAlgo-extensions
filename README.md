@@ -11,11 +11,11 @@ ojAlgo has zero dependencies, but through these extensions it integrates with th
 | Module | Version |
 | --- | --- |
 | [ojAlgo-clarabel](ojAlgo-clarabel) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-clarabel/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-clarabel/) |
-| [ojAlgo-clarabel4j](ojAlgo-clarabel4j) | |
+| [ojAlgo-clarabel4j](ojAlgo-clarabel4j) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-clarabel4j/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-clarabel4j/) |
 | [ojAlgo-commons-math3](ojAlgo-commons-math3) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-commons-math3/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-commons-math3/) |
 | [ojAlgo-cplex](ojAlgo-cplex) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-cplex/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-cplex/) |
 | [ojAlgo-gurobi](ojAlgo-gurobi) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-gurobi/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-gurobi/) |
-| [ojAlgo-highs](ojAlgo-highs) | |
+| [ojAlgo-highs](ojAlgo-highs) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-highs/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-highs/) |
 | [ojAlgo-hipparchus](ojAlgo-hipparchus) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-hipparchus/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-hipparchus/) |
 | [ojAlgo-jfreechart](ojAlgo-jfreechart) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-jfreechart/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-jfreechart/) |
 | [ojAlgo-joptimizer](ojAlgo-joptimizer) | [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-joptimizer/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.ojalgo/ojalgo-joptimizer/) |

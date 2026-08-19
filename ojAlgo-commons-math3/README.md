@@ -20,12 +20,12 @@ ojAlgo integration with [Apache Commons Math](http://commons.apache.org/proper/c
 
 ```java
 Optimisation.Environment environment = Optimisation.newEnvironment();
-environment.addIntegration(SolverCommonsMath.INTEGRATION);
+environment.addIntegration(SolverACM.INTEGRATION);
 ExpressionsBasedModel model = environment.newModel();
 ```
 
 or
 
 ```java
-model.minimise(SolverCommonsMath.INTEGRATION);
+model.minimise(SolverACM.INTEGRATION);
 ```
