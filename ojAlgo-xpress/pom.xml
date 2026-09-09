@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.ojalgo</groupId>
+        <artifactId>ojalgo-extensions</artifactId>
+        <version>3.0.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>ojalgo-xpress</artifactId>
+    <name>ojAlgo-xpress</name>
+    <description>ojAlgo and FICO Xpress integration</description>
+    <version>1.0.0</version>
+    <properties>
+        <!-- You have to change this! -->
+        <path.native.xpress>/Applications/FICO Xpress/xpressmp/lib</path.native.xpress>
+        <path.xpressdir>/Applications/FICO Xpress/xpressmp</path.xpressdir>
+        <path.xpauth>/Applications/FICO Xpress/xpressmp/bin/xpauth.xpr</path.xpauth>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>com.fico.xpress</groupId>
+            <artifactId>xprs</artifactId>
+            <version>47.01</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Djava.library.path="${path.native.xpress}"</argLine>
+                    <environmentVariables>
+                        <DYLD_LIBRARY_PATH>${path.native.xpress}</DYLD_LIBRARY_PATH>
+                        <LD_LIBRARY_PATH>${path.native.xpress}</LD_LIBRARY_PATH>
+                        <XPRESSDIR>${path.xpressdir}</XPRESSDIR>
+                        <XPAUTH_PATH>${path.xpauth}</XPAUTH_PATH>
+                    </environmentVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

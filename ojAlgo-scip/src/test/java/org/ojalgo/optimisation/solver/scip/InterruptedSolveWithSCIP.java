@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.Optimisation;
+import org.ojalgo.concurrent.InterruptForwarder;
 import org.ojalgo.optimisation.Variable;
 
 /**
@@ -98,7 +99,7 @@ public class InterruptedSolveWithSCIP {
         AtomicBoolean stopped = new AtomicBoolean(false);
 
         Thread solving = new Thread(() -> {
-            try (SolveInterrupter interrupter = SolveInterrupter.watch(() -> stopped.set(true))) {
+            try (InterruptForwarder interrupter = InterruptForwarder.watch(() -> stopped.set(true))) {
                 long deadline = System.currentTimeMillis() + 3_000L;
                 while (System.currentTimeMillis() < deadline && !stopped.get()) {
                     // Deliberately uninterruptible.
@@ -126,7 +127,7 @@ public class InterruptedSolveWithSCIP {
 
         Thread solving = new Thread(() -> {
             Thread.currentThread().interrupt();
-            try (SolveInterrupter interrupter = SolveInterrupter.watch(() -> stopped.set(true))) {
+            try (InterruptForwarder interrupter = InterruptForwarder.watch(() -> stopped.set(true))) {
                 long deadline = System.currentTimeMillis() + 3_000L;
                 while (System.currentTimeMillis() < deadline && !stopped.get()) {
                     // Deliberately uninterruptible.

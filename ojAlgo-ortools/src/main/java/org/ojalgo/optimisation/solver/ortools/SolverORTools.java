@@ -26,6 +26,7 @@ import static org.ojalgo.function.constant.PrimitiveMath.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.ojalgo.concurrent.InterruptForwarder;
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
@@ -48,7 +49,7 @@ import com.google.ortools.modelbuilder.SolveStatus;
  * This solver integration is based on the {@link ModelBuilder} API. More specifically the
  * {@link ModelBuilderHelper} and {@link ModelSolverHelper} classes are used.
  */
-public final class SolverORTools implements UpdatableSolver {
+public final class SolverORTools implements Optimisation.Solver, UpdatableSolver {
 
     /**
      * Configuration options for the underlying solver. The default implementation is suitable for most cases,
@@ -141,8 +142,9 @@ public final class SolverORTools implements UpdatableSolver {
                 retVal.enableOutput(false);
             }
 
-            if (options.time_abort > 0L && options.time_abort < Long.MAX_VALUE) {
-                retVal.setTimeLimitInSeconds(options.time_abort / THOUSAND);
+            long effectiveTimeMillis = Math.min(options.time_suffice, options.time_abort);
+            if (effectiveTimeMillis > 0L && effectiveTimeMillis < Long.MAX_VALUE) {
+                retVal.setTimeLimitInSeconds(effectiveTimeMillis / THOUSAND);
             }
 
             return retVal;
@@ -325,7 +327,7 @@ public final class SolverORTools implements UpdatableSolver {
             String solverName = configurator.getSolverName(mip, false);
             ModelSolverHelper solver = configurator.newModelSolverHelper(solverName, model.options);
 
-            return new SolverORTools(builder, solver, nbVars);
+            return new SolverORTools(builder, solver, nbVars, model.options);
         }
 
         @Override
@@ -386,41 +388,37 @@ public final class SolverORTools implements UpdatableSolver {
     }
 
     /**
-     * Asks OR-Tools to stop, which is all that can be done from here – it sets a flag, and whether anything
-     * comes of it is up to the backend that is solving. Measured with OR-Tools 9.15 on a model that would
-     * otherwise run for hours: SAT stops within milliseconds, SCIP and HIGHS were still solving twenty seconds
-     * later. Nothing distinguishes those cases in advance, since the return value only says that the flag
-     * exists, not that the backend reads it.
-     */
-    private void interruptSolve() {
-
-        if (!mySolver.interruptSolve() && myInterruptRefused.compareAndSet(false, true)) {
-            BasicLogger.error("This OR-Tools backend will not interrupt a solve - it has to run to completion!");
-        }
-    }
-
-    /**
      * Look at {@link ModelBuilder} for hints on how to use this.
      */
     private final ModelBuilderHelper myBuilder;
+
+    private final int myIterationsAbort;
+    private final int myIterationsSuffice;
     private final int myNumVars;
     /**
      * Look at {@link ModelSolver} for hints on how to use this.
      */
     private final ModelSolverHelper mySolver;
     private boolean mySolutionAvailable;
+    private final long myTimeAbortMillis;
+    private final long myTimeSufficeMillis;
     /**
-     * Whether the backend has already been found not to support interrupting, so that saying so once is enough.
+     * Whether the backend has already been found not to support interrupting, so that saying so once is
+     * enough.
      */
     private final AtomicBoolean myInterruptRefused = new AtomicBoolean(false);
 
-    SolverORTools(final ModelBuilderHelper builder, final ModelSolverHelper solver, final int numVars) {
+    SolverORTools(final ModelBuilderHelper builder, final ModelSolverHelper solver, final int numVars, final Optimisation.Options options) {
 
         super();
 
         myBuilder = builder;
         mySolver = solver;
         myNumVars = numVars;
+        myIterationsAbort = options.iterations_abort;
+        myIterationsSuffice = options.iterations_suffice;
+        myTimeAbortMillis = options.time_abort;
+        myTimeSufficeMillis = options.time_suffice;
     }
 
     @Override
@@ -466,13 +464,30 @@ public final class SolverORTools implements UpdatableSolver {
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
-        try (SolveInterrupter interrupter = SolveInterrupter.watch(this::interruptSolve)) {
+        long startMillis = System.currentTimeMillis();
+
+        try (InterruptForwarder interrupter = InterruptForwarder.watch(this::interruptSolve)) {
             mySolver.solve(myBuilder);
         }
 
         SolveStatus status = mySolver.hasResponse() ? mySolver.getStatus() : SolveStatus.UNKNOWN_STATUS;
 
         Optimisation.State retState = SolverORTools.translate(status);
+
+        if (!retState.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis) {
+            long elapsed = System.currentTimeMillis() - startMillis;
+            long remaining = myTimeAbortMillis - elapsed;
+            if (remaining > 1000L) {
+                mySolver.setTimeLimitInSeconds(remaining / THOUSAND);
+
+                try (InterruptForwarder interrupter = InterruptForwarder.watch(this::interruptSolve)) {
+                    mySolver.solve(myBuilder);
+                }
+
+                status = mySolver.hasResponse() ? mySolver.getStatus() : SolveStatus.UNKNOWN_STATUS;
+                retState = SolverORTools.translate(status);
+            }
+        }
 
         if (retState.isFeasible() && retState != Optimisation.State.UNBOUNDED) {
 
@@ -512,6 +527,20 @@ public final class SolverORTools implements UpdatableSolver {
         myBuilder.setVarUpperBound(index, upper);
         mySolutionAvailable = false;
         return true;
+    }
+
+    /**
+     * Asks OR-Tools to stop, which is all that can be done from here – it sets a flag, and whether anything
+     * comes of it is up to the backend that is solving. Measured with OR-Tools 9.15 on a model that would
+     * otherwise run for hours: SAT stops within milliseconds, SCIP and HIGHS were still solving twenty
+     * seconds later. Nothing distinguishes those cases in advance, since the return value only says that the
+     * flag exists, not that the backend reads it.
+     */
+    private void interruptSolve() {
+
+        if (!mySolver.interruptSolve() && myInterruptRefused.compareAndSet(false, true)) {
+            BasicLogger.error("This OR-Tools backend will not interrupt a solve - it has to run to completion!");
+        }
     }
 
 }

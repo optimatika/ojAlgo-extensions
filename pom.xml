@@ -8,9 +8,13 @@
     <packaging>pom</packaging>
     <url>http://ojalgo.org</url>
     <modules>
+        <module>ojAlgo-choco</module>
+        <module>ojAlgo-clarabel</module>
         <module>ojAlgo-clarabel4j</module>
         <module>ojAlgo-commons-math3</module>
+        <module>ojAlgo-copt</module>
         <module>ojAlgo-cplex</module>
+        <module>ojAlgo-cpsat</module>
         <module>ojAlgo-gurobi</module>
         <module>ojAlgo-highs</module>
         <module>ojAlgo-hipparchus</module>
@@ -18,10 +22,11 @@
         <module>ojAlgo-joptimizer</module>
         <module>ojAlgo-mosek</module>
         <module>ojAlgo-ortools</module>
+        <module>ojAlgo-osqp</module>
         <module>ojAlgo-rocksdb</module>
-        <module>ojAlgo-ssclp</module>
         <module>ojAlgo-scip</module>
-        <module>ojAlgo-clarabel</module>
+        <module>ojAlgo-ssclp</module>
+        <module>ojAlgo-xpress</module>
     </modules>
     <licenses>
         <license>
@@ -64,7 +69,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>11</java.version>
-        <version.org.ojalgo>57.2.0</version.org.ojalgo>
+        <version.org.ojalgo>57.3.0</version.org.ojalgo>
         <version.org.junit.jupiter>5.14.4</version.org.junit.jupiter>
         <version.org.openjdk.jmh>1.35</version.org.openjdk.jmh>
     </properties>

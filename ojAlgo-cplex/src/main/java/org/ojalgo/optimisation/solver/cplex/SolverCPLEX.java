@@ -25,20 +25,29 @@ import static org.ojalgo.function.constant.PrimitiveMath.*;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
+import org.ojalgo.concurrent.InterruptForwarder;
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
+import org.ojalgo.optimisation.ModelEntity;
 import org.ojalgo.optimisation.Optimisation;
+import org.ojalgo.optimisation.Optimisation.ConstraintType;
+import org.ojalgo.optimisation.UpdatableSolver;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
+import org.ojalgo.type.keyvalue.EntryPair;
 
 import ilog.concert.IloException;
 import ilog.concert.IloLQNumExpr;
 import ilog.concert.IloLinearNumExpr;
 import ilog.concert.IloNumExpr;
+import ilog.concert.IloRange;
 import ilog.concert.IloNumVar;
 import ilog.concert.IloNumVarType;
 import ilog.concert.IloQuadNumExpr;
@@ -51,7 +60,7 @@ import ilog.cplex.IloCplex.Status;
  *
  * @author apete
  */
-public final class SolverCPLEX implements Optimisation.Solver {
+public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
 
     public static class Configurator {
 
@@ -82,14 +91,16 @@ public final class SolverCPLEX implements Optimisation.Solver {
                 retVal.setOut(OutputStream.nullOutputStream());
             }
 
-            if (options.time_abort > 0L && options.time_abort < Long.MAX_VALUE) {
-                double seconds = options.time_abort / 1000.0;
+            long effectiveTimeMillis = Math.min(options.time_suffice, options.time_abort);
+            if (effectiveTimeMillis > 0L && effectiveTimeMillis < Long.MAX_VALUE) {
+                double seconds = effectiveTimeMillis / 1000.0;
                 retVal.setParam(IloCplex.DoubleParam.TiLim, seconds);
             }
 
-            if (options.iterations_abort > 0 && options.iterations_abort < Integer.MAX_VALUE) {
-                retVal.setParam(IntParam.ItLim, options.iterations_abort);
-                retVal.setParam(IloCplex.LongParam.BarItLim, options.iterations_abort);
+            int effectiveIterations = Math.min(options.iterations_suffice, options.iterations_abort);
+            if (effectiveIterations > 0 && effectiveIterations < Integer.MAX_VALUE) {
+                retVal.setParam(IntParam.ItLim, effectiveIterations);
+                retVal.setParam(IloCplex.LongParam.BarItLim, effectiveIterations);
             }
 
             double feasTol = options.feasibility.epsilon();
@@ -104,6 +115,81 @@ public final class SolverCPLEX implements Optimisation.Solver {
             }
 
             return retVal;
+        }
+
+    }
+
+    static final class CPLEXEntityMap implements ExpressionsBasedModel.EntityMap {
+
+        private final List<EntryPair<ModelEntity<?>, ConstraintType>> myConstraints;
+        private final int myNumEqualityConstraints;
+        private final int myNumInequalityConstraints;
+        private final int myNumVars;
+
+        CPLEXEntityMap(final int numVars, final List<EntryPair<ModelEntity<?>, ConstraintType>> constraints) {
+            myNumVars = numVars;
+            myConstraints = constraints;
+            int eq = 0;
+            int ineq = 0;
+            for (EntryPair<ModelEntity<?>, ConstraintType> entry : constraints) {
+                if (entry.getValue() == ConstraintType.EQUALITY) {
+                    eq++;
+                } else {
+                    ineq++;
+                }
+            }
+            myNumEqualityConstraints = eq;
+            myNumInequalityConstraints = ineq;
+        }
+
+        @Override
+        public int countAdditionalConstraints() {
+            return 0;
+        }
+
+        @Override
+        public int countEqualityConstraints() {
+            return myNumEqualityConstraints;
+        }
+
+        @Override
+        public int countInequalityConstraints() {
+            return myNumInequalityConstraints;
+        }
+
+        @Override
+        public int countModelVariables() {
+            return myNumVars;
+        }
+
+        @Override
+        public int countSlackVariables() {
+            return 0;
+        }
+
+        @Override
+        public int countVariables() {
+            return myNumVars;
+        }
+
+        @Override
+        public EntryPair<ModelEntity<?>, ConstraintType> getConstraint(final int idc) {
+            return myConstraints.get(idc);
+        }
+
+        @Override
+        public EntryPair<ModelEntity<?>, ConstraintType> getSlack(final int ids) {
+            return null;
+        }
+
+        @Override
+        public int indexOf(final int solverIndex) {
+            return solverIndex;
+        }
+
+        @Override
+        public boolean isNegated(final int solverIndex) {
+            return false;
         }
 
     }
@@ -153,27 +239,32 @@ public final class SolverCPLEX implements Optimisation.Solver {
                     solver.add(sVars[i] = solver.numVar(lb, ub, type, name));
                 }
 
-                model.constraints().forEach(mConstr -> {
+                List<ilog.concert.IloRange> ranges = new ArrayList<>();
+                List<EntryPair<ModelEntity<?>, ConstraintType>> constrInfo = new ArrayList<>();
 
-                    try {
+                List<Expression> mConstrs = model.constraints().collect(Collectors.toList());
+                for (Expression mConstr : mConstrs) {
 
-                        IloNumExpr sConstr = this.buildExpression(mConstr, solver, sVars, ADJUSTED_CONSTRAINTS);
+                    IloNumExpr sConstr = this.buildExpression(mConstr, solver, sVars, ADJUSTED_CONSTRAINTS);
 
-                        if (mConstr.isEqualityConstraint()) {
-                            solver.addEq(mConstr.getLowerLimit(ADJUSTED_CONSTRAINTS, ZERO), sConstr);
-                        } else {
-                            if (mConstr.isLowerConstraint()) {
-                                solver.addLe(mConstr.getLowerLimit(ADJUSTED_CONSTRAINTS, NEGATIVE_INFINITY), sConstr);
-                            }
-                            if (mConstr.isUpperConstraint()) {
-                                solver.addGe(mConstr.getUpperLimit(ADJUSTED_CONSTRAINTS, POSITIVE_INFINITY), sConstr);
-                            }
-                        }
-
-                    } catch (IloException cause) {
-                        throw new RuntimeException(cause);
+                    if (mConstr.isEqualityConstraint()) {
+                        ranges.add(solver.addEq(mConstr.getLowerLimit(ADJUSTED_CONSTRAINTS, ZERO), sConstr));
+                        constrInfo.add(EntryPair.of(mConstr, ConstraintType.EQUALITY));
+                    } else if (mConstr.isLowerConstraint() && mConstr.isUpperConstraint()) {
+                        double lb = mConstr.getLowerLimit(ADJUSTED_CONSTRAINTS, NEGATIVE_INFINITY);
+                        double ub = mConstr.getUpperLimit(ADJUSTED_CONSTRAINTS, POSITIVE_INFINITY);
+                        IloRange range = solver.range(lb, sConstr, ub);
+                        solver.add(range);
+                        ranges.add(range);
+                        constrInfo.add(EntryPair.of(mConstr, ConstraintType.RANGE));
+                    } else if (mConstr.isLowerConstraint()) {
+                        ranges.add(solver.addLe(mConstr.getLowerLimit(ADJUSTED_CONSTRAINTS, NEGATIVE_INFINITY), sConstr));
+                        constrInfo.add(EntryPair.of(mConstr, ConstraintType.LOWER));
+                    } else if (mConstr.isUpperConstraint()) {
+                        ranges.add(solver.addGe(mConstr.getUpperLimit(ADJUSTED_CONSTRAINTS, POSITIVE_INFINITY), sConstr));
+                        constrInfo.add(EntryPair.of(mConstr, ConstraintType.UPPER));
                     }
-                });
+                }
 
                 Expression mObj = model.objective();
                 IloNumExpr sObj = this.buildExpression(mObj, solver, sVars, ADJUSTED_OBJECTIVE);
@@ -184,7 +275,9 @@ public final class SolverCPLEX implements Optimisation.Solver {
                     solver.addMinimize(sObj);
                 }
 
-                return new SolverCPLEX(solver, sVars);
+                CPLEXEntityMap entityMap = new CPLEXEntityMap(nbVars, constrInfo);
+
+                return new SolverCPLEX(solver, sVars, ranges.toArray(new ilog.concert.IloRange[0]), entityMap, model.options);
 
             } catch (IloException cause) {
                 throw new RuntimeException(cause);
@@ -282,36 +375,63 @@ public final class SolverCPLEX implements Optimisation.Solver {
     }
 
     private IloCplex.Aborter myAborter = null;
+    private final ilog.concert.IloRange[] myConstraints;
+    private final CPLEXEntityMap myEntityMap;
+    private final int myIterationsAbort;
+    private final int myIterationsSuffice;
     private final IloCplex mySolver;
+    private final long myTimeAbortMillis;
+    private final long myTimeSufficeMillis;
     private final IloNumVar[] myVariables;
 
-    SolverCPLEX(final IloCplex solver, final IloNumVar[] variables) {
+    SolverCPLEX(final IloCplex solver, final IloNumVar[] variables, final ilog.concert.IloRange[] constraints, final CPLEXEntityMap entityMap,
+            final Optimisation.Options options) {
         super();
+        myConstraints = constraints;
+        myEntityMap = entityMap;
+        myIterationsAbort = options.iterations_abort;
+        myIterationsSuffice = options.iterations_suffice;
         mySolver = solver;
+        myTimeAbortMillis = options.time_abort;
+        myTimeSufficeMillis = options.time_suffice;
         myVariables = variables;
-    }
-
-    /**
-     * CPLEX's own way of being stopped from elsewhere, which is what makes an interrupt of the solving thread
-     * reach it. Registered once and kept – an aborter belongs to the {@link IloCplex} instance rather than to
-     * one solve.
-     */
-    private IloCplex.Aborter aborter() throws IloException {
-
-        if (myAborter == null) {
-            myAborter = mySolver.use(new IloCplex.Aborter());
-        }
-
-        return myAborter;
     }
 
     @Override
     public void dispose() {
 
-        Solver.super.dispose();
+        UpdatableSolver.super.dispose();
 
         if (mySolver != null) {
             mySolver.end();
+        }
+    }
+
+    @Override
+    public boolean fixVariable(final int index, final double value) {
+        return this.updateRange(index, value, value);
+    }
+
+    @Override
+    public double getDualMultiplier(final int index) {
+        try {
+            return mySolver.getDual(myConstraints[index]);
+        } catch (IloException cause) {
+            throw new RuntimeException(cause);
+        }
+    }
+
+    @Override
+    public Optional<ExpressionsBasedModel.EntityMap> getEntityMap() {
+        return Optional.of(myEntityMap);
+    }
+
+    @Override
+    public double getReducedGradient(final int index) {
+        try {
+            return mySolver.getReducedCost(myVariables[index]);
+        } catch (IloException cause) {
+            throw new RuntimeException(cause);
         }
     }
 
@@ -324,6 +444,8 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
         try {
 
+            long startMillis = System.currentTimeMillis();
+
             IloCplex.Aborter aborter = this.aborter();
 
             // Latched from the last solve, if that one was aborted. The interrupt that caused it may since
@@ -331,7 +453,7 @@ public final class SolverCPLEX implements Optimisation.Solver {
             aborter.clear();
 
             boolean solved;
-            try (SolveInterrupter interrupter = SolveInterrupter.watch(aborter::abort)) {
+            try (InterruptForwarder interrupter = InterruptForwarder.watch(aborter::abort)) {
                 solved = mySolver.solve();
             }
 
@@ -346,6 +468,32 @@ public final class SolverCPLEX implements Optimisation.Solver {
 
             retState = SolverCPLEX.translate(mySolver.getStatus());
 
+            if (!retState.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis) {
+                long elapsed = System.currentTimeMillis() - startMillis;
+                long remaining = myTimeAbortMillis - elapsed;
+                if (remaining > 1000L) {
+                    mySolver.setParam(IloCplex.DoubleParam.TiLim, remaining / 1000.0);
+                    if (myIterationsSuffice < myIterationsAbort) {
+                        mySolver.setParam(IntParam.ItLim, myIterationsAbort);
+                        mySolver.setParam(IloCplex.LongParam.BarItLim, myIterationsAbort);
+                    }
+
+                    aborter.clear();
+                    try (InterruptForwarder interrupter = InterruptForwarder.watch(aborter::abort)) {
+                        solved = mySolver.solve();
+                    }
+
+                    if (solved) {
+                        for (int i = 0; i < myVariables.length; i++) {
+                            retSolution[i] = mySolver.getValue(myVariables[i]);
+                        }
+                        retValue = mySolver.getObjValue();
+                    }
+
+                    retState = SolverCPLEX.translate(mySolver.getStatus());
+                }
+            }
+
         } catch (IloException cause) {
             BasicLogger.error(cause, "CPLEX solve failed!");
             retValue = NaN;
@@ -353,5 +501,35 @@ public final class SolverCPLEX implements Optimisation.Solver {
         }
 
         return Optimisation.Result.of(retValue, retState, retSolution);
+    }
+
+    @Override
+    public boolean updateRange(final int index, final double lower, final double upper) {
+
+        if (index < 0 || index >= myVariables.length) {
+            return false;
+        }
+
+        try {
+            myVariables[index].setLB(lower);
+            myVariables[index].setUB(upper);
+            return true;
+        } catch (IloException cause) {
+            return false;
+        }
+    }
+
+    /**
+     * CPLEX's own way of being stopped from elsewhere, which is what makes an interrupt of the solving thread
+     * reach it. Registered once and kept – an aborter belongs to the {@link IloCplex} instance rather than to
+     * one solve.
+     */
+    private IloCplex.Aborter aborter() throws IloException {
+
+        if (myAborter == null) {
+            myAborter = mySolver.use(new IloCplex.Aborter());
+        }
+
+        return myAborter;
     }
 }

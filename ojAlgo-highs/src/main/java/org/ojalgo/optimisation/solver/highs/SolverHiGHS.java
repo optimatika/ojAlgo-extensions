@@ -83,15 +83,17 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
             boolean verbose = options.logger_appender != null && options.logger_detailed;
             HiGHSBindings.setBoolOptionValue(highs, outputFlag, verbose ? 1 : 0);
 
-            if (options.time_abort > 0L) {
+            long effectiveTimeMillis = Math.min(options.time_suffice, options.time_abort);
+            if (effectiveTimeMillis > 0L) {
                 MemorySegment timeLimit = HiGHSBindings.allocateString(arena, "time_limit");
-                double seconds = options.time_abort / 1000.0;
+                double seconds = effectiveTimeMillis / 1000.0;
                 HiGHSBindings.setDoubleOptionValue(highs, timeLimit, seconds);
             }
 
-            if (options.iterations_abort > 0L) {
+            int effectiveIterations = Math.min(options.iterations_suffice, options.iterations_abort);
+            if (effectiveIterations > 0L) {
                 MemorySegment simplexIterLimit = HiGHSBindings.allocateString(arena, "simplex_iteration_limit");
-                int limit = Math.min(options.iterations_abort, Integer.MAX_VALUE);
+                int limit = Math.min(effectiveIterations, Integer.MAX_VALUE);
                 HiGHSBindings.setIntOptionValue(highs, simplexIterLimit, limit);
 
                 MemorySegment ipmIterLimit = HiGHSBindings.allocateString(arena, "ipm_iteration_limit");
@@ -346,7 +348,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
             HiGHSEntityMap entityMap = new HiGHSEntityMap(n, m, model, variables, constraints);
 
-            return new SolverHiGHS(highs, n, m, entityMap);
+            return new SolverHiGHS(highs, n, m, entityMap, model.options);
         }
 
         /**
@@ -400,7 +402,8 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
             case HiGHSBindings.MODEL_STATUS_MODEL_EMPTY,
                     HiGHSBindings.MODEL_STATUS_NOTSET                                                                                                                                                                                  ->
                 Optimisation.State.UNEXPLORED;
-            case HiGHSBindings.MODEL_STATUS_INTERRUPT, HiGHSBindings.MODEL_STATUS_HIGHS_INTERRUPT, HiGHSBindings.MODEL_STATUS_MEMORY_LIMIT                     ->
+            case HiGHSBindings.MODEL_STATUS_INTERRUPT, HiGHSBindings.MODEL_STATUS_HIGHS_INTERRUPT,
+                    HiGHSBindings.MODEL_STATUS_MEMORY_LIMIT                                                                                                                                                                            ->
                 Optimisation.State.APPROXIMATE;
             default                                                                                                                                                                                                                    ->
                 Optimisation.State.FAILED;
@@ -411,10 +414,12 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
     private final HiGHSEntityMap myEntityMap;
     private final MemorySegment myHighs;
     /**
-     * The upcall stub HiGHS calls to ask whether it should stop. Kept in a field because the automatic arena it
-     * lives in frees it once nothing refers to it any more.
+     * The upcall stub HiGHS calls to ask whether it should stop. Kept in a field because the automatic arena
+     * it lives in frees it once nothing refers to it any more.
      */
     private MemorySegment myInterruptCallback = null;
+    private final int myIterationsAbort;
+    private final int myIterationsSuffice;
     private final int myNumCol;
     private final int myNumRow;
     private double[] myRowDual;
@@ -423,13 +428,19 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
      * its own, so it is that thread's interrupt flag – not the calling one's – that has to be asked about.
      */
     private volatile Thread mySolving = null;
+    private final long myTimeAbortMillis;
+    private final long myTimeSufficeMillis;
 
-    SolverHiGHS(final MemorySegment highs, final int numCol, final int numRow, final HiGHSEntityMap entityMap) {
+    SolverHiGHS(final MemorySegment highs, final int numCol, final int numRow, final HiGHSEntityMap entityMap, final Optimisation.Options options) {
         super();
         myHighs = highs;
         myNumCol = numCol;
         myNumRow = numRow;
         myEntityMap = entityMap;
+        myIterationsAbort = options.iterations_abort;
+        myIterationsSuffice = options.iterations_suffice;
+        myTimeAbortMillis = options.time_abort;
+        myTimeSufficeMillis = options.time_suffice;
     }
 
     @Override
@@ -437,46 +448,6 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         if (myHighs != null && !myHighs.equals(MemorySegment.NULL)) {
             HiGHSBindings.destroy(myHighs);
         }
-    }
-
-    /**
-     * Registers a callback that lets an interrupt of the solving thread stop the solve. HiGHS polls it from
-     * inside its own algorithms, so – unlike a solver that has to be stopped from the outside – nothing needs
-     * to watch the thread.
-     * <p>
-     * Registered once and left in place; it costs a callback per iteration or node, which does nothing at all
-     * unless the flag is set. Silently skipped on a HiGHS too old to have callbacks, since there is no way to
-     * stop such a build and failing the solve over it would be worse.
-     */
-    private void enableInterrupt() {
-
-        if (myInterruptCallback != null || !HiGHSBindings.hasCallbacks()) {
-            return;
-        }
-
-        MemorySegment callback = HiGHSBindings.newInterruptCallback(this::isStopWanted);
-
-        if (HiGHSBindings.setCallback(myHighs, callback) == HiGHSBindings.STATUS_ERROR) {
-            BasicLogger.error("HiGHS would not accept the interrupt callback - this solve cannot be stopped!");
-            return;
-        }
-
-        myInterruptCallback = callback;
-
-        for (int callbackType : new int[] { HiGHSBindings.CALLBACK_SIMPLEX_INTERRUPT, HiGHSBindings.CALLBACK_IPM_INTERRUPT,
-                HiGHSBindings.CALLBACK_MIP_INTERRUPT }) {
-            if (HiGHSBindings.startCallback(myHighs, callbackType) == HiGHSBindings.STATUS_ERROR) {
-                BasicLogger.error("HiGHS would not start callback type {} - this solve may not be stoppable!", callbackType);
-            }
-        }
-    }
-
-    /**
-     * Asked by HiGHS, repeatedly, while solving.
-     */
-    private boolean isStopWanted() {
-        Thread solving = mySolving;
-        return solving != null && solving.isInterrupted();
     }
 
     @Override
@@ -510,6 +481,8 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
+        long startMillis = System.currentTimeMillis();
+
         mySolving = Thread.currentThread();
         this.enableInterrupt();
 
@@ -522,6 +495,34 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
         int modelStatus = HiGHSBindings.getModelStatus(myHighs);
         Optimisation.State state = SolverHiGHS.translate(modelStatus);
+
+        if (!state.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis) {
+            long elapsed = System.currentTimeMillis() - startMillis;
+            long remaining = myTimeAbortMillis - elapsed;
+            if (remaining > 1000L) {
+                try (Arena phaseArena = Arena.ofConfined()) {
+                    MemorySegment timeLimit = HiGHSBindings.allocateString(phaseArena, "time_limit");
+                    HiGHSBindings.setDoubleOptionValue(myHighs, timeLimit, remaining / 1000.0);
+                    if (myIterationsSuffice < myIterationsAbort) {
+                        MemorySegment simplexIterLimit = HiGHSBindings.allocateString(phaseArena, "simplex_iteration_limit");
+                        HiGHSBindings.setIntOptionValue(myHighs, simplexIterLimit, myIterationsAbort);
+                        MemorySegment ipmIterLimit = HiGHSBindings.allocateString(phaseArena, "ipm_iteration_limit");
+                        HiGHSBindings.setIntOptionValue(myHighs, ipmIterLimit, myIterationsAbort);
+                    }
+                }
+
+                mySolving = Thread.currentThread();
+                this.enableInterrupt();
+                try {
+                    runStatus = HiGHSBindings.run(myHighs);
+                } finally {
+                    mySolving = null;
+                }
+
+                modelStatus = HiGHSBindings.getModelStatus(myHighs);
+                state = SolverHiGHS.translate(modelStatus);
+            }
+        }
 
         if (state.isFeasible()) {
 
@@ -710,6 +711,46 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         myColDual = null;
         myRowDual = null;
         return true;
+    }
+
+    /**
+     * Registers a callback that lets an interrupt of the solving thread stop the solve. HiGHS polls it from
+     * inside its own algorithms, so – unlike a solver that has to be stopped from the outside – nothing needs
+     * to watch the thread.
+     * <p>
+     * Registered once and left in place; it costs a callback per iteration or node, which does nothing at all
+     * unless the flag is set. Silently skipped on a HiGHS too old to have callbacks, since there is no way to
+     * stop such a build and failing the solve over it would be worse.
+     */
+    private void enableInterrupt() {
+
+        if (myInterruptCallback != null || !HiGHSBindings.hasCallbacks()) {
+            return;
+        }
+
+        MemorySegment callback = HiGHSBindings.newInterruptCallback(this::isStopWanted);
+
+        if (HiGHSBindings.setCallback(myHighs, callback) == HiGHSBindings.STATUS_ERROR) {
+            BasicLogger.error("HiGHS would not accept the interrupt callback - this solve cannot be stopped!");
+            return;
+        }
+
+        myInterruptCallback = callback;
+
+        for (int callbackType : new int[] { HiGHSBindings.CALLBACK_SIMPLEX_INTERRUPT, HiGHSBindings.CALLBACK_IPM_INTERRUPT,
+                HiGHSBindings.CALLBACK_MIP_INTERRUPT }) {
+            if (HiGHSBindings.startCallback(myHighs, callbackType) == HiGHSBindings.STATUS_ERROR) {
+                BasicLogger.error("HiGHS would not start callback type {} - this solve may not be stoppable!", callbackType);
+            }
+        }
+    }
+
+    /**
+     * Asked by HiGHS, repeatedly, while solving.
+     */
+    private boolean isStopWanted() {
+        Thread solving = mySolving;
+        return solving != null && solving.isInterrupted();
     }
 
 }

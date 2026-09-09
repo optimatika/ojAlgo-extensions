@@ -29,6 +29,7 @@ import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.ojalgo.concurrent.InterruptForwarder;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
@@ -75,15 +76,17 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
             boolean verbose = options.logger_appender != null && options.logger_detailed;
             SCIPBindings.setIntParam(scip, verbLevel, verbose ? 4 : 0);
 
-            if (options.time_abort > 0L) {
+            long effectiveTimeMillis = Math.min(options.time_suffice, options.time_abort);
+            if (effectiveTimeMillis > 0L) {
                 MemorySegment timeLimit = SCIPBindings.allocateString(arena, "limits/time");
-                double seconds = options.time_abort / 1000.0;
+                double seconds = effectiveTimeMillis / 1000.0;
                 SCIPBindings.setRealParam(scip, timeLimit, seconds);
             }
 
-            if (options.iterations_abort > 0L) {
+            long effectiveIterations = Math.min((long) options.iterations_suffice, (long) options.iterations_abort);
+            if (effectiveIterations > 0L) {
                 MemorySegment nodeLimit = SCIPBindings.allocateString(arena, "limits/nodes");
-                SCIPBindings.setLongintParam(scip, nodeLimit, options.iterations_abort);
+                SCIPBindings.setLongintParam(scip, nodeLimit, effectiveIterations);
             }
 
             int parallelism = options.getParallelism();
@@ -223,7 +226,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
                 boolean concurrent = configurator.isConcurrent(model.options) && SCIPBindings.hasSolveConcurrent() && !model.isAnyExpressionQuadratic();
 
-                return new SolverSCIP(scip, varPtrs, n, arena, concurrent);
+                return new SolverSCIP(scip, varPtrs, n, arena, concurrent, model.options);
 
             } catch (RuntimeException e) {
                 arena.close();
@@ -396,17 +399,26 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
     private final Arena myArena;
     private final boolean myConcurrent;
+    private final int myIterationsAbort;
+    private final int myIterationsSuffice;
     private final int myNumVars;
     private final MemorySegment myScip;
+    private final long myTimeAbortMillis;
+    private final long myTimeSufficeMillis;
     private final MemorySegment[] myVarPtrs;
 
-    SolverSCIP(final MemorySegment scip, final MemorySegment[] varPtrs, final int numVars, final Arena arena, final boolean concurrent) {
+    SolverSCIP(final MemorySegment scip, final MemorySegment[] varPtrs, final int numVars, final Arena arena, final boolean concurrent,
+            final Optimisation.Options options) {
         super();
         myScip = scip;
         myVarPtrs = varPtrs;
         myNumVars = numVars;
         myArena = arena;
         myConcurrent = concurrent;
+        myIterationsAbort = options.iterations_abort;
+        myIterationsSuffice = options.iterations_suffice;
+        myTimeAbortMillis = options.time_abort;
+        myTimeSufficeMillis = options.time_suffice;
     }
 
     @Override
@@ -438,7 +450,9 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
-        try (SolveInterrupter interrupter = SolveInterrupter.watch(() -> SCIPBindings.interruptSolve(myScip))) {
+        long startMillis = System.currentTimeMillis();
+
+        try (InterruptForwarder interrupter = InterruptForwarder.watch(() -> SCIPBindings.interruptSolve(myScip))) {
             if (myConcurrent) {
                 SCIPBindings.solveConcurrent(myScip);
             } else {
@@ -448,6 +462,35 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
         int status = SCIPBindings.getStatus(myScip);
         Optimisation.State state = SolverSCIP.translate(status);
+
+        if (!state.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis) {
+            long elapsed = System.currentTimeMillis() - startMillis;
+            long remaining = myTimeAbortMillis - elapsed;
+            if (remaining > 1000L) {
+
+                SCIPBindings.freeTransform(myScip);
+
+                try (Arena phaseArena = Arena.ofConfined()) {
+                    MemorySegment timeLimit = SCIPBindings.allocateString(phaseArena, "limits/time");
+                    SCIPBindings.setRealParam(myScip, timeLimit, remaining / 1000.0);
+                    if (myIterationsSuffice < myIterationsAbort) {
+                        MemorySegment nodeLimit = SCIPBindings.allocateString(phaseArena, "limits/nodes");
+                        SCIPBindings.setLongintParam(myScip, nodeLimit, myIterationsAbort);
+                    }
+                }
+
+                try (InterruptForwarder interrupter = InterruptForwarder.watch(() -> SCIPBindings.interruptSolve(myScip))) {
+                    if (myConcurrent) {
+                        SCIPBindings.solveConcurrent(myScip);
+                    } else {
+                        SCIPBindings.solve(myScip);
+                    }
+                }
+
+                status = SCIPBindings.getStatus(myScip);
+                state = SolverSCIP.translate(status);
+            }
+        }
 
         if (state.isFeasible() && state != Optimisation.State.UNBOUNDED) {
 

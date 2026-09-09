@@ -411,9 +411,9 @@ public final class SolverClarabel implements Optimisation.Solver {
 
     /**
      * The fallback for when Cholesky fails, which happens both for a positive <em>semi</em>-definite Q - a
-     * perfectly valid convex constraint - and for an indefinite, genuinely non-convex, one. Telling those
-     * two apart needs the eigenvalues, so that cost is only paid here, once Cholesky has already declined.
-     * Zero eigenvalues simply contribute no rows, and a negative one is reported.
+     * perfectly valid convex constraint - and for an indefinite, genuinely non-convex, one. Telling those two
+     * apart needs the eigenvalues, so that cost is only paid here, once Cholesky has already declined. Zero
+     * eigenvalues simply contribute no rows, and a negative one is reported.
      *
      * @return a matrix M with M'M = Q, having one row per strictly positive eigenvalue
      */
@@ -499,26 +499,26 @@ public final class SolverClarabel implements Optimisation.Solver {
 
     static Optimisation.State translate(final int status) {
         return switch (status) {
-            case ClarabelBindings.STATUS_SOLVED                                                                                                          ->
+            case ClarabelBindings.STATUS_SOLVED                                                                                                                                                       ->
                 Optimisation.State.OPTIMAL;
             case ClarabelBindings.STATUS_ALMOST_SOLVED, ClarabelBindings.STATUS_ALMOST_PRIMAL_INFEASIBLE, ClarabelBindings.STATUS_ALMOST_DUAL_INFEASIBLE,
-                    ClarabelBindings.STATUS_CALLBACK_TERMINATED                                                                                          ->
+                    ClarabelBindings.STATUS_CALLBACK_TERMINATED                                                                                                                                       ->
                 Optimisation.State.APPROXIMATE;
-            case ClarabelBindings.STATUS_PRIMAL_INFEASIBLE                                                                                               ->
+            case ClarabelBindings.STATUS_PRIMAL_INFEASIBLE                                                                                                                                            ->
                 Optimisation.State.INFEASIBLE;
-            case ClarabelBindings.STATUS_DUAL_INFEASIBLE                                                                                                 ->
+            case ClarabelBindings.STATUS_DUAL_INFEASIBLE                                                                                                                                              ->
                 Optimisation.State.UNBOUNDED;
-            case ClarabelBindings.STATUS_UNSOLVED                                                                                                        ->
+            case ClarabelBindings.STATUS_UNSOLVED                                                                                                                                                     ->
                 Optimisation.State.UNEXPLORED;
-            default                                                                                                                                      ->
+            default                                                                                                                                                                                   ->
                 Optimisation.State.FAILED;
         };
     }
 
     private final Arena myArena;
     /**
-     * The upcall stub Clarabel calls to ask whether it should stop. Kept in a field because the automatic arena
-     * it lives in frees it once nothing refers to it any more.
+     * The upcall stub Clarabel calls to ask whether it should stop. Kept in a field because the automatic
+     * arena it lives in frees it once nothing refers to it any more.
      */
     private MemorySegment myInterruptCallback = null;
     private final boolean myMaximisation;
@@ -543,31 +543,6 @@ public final class SolverClarabel implements Optimisation.Solver {
             ClarabelBindings.solverFree(mySolver);
         }
         myArena.close();
-    }
-
-    /**
-     * Hands Clarabel a callback that lets an interrupt of the solving thread stop the solve. Clarabel asks it
-     * once per iteration, from the thread doing the solving, so nothing needs to watch that thread from
-     * outside.
-     * <p>
-     * Registered once and left in place. Silently skipped on a Clarabel too old to have the callback, since
-     * there is no way to stop such a build and failing the solve over it would be worse.
-     */
-    private void enableInterrupt() {
-
-        if (myInterruptCallback != null || !ClarabelBindings.hasTerminationCallback()) {
-            return;
-        }
-
-        myInterruptCallback = ClarabelBindings.setTerminationCallback(mySolver, this::isStopWanted);
-    }
-
-    /**
-     * Asked by Clarabel, once per iteration, while solving.
-     */
-    private boolean isStopWanted() {
-        Thread solving = mySolving;
-        return solving != null && solving.isInterrupted();
     }
 
     @Override
@@ -611,6 +586,31 @@ public final class SolverClarabel implements Optimisation.Solver {
 
             return Optimisation.Result.of(state, new double[myNumberOfVariables]);
         }
+    }
+
+    /**
+     * Hands Clarabel a callback that lets an interrupt of the solving thread stop the solve. Clarabel asks it
+     * once per iteration, from the thread doing the solving, so nothing needs to watch that thread from
+     * outside.
+     * <p>
+     * Registered once and left in place. Silently skipped on a Clarabel too old to have the callback, since
+     * there is no way to stop such a build and failing the solve over it would be worse.
+     */
+    private void enableInterrupt() {
+
+        if (myInterruptCallback != null || !ClarabelBindings.hasTerminationCallback()) {
+            return;
+        }
+
+        myInterruptCallback = ClarabelBindings.setTerminationCallback(mySolver, this::isStopWanted);
+    }
+
+    /**
+     * Asked by Clarabel, once per iteration, while solving.
+     */
+    private boolean isStopWanted() {
+        Thread solving = mySolving;
+        return solving != null && solving.isInterrupted();
     }
 
 }

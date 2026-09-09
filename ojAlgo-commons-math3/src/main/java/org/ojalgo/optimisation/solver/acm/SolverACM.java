@@ -128,10 +128,12 @@ public final class SolverACM implements Optimisation.Solver {
                         constraints.add(new LinearConstraint(coeffs, Relationship.EQ, tmpVariable.getUpperLimit(ADJUSTED_BOUNDS, Double.POSITIVE_INFINITY)));
                     } else {
                         if (tmpVariable.isLowerConstraint()) {
-                            constraints.add(new LinearConstraint(coeffs, Relationship.GEQ, tmpVariable.getLowerLimit(ADJUSTED_BOUNDS, Double.NEGATIVE_INFINITY)));
+                            constraints
+                                    .add(new LinearConstraint(coeffs, Relationship.GEQ, tmpVariable.getLowerLimit(ADJUSTED_BOUNDS, Double.NEGATIVE_INFINITY)));
                         }
                         if (tmpVariable.isUpperConstraint()) {
-                            constraints.add(new LinearConstraint(coeffs, Relationship.LEQ, tmpVariable.getUpperLimit(ADJUSTED_BOUNDS, Double.POSITIVE_INFINITY)));
+                            constraints
+                                    .add(new LinearConstraint(coeffs, Relationship.LEQ, tmpVariable.getUpperLimit(ADJUSTED_BOUNDS, Double.POSITIVE_INFINITY)));
                         }
                     }
                 }

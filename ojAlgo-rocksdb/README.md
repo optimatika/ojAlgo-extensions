@@ -12,4 +12,4 @@
 
 ojAlgo integration with [RocksDB](http://rocksdb.org). Provides a `java.util.Map` implementation backed by RocksDB.
 
-RocksDB is a native library and needs to be installed on your system.
+The `rocksdbjni` Maven artifact (pulled transitively) bundles platform-specific native libraries, so no separate installation is needed.

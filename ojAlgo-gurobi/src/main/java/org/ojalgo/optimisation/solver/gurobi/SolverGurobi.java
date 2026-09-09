@@ -24,19 +24,26 @@ package org.ojalgo.optimisation.solver.gurobi;
 import static org.ojalgo.function.constant.PrimitiveMath.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.ojalgo.array.ArrayR064;
+import org.ojalgo.concurrent.InterruptForwarder;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
+import org.ojalgo.optimisation.ModelEntity;
 import org.ojalgo.optimisation.Optimisation;
+import org.ojalgo.optimisation.Optimisation.ConstraintType;
+import org.ojalgo.optimisation.UpdatableSolver;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
 import org.ojalgo.type.ForgetfulMap;
+import org.ojalgo.type.keyvalue.EntryPair;
 
 import com.gurobi.gurobi.GRB;
 import com.gurobi.gurobi.GRBEnv;
@@ -52,7 +59,7 @@ import com.gurobi.gurobi.GRBVar;
  *
  * @author apete
  */
-public final class SolverGurobi implements Optimisation.Solver {
+public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver {
 
     public static class Configurator {
 
@@ -60,12 +67,14 @@ public final class SolverGurobi implements Optimisation.Solver {
             try {
                 environment.set(GRB.IntParam.OutputFlag, 0);
 
-                if (options.time_abort > 0L && options.time_abort < Long.MAX_VALUE) {
-                    environment.set(GRB.DoubleParam.TimeLimit, options.time_abort / 1000.0);
+                long effectiveTimeMillis = Math.min(options.time_suffice, options.time_abort);
+                if (effectiveTimeMillis > 0L && effectiveTimeMillis < Long.MAX_VALUE) {
+                    environment.set(GRB.DoubleParam.TimeLimit, effectiveTimeMillis / 1000.0);
                 }
 
-                if (options.iterations_abort > 0 && options.iterations_abort < Integer.MAX_VALUE) {
-                    environment.set(GRB.DoubleParam.IterationLimit, (double) options.iterations_abort);
+                int effectiveIterations = Math.min(options.iterations_suffice, options.iterations_abort);
+                if (effectiveIterations > 0 && effectiveIterations < Integer.MAX_VALUE) {
+                    environment.set(GRB.DoubleParam.IterationLimit, effectiveIterations);
                 }
 
                 int parallelism = options.getParallelism();
@@ -85,6 +94,90 @@ public final class SolverGurobi implements Optimisation.Solver {
             } catch (GRBException cause) {
                 throw new RuntimeException(cause);
             }
+        }
+
+    }
+
+    static final class GurobiEntityMap implements ExpressionsBasedModel.EntityMap {
+
+        private final List<EntryPair<ModelEntity<?>, ConstraintType>> myConstraints;
+        private final int myNumEqualityConstraints;
+        private final int myNumInequalityConstraints;
+        private final int myNumVars;
+        private final int[] mySolverToModel;
+
+        GurobiEntityMap(final int numVars, final ExpressionsBasedModel model, final List<Variable> freeVariables,
+                final List<EntryPair<ModelEntity<?>, ConstraintType>> constraints) {
+            myNumVars = numVars;
+            mySolverToModel = new int[numVars];
+            for (int i = 0; i < numVars; i++) {
+                mySolverToModel[i] = model.indexOf(freeVariables.get(i));
+            }
+            myConstraints = constraints;
+            int eq = 0;
+            int ineq = 0;
+            for (EntryPair<ModelEntity<?>, ConstraintType> entry : constraints) {
+                if (entry.getValue() == ConstraintType.EQUALITY) {
+                    eq++;
+                } else {
+                    ineq++;
+                }
+            }
+            myNumEqualityConstraints = eq;
+            myNumInequalityConstraints = ineq;
+        }
+
+        @Override
+        public int countAdditionalConstraints() {
+            return 0;
+        }
+
+        @Override
+        public int countEqualityConstraints() {
+            return myNumEqualityConstraints;
+        }
+
+        @Override
+        public int countInequalityConstraints() {
+            return myNumInequalityConstraints;
+        }
+
+        @Override
+        public int countModelVariables() {
+            return myNumVars;
+        }
+
+        @Override
+        public int countSlackVariables() {
+            return 0;
+        }
+
+        @Override
+        public int countVariables() {
+            return myNumVars;
+        }
+
+        @Override
+        public EntryPair<ModelEntity<?>, ConstraintType> getConstraint(final int idc) {
+            return myConstraints.get(idc);
+        }
+
+        @Override
+        public EntryPair<ModelEntity<?>, ConstraintType> getSlack(final int ids) {
+            return null;
+        }
+
+        @Override
+        public int indexOf(final int solverIndex) {
+            if (solverIndex >= 0 && solverIndex < mySolverToModel.length) {
+                return mySolverToModel[solverIndex];
+            }
+            return -1;
+        }
+
+        @Override
+        public boolean isNegated(final int solverIndex) {
+            return false;
         }
 
     }
@@ -157,12 +250,14 @@ public final class SolverGurobi implements Optimisation.Solver {
 
                 GRBVar[] delegateVariables = delegateSolver.getVars();
 
+                List<EntryPair<ModelEntity<?>, ConstraintType>> constrInfo = new ArrayList<>();
+
                 List<Expression> tmpCollect = model.constraints().map(e -> e.compensate(fixedModVars)).collect(Collectors.toList());
                 for (Expression expr : tmpCollect) {
 
                     GRBExpr solExpr = SolverGurobi.buildExpression(expr, model, delegateVariables, ADJUSTED_CONSTRAINTS);
 
-                    SolverGurobi.setBounds(solExpr, expr, delegateSolver, ADJUSTED_CONSTRAINTS);
+                    SolverGurobi.setBounds(solExpr, expr, delegateSolver, ADJUSTED_CONSTRAINTS, constrInfo);
                 }
 
                 GRBExpr solObj = SolverGurobi.buildExpression(modObj, model, delegateVariables, ADJUSTED_OBJECTIVE);
@@ -175,7 +270,9 @@ public final class SolverGurobi implements Optimisation.Solver {
 
                 delegateSolver.update();
 
-                return new SolverGurobi(delegateSolver);
+                GurobiEntityMap entityMap = new GurobiEntityMap(numberOfVariables, model, freeModVars, constrInfo);
+
+                return new SolverGurobi(delegateSolver, entityMap, model.options);
 
             } catch (GRBException exception) {
                 exception.printStackTrace();
@@ -213,6 +310,11 @@ public final class SolverGurobi implements Optimisation.Solver {
             } catch (GRBException cause) {
                 throw new RuntimeException(cause);
             }
+        }
+
+        @Override
+        protected int getIndexInSolver(final ExpressionsBasedModel model, final Variable variable) {
+            return ExpressionsBasedModel.Integration.getIndexOfFreeInSolver(model, variable);
         }
 
         @Override
@@ -292,15 +394,19 @@ public final class SolverGurobi implements Optimisation.Solver {
         return retVal;
     }
 
-    static void setBounds(final GRBExpr solExpr, final Expression modExpr, final GRBModel delegateSolver, final boolean adjusted) {
+    static void setBounds(final GRBExpr solExpr, final Expression modExpr, final GRBModel delegateSolver, final boolean adjusted,
+            final List<EntryPair<ModelEntity<?>, ConstraintType>> constrInfo) {
         if (modExpr.isEqualityConstraint()) {
             SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.EQUAL, modExpr.getLowerLimit(adjusted, ZERO), modExpr.getName());
+            constrInfo.add(EntryPair.of(modExpr, ConstraintType.EQUALITY));
         } else {
             if (modExpr.isLowerConstraint()) {
                 SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.GREATER_EQUAL, modExpr.getLowerLimit(adjusted, NEGATIVE_INFINITY), modExpr.getName());
+                constrInfo.add(EntryPair.of(modExpr, ConstraintType.LOWER));
             }
             if (modExpr.isUpperConstraint()) {
                 SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.LESS_EQUAL, modExpr.getUpperLimit(adjusted, POSITIVE_INFINITY), modExpr.getName());
+                constrInfo.add(EntryPair.of(modExpr, ConstraintType.UPPER));
             }
         }
     }
@@ -333,18 +439,58 @@ public final class SolverGurobi implements Optimisation.Solver {
         }
     }
 
+    private final GurobiEntityMap myEntityMap;
     private final GRBModel myGRBModel;
+    private final int myIterationsAbort;
+    private final int myIterationsSuffice;
+    private final int myNumVars;
+    private final long myTimeAbortMillis;
+    private final long myTimeSufficeMillis;
 
-    SolverGurobi(final GRBModel model) {
+    SolverGurobi(final GRBModel model, final GurobiEntityMap entityMap, final Optimisation.Options options) {
         super();
+        myEntityMap = entityMap;
         myGRBModel = model;
+        myIterationsAbort = options.iterations_abort;
+        myIterationsSuffice = options.iterations_suffice;
+        myNumVars = model.getVars().length;
+        myTimeAbortMillis = options.time_abort;
+        myTimeSufficeMillis = options.time_suffice;
     }
 
     @Override
     public void dispose() {
-        Solver.super.dispose();
+        UpdatableSolver.super.dispose();
         if (myGRBModel != null) {
             myGRBModel.dispose();
+        }
+    }
+
+    @Override
+    public boolean fixVariable(final int index, final double value) {
+        return this.updateRange(index, value, value);
+    }
+
+    @Override
+    public double getDualMultiplier(final int index) {
+        try {
+            return myGRBModel.getConstr(index).get(GRB.DoubleAttr.Pi);
+        } catch (GRBException cause) {
+            throw new RuntimeException(cause);
+        }
+    }
+
+    @Override
+    public Optional<ExpressionsBasedModel.EntityMap> getEntityMap() {
+        return Optional.of(myEntityMap);
+    }
+
+    @Override
+    public double getReducedGradient(final int index) {
+        try {
+            return myGRBModel.getVar(index).get(GRB.DoubleAttr.RC);
+        } catch (GRBException cause) {
+            throw new RuntimeException(cause);
         }
     }
 
@@ -359,13 +505,31 @@ public final class SolverGurobi implements Optimisation.Solver {
 
         try {
 
+            long startMillis = System.currentTimeMillis();
+
             // Gurobi's own way of being stopped from elsewhere, which is what makes an interrupt of the
             // solving thread reach it.
-            try (SolveInterrupter interrupter = SolveInterrupter.watch(myGRBModel::terminate)) {
+            try (InterruptForwarder interrupter = InterruptForwarder.watch(myGRBModel::terminate)) {
                 myGRBModel.optimize();
             }
 
             retState = SolverGurobi.translate(myGRBModel.get(GRB.IntAttr.Status));
+
+            if (!retState.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis) {
+                long elapsed = System.currentTimeMillis() - startMillis;
+                long remaining = myTimeAbortMillis - elapsed;
+                if (remaining > 1000L) {
+                    myGRBModel.getEnv().set(GRB.DoubleParam.TimeLimit, remaining / 1000.0);
+                    if (myIterationsSuffice < myIterationsAbort) {
+                        myGRBModel.getEnv().set(GRB.DoubleParam.IterationLimit, myIterationsAbort);
+                    }
+
+                    try (InterruptForwarder interrupter = InterruptForwarder.watch(myGRBModel::terminate)) {
+                        myGRBModel.optimize();
+                    }
+                    retState = SolverGurobi.translate(myGRBModel.get(GRB.IntAttr.Status));
+                }
+            }
 
             if (retState.isFeasible()) {
 
@@ -381,6 +545,24 @@ public final class SolverGurobi implements Optimisation.Solver {
         }
 
         return new Result(retState, retValue, retSolution);
+    }
+
+    @Override
+    public boolean updateRange(final int index, final double lower, final double upper) {
+
+        if (index < 0 || index >= myNumVars) {
+            return false;
+        }
+
+        try {
+            GRBVar var = myGRBModel.getVar(index);
+            var.set(GRB.DoubleAttr.LB, lower);
+            var.set(GRB.DoubleAttr.UB, upper);
+            myGRBModel.update();
+            return true;
+        } catch (GRBException cause) {
+            return false;
+        }
     }
 
 }

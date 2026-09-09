@@ -69,14 +69,16 @@ public final class SolverMosek implements Optimisation.Solver {
                 task.set_Stream(streamtype.log, stream);
             }
 
-            if (options.time_abort > 0L && options.time_abort < Long.MAX_VALUE) {
-                double seconds = options.time_abort / 1000.0;
+            long effectiveTimeMillis = Math.min(options.time_suffice, options.time_abort);
+            if (effectiveTimeMillis > 0L && effectiveTimeMillis < Long.MAX_VALUE) {
+                double seconds = effectiveTimeMillis / 1000.0;
                 task.putdouparam(dparam.optimizer_max_time, seconds);
             }
 
-            if (options.iterations_abort > 0 && options.iterations_abort < Integer.MAX_VALUE) {
-                task.putintparam(iparam.sim_max_iterations, options.iterations_abort);
-                task.putintparam(iparam.intpnt_max_iterations, options.iterations_abort);
+            int effectiveIterations = Math.min(options.iterations_suffice, options.iterations_abort);
+            if (effectiveIterations > 0 && effectiveIterations < Integer.MAX_VALUE) {
+                task.putintparam(iparam.sim_max_iterations, effectiveIterations);
+                task.putintparam(iparam.intpnt_max_iterations, effectiveIterations);
             }
 
             int parallelism = options.getParallelism();
@@ -191,6 +193,8 @@ public final class SolverMosek implements Optimisation.Solver {
 
     static final Configurator DEFAULT = new Configurator();
 
+    private final int myIterationsAbort;
+    private final int myIterationsSuffice;
     private final Optimisation.Options myOptions;
     private soltype mySolutionType = soltype.bas;
     /**
@@ -200,6 +204,8 @@ public final class SolverMosek implements Optimisation.Solver {
      */
     private volatile Thread mySolving = null;
     private final Task myTask;
+    private final long myTimeAbortMillis;
+    private final long myTimeSufficeMillis;
 
     SolverMosek(final Task task, final Optimisation.Options options) {
 
@@ -207,6 +213,10 @@ public final class SolverMosek implements Optimisation.Solver {
 
         myTask = task;
         myOptions = options;
+        myIterationsAbort = options.iterations_abort;
+        myIterationsSuffice = options.iterations_suffice;
+        myTimeAbortMillis = options.time_abort;
+        myTimeSufficeMillis = options.time_suffice;
 
         // MOSEK stops itself: it asks this while optimising, and anything but zero means stop. So an interrupt
         // of the solving thread is all it takes, and nothing needs to watch that thread from outside.
@@ -240,6 +250,8 @@ public final class SolverMosek implements Optimisation.Solver {
         double tmpValue = Double.NaN;
         double[] tmpSolution = new double[tmpNumberOfVariables];
 
+        long startMillis = System.currentTimeMillis();
+
         mySolving = Thread.currentThread();
 
         try {
@@ -252,17 +264,41 @@ public final class SolverMosek implements Optimisation.Solver {
                 myTask.getxx(mySolutionType, tmpSolution);
 
                 switch (tmpSolverState[0]) {
-                    case optimal:
+                    case optimal          -> {
                         tmpSate = Optimisation.State.OPTIMAL;
                         tmpValue = myTask.getprimalobj(mySolutionType);
-                        break;
-                    case dual_infeas_cer:
-                    case prim_infeas_cer:
-                        tmpSate = Optimisation.State.INFEASIBLE;
-                        break;
-                    default:
-                        tmpSate = Optimisation.State.FAILED;
-                        break;
+                    }
+                    case dual_infeas_cer, prim_infeas_cer -> tmpSate = Optimisation.State.INFEASIBLE;
+                    default               -> tmpSate = Optimisation.State.FAILED;
+                }
+            }
+
+            if (!tmpSate.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis) {
+                long elapsed = System.currentTimeMillis() - startMillis;
+                long remaining = myTimeAbortMillis - elapsed;
+                if (remaining > 1000L) {
+                    myTask.putdouparam(dparam.optimizer_max_time, remaining / 1000.0);
+                    if (myIterationsSuffice < myIterationsAbort) {
+                        myTask.putintparam(iparam.sim_max_iterations, myIterationsAbort);
+                        myTask.putintparam(iparam.intpnt_max_iterations, myIterationsAbort);
+                    }
+
+                    if (this.optimise() == rescode.ok) {
+
+                        solsta[] tmpSolverState = new solsta[1];
+                        myTask.getsolsta(mySolutionType, tmpSolverState);
+
+                        myTask.getxx(mySolutionType, tmpSolution);
+
+                        switch (tmpSolverState[0]) {
+                            case optimal          -> {
+                                tmpSate = Optimisation.State.OPTIMAL;
+                                tmpValue = myTask.getprimalobj(mySolutionType);
+                            }
+                            case dual_infeas_cer, prim_infeas_cer -> tmpSate = Optimisation.State.INFEASIBLE;
+                            default               -> tmpSate = Optimisation.State.FAILED;
+                        }
+                    }
                 }
             }
 
@@ -276,9 +312,9 @@ public final class SolverMosek implements Optimisation.Solver {
     }
 
     /**
-     * Wraps {@link Task#optimize()} to keep the interrupt out of the returned {@link rescode}: a solve stopped
-     * from the progress callback comes back as {@code trm_user_callback}, which is a termination code rather
-     * than something having gone wrong, but there is no solution to read either way.
+     * Wraps {@link Task#optimize()} to keep the interrupt out of the returned {@link rescode}: a solve
+     * stopped from the progress callback comes back as {@code trm_user_callback}, which is a termination code
+     * rather than something having gone wrong, but there is no solution to read either way.
      */
     private rescode optimise() {
 

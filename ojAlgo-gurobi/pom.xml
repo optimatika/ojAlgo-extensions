@@ -13,10 +13,7 @@
 	<version>3.3.0-SNAPSHOT</version>
 	<properties>
 		<!-- You have to change this! -->
-		<path.installation.gurobi>/Library/gurobi952/macos_universal2</path.installation.gurobi>
-		<!-- <path.installation.gurobi>/opt/gurobi911/linux64</path.installation.gurobi> -->
-		<path.jar.gurobi>${path.installation.gurobi}/lib/gurobi.jar</path.jar.gurobi>
-		<path.native.gurobi>${path.installation.gurobi}/bin</path.native.gurobi>
+		<path.native.gurobi>/Library/gurobi952/macos_universal2/bin</path.native.gurobi>
 	</properties>
 	<dependencies>
 		<dependency>

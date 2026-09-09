@@ -12,6 +12,10 @@
 
 ojAlgo integration with [Google OR-Tools](https://developers.google.com/optimization). Use OR-Tools as a solver from `ExpressionsBasedModel`.
 
+The `ortools-java` Maven artifact (pulled transitively) bundles platform-specific native libraries, so no separate installation is needed.
+
+For a lighter alternative that calls the OR-Tools C API directly via Panama FFI (requires Java 25 and a system-installed OR-Tools), see [ojAlgo-cpsat](../ojAlgo-cpsat/).
+
 ## Usage
 
 ```java

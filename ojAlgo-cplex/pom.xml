@@ -12,17 +12,14 @@
     <version>3.3.0-SNAPSHOT</version>
     <properties>
         <!-- You have to change this! -->
-        <path.installation.cplex>/Applications/CPLEX_Studio_Community2211/cplex</path.installation.cplex>
-        <path.jar.cplex>${path.installation.cplex}/lib/cplex.jar</path.jar.cplex>
-        <path.native.cplex>${path.installation.cplex}/bin/arm64_osx</path.native.cplex>
+        <path.native.cplex>/Applications/CPLEX_Studio_Community222/cplex/bin/arm64_osx</path.native.cplex>
     </properties>
     <dependencies>
         <dependency>
             <groupId>cplex</groupId>
             <artifactId>cplex</artifactId>
-            <version>22.1.1</version>
-            <scope>system</scope>
-            <systemPath>${path.jar.cplex}</systemPath>
+            <version>22.2.0.0</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
     <build>

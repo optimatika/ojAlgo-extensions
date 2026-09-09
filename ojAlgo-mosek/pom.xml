@@ -9,21 +9,18 @@
     <artifactId>ojalgo-mosek</artifactId>
     <name>ojAlgo-mosek</name>
     <description>ojAlgo and Mosek integration</description>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <properties>
         <java.version>17</java.version>
         <!-- You have to change this! -->
-        <path.installation.mosek>/Users/apete/Applications/mosek</path.installation.mosek>
-        <path.jar.mosek>${path.installation.mosek}/11.0/tools/platform/osxaarch64/bin/mosek.jar</path.jar.mosek>
-        <path.native.mosek>${path.installation.mosek}/11.0/tools/platform/osxaarch64/bin</path.native.mosek>
+        <path.native.mosek>/Users/apete/Applications/mosek/11.0/tools/platform/osxaarch64/bin</path.native.mosek>
     </properties>
     <dependencies>
         <dependency>
             <groupId>mosek</groupId>
             <artifactId>mosek</artifactId>
-            <version>7.1</version>
-            <scope>system</scope>
-            <systemPath>${path.jar.mosek}</systemPath>
+            <version>11.0</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
     <build>

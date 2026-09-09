@@ -34,7 +34,6 @@ import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
-
 import org.ssclab.log.SscLogger;
 import org.ssclab.pl.milp.ConsType;
 import org.ssclab.pl.milp.GoalType;
@@ -78,8 +77,8 @@ public final class SolverSSCLP implements Optimisation.Solver {
         }
 
         /**
-         * Configure the MILP solver instance (with integer variables). Override to set additional options such
-         * as thread count, branch-and-bound limits, or epsilons.
+         * Configure the MILP solver instance (with integer variables). Override to set additional options
+         * such as thread count, branch-and-bound limits, or epsilons.
          */
         protected MILP configure(final MILP solver, final Optimisation.Options options) throws Exception {
 
