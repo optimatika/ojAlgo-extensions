@@ -264,12 +264,12 @@ public final class SolverMosek implements Optimisation.Solver {
                 myTask.getxx(mySolutionType, tmpSolution);
 
                 switch (tmpSolverState[0]) {
-                    case optimal          -> {
+                    case optimal, integer_optimal         -> {
                         tmpSate = Optimisation.State.OPTIMAL;
                         tmpValue = myTask.getprimalobj(mySolutionType);
                     }
                     case dual_infeas_cer, prim_infeas_cer -> tmpSate = Optimisation.State.INFEASIBLE;
-                    default               -> tmpSate = Optimisation.State.FAILED;
+                    default                               -> tmpSate = Optimisation.State.FAILED;
                 }
             }
 
@@ -291,12 +291,12 @@ public final class SolverMosek implements Optimisation.Solver {
                         myTask.getxx(mySolutionType, tmpSolution);
 
                         switch (tmpSolverState[0]) {
-                            case optimal          -> {
+                            case optimal, integer_optimal         -> {
                                 tmpSate = Optimisation.State.OPTIMAL;
                                 tmpValue = myTask.getprimalobj(mySolutionType);
                             }
                             case dual_infeas_cer, prim_infeas_cer -> tmpSate = Optimisation.State.INFEASIBLE;
-                            default               -> tmpSate = Optimisation.State.FAILED;
+                            default                               -> tmpSate = Optimisation.State.FAILED;
                         }
                     }
                 }

@@ -21,11 +21,12 @@
  */
 package org.ojalgo.optimisation.solver.cpsat;
 
-import static org.ojalgo.function.constant.PrimitiveMath.*;
+import static org.ojalgo.function.constant.PrimitiveMath.ZERO;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.foreign.MemorySegment;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -58,9 +59,9 @@ import org.ojalgo.structure.Structure1D.IntIndex;
  * in {@code double}s. Variable bounds are simply rounded inwards ({@link Math#ceil} the lower bound,
  * {@link Math#floor} the upper bound) since CP-SAT has no notion of a continuous variable anyway.
  * Coefficients (in both constraints and the objective) are scaled up to the smallest power of ten that makes
- * them representable as integers - see {@link #scaleFactor}. For the objective this scaling is undone
- * automatically by the solver itself via {@code CpObjectiveProto.scaling_factor}, so the objective value
- * reported back is already in the model's own units.
+ * them representable as integers. For the objective this scaling is undone automatically by the solver itself
+ * via {@code CpObjectiveProto.scaling_factor}, so the objective value reported back is already in the model's
+ * own units.
  *
  * @see <a href="https://developers.google.com/optimization/cp/cp_solver">CP-SAT</a>
  */
@@ -388,6 +389,10 @@ public final class SolverCPSAT implements Optimisation.Solver {
         private static final boolean ADJUSTED_CONSTRAINTS = false;
         private static final boolean ADJUSTED_OBJECTIVE = false;
 
+        static int expressionScale(final Expression expression, final int[] variableScales) {
+            return ExpressionsBasedModel.Integration.deduceExpressionScale(expression, variableScales);
+        }
+
         Integration() {
             super();
         }
@@ -403,13 +408,32 @@ public final class SolverCPSAT implements Optimisation.Solver {
 
             Optimisation.Sense sense = model.getOptimisationSense();
 
+            int[] varScales = ExpressionsBasedModel.Integration.deduceVariableScales(model);
+
+            for (int i = 0; i < varScales.length; i++) {
+                if (!variables.get(i).isInteger() && varScales[i] == 0) {
+                    varScales[i] = MIN_CONTINUOUS_SCALE;
+                }
+            }
+
+            boolean hasNonZeroScales = false;
+            for (int s : varScales) {
+                if (s > 0) {
+                    hasNonZeroScales = true;
+                    break;
+                }
+            }
+            if (hasNonZeroScales) {
+                SolverCPSAT.capVariableScales(varScales, variables, ADJUSTED_BOUNDS);
+            }
+
             byte[] modelProtoBytes = SolverCPSAT.buildModelProtoBytes(variables, constraints, objective, sense, ADJUSTED_BOUNDS, ADJUSTED_CONSTRAINTS,
-                    ADJUSTED_OBJECTIVE);
+                    ADJUSTED_OBJECTIVE, varScales, hasNonZeroScales);
 
             Parameters parameters = new Parameters();
             configurator.configure(model, parameters);
 
-            return new SolverCPSAT(modelProtoBytes, parameters.toByteArray(), variables.size(), model.options);
+            return new SolverCPSAT(modelProtoBytes, parameters.toByteArray(), variables.size(), model.options, varScales);
         }
 
         /**
@@ -430,8 +454,6 @@ public final class SolverCPSAT implements Optimisation.Solver {
 
     public static final ExpressionsBasedModel.Integration<SolverCPSAT> INTEGRATION = new Integration();
 
-    static final Configurator DEFAULT = new Configurator();
-
     /**
      * A large-but-safe stand-in for +/- infinity in a CP-SAT domain. Kept well clear of the actual
      * {@code long} range limits (and of overflow when a scaled constraint bound is derived from it) rather
@@ -440,13 +462,54 @@ public final class SolverCPSAT implements Optimisation.Solver {
      * representable range.
      */
     private static final long CPSAT_INFINITY = 1_000_000_000_000L;
-
     /**
-     * Coefficients/bounds are scaled by at most {@code 10^MAX_SCALE_DIGITS}. Capped well short of what a
-     * {@code long} can hold so that {@code coefficient * scale} cannot itself overflow for any coefficient
-     * magnitude that would reasonably appear in a model.
+     * CP-SAT's {@code PossibleIntegerOverflow} rejects any linear expression whose max/min activity exceeds
+     * {@code kint64max / 2}. Match that threshold here so we reduce expression scale before CP-SAT rejects
+     * the model.
      */
-    private static final int MAX_SCALE_DIGITS = 9;
+    private static final long CPSAT_MAX_ACTIVITY = Long.MAX_VALUE / 2;
+    private static final BigDecimal EFFECTIVELY_ZERO = new BigDecimal("1E-10");
+    private static final BigDecimal LONG_MAX_BD = BigDecimal.valueOf(Long.MAX_VALUE);
+    private static final int MIN_CONTINUOUS_SCALE = 7;
+
+    static final Configurator DEFAULT = new Configurator();
+
+    private static boolean activityOverflows(final long[] coeffs, final int[] varIndices, final long[] domLower, final long[] domUpper) {
+        long sumMax = 0;
+        long sumMin = 0;
+        for (int j = 0; j < coeffs.length; j++) {
+            long coeff = coeffs[j];
+            if (coeff == 0) {
+                continue;
+            }
+
+            long lo = domLower[varIndices[j]];
+            long hi = domUpper[varIndices[j]];
+
+            long absCoeff = Math.abs(coeff);
+            long maxAbsDom = Math.max(Math.abs(lo), Math.abs(hi));
+            if (maxAbsDom > Long.MAX_VALUE / absCoeff) {
+                return true;
+            }
+
+            long prod1 = coeff * lo;
+            long prod2 = coeff * hi;
+
+            long posContrib = Math.max(0L, Math.max(prod1, prod2));
+            long negContrib = Math.min(0L, Math.min(prod1, prod2));
+
+            if (posContrib > 0 && sumMax > CPSAT_MAX_ACTIVITY - posContrib) {
+                return true;
+            }
+            sumMax += posContrib;
+
+            if (negContrib < 0 && sumMin < -CPSAT_MAX_ACTIVITY - negContrib) {
+                return true;
+            }
+            sumMin += negContrib;
+        }
+        return false;
+    }
 
     /**
      * Builds the serialized {@code CpModelProto} (see {@code ortools/sat/cp_model.proto}) for the given
@@ -460,27 +523,50 @@ public final class SolverCPSAT implements Optimisation.Solver {
      * </ul>
      */
     private static byte[] buildModelProtoBytes(final List<Variable> variables, final List<Expression> constraints, final Expression objective,
-            final Optimisation.Sense sense, final boolean adjustedBounds, final boolean adjustedConstraints, final boolean adjustedObjective) {
+            final Optimisation.Sense sense, final boolean adjustedBounds, final boolean adjustedConstraints, final boolean adjustedObjective,
+            final int[] varScales, final boolean hasNonZeroScales) {
 
         ProtoWriter model = new ProtoWriter();
 
-        for (Variable variable : variables) {
+        boolean hasUnbounded = false;
+        for (Variable v : variables) {
+            if (v.getLowerLimit(adjustedBounds, null) == null || v.getUpperLimit(adjustedBounds, null) == null) {
+                hasUnbounded = true;
+                break;
+            }
+        }
 
-            double lower = variable.getLowerLimit(adjustedBounds, NEGATIVE_INFINITY);
-            double upper = variable.getUpperLimit(adjustedBounds, POSITIVE_INFINITY);
+        long safeInfinity = hasUnbounded ? SolverCPSAT.computeSafeInfinity(variables, constraints, varScales, adjustedBounds, adjustedConstraints)
+                : CPSAT_INFINITY;
 
-            long lowerLong = SolverCPSAT.toDomainBound(lower, -CPSAT_INFINITY, true);
-            long upperLong = SolverCPSAT.toDomainBound(upper, CPSAT_INFINITY, false);
+        long[] domLower = new long[variables.size()];
+        long[] domUpper = new long[variables.size()];
+
+        for (int vi = 0; vi < variables.size(); vi++) {
+
+            Variable variable = variables.get(vi);
+
+            BigDecimal lowerBD = variable.getLowerLimit(adjustedBounds, null);
+            BigDecimal upperBD = variable.getUpperLimit(adjustedBounds, null);
+
+            long lowerLong = SolverCPSAT.toDomainBound(lowerBD, varScales[vi], -safeInfinity, true);
+            long upperLong = SolverCPSAT.toDomainBound(upperBD, varScales[vi], safeInfinity, false);
 
             if (variable.isBinary()) {
                 lowerLong = Math.max(lowerLong, 0L);
                 upperLong = Math.min(upperLong, 1L);
             }
 
-            if (lowerLong > upperLong) {
-                throw new IllegalStateException("Variable '" + variable.getName() + "' has bounds [" + lower + ", " + upper
-                        + "] with no representable integer value - CP-SAT only supports integer domains.");
+            if (hasNonZeroScales) {
+                while (lowerLong > upperLong && varScales[vi] > 0) {
+                    varScales[vi]--;
+                    lowerLong = SolverCPSAT.toDomainBound(lowerBD, varScales[vi], -safeInfinity, true);
+                    upperLong = SolverCPSAT.toDomainBound(upperBD, varScales[vi], safeInfinity, false);
+                }
             }
+
+            domLower[vi] = lowerLong;
+            domUpper[vi] = upperLong;
 
             ProtoWriter variableProto = new ProtoWriter();
             variableProto.packedInt64(2, new long[] { lowerLong, upperLong });
@@ -489,32 +575,58 @@ public final class SolverCPSAT implements Optimisation.Solver {
 
         for (Expression constraint : constraints) {
 
-            double lower = constraint.getLowerLimit(adjustedConstraints, NEGATIVE_INFINITY);
-            double upper = constraint.getUpperLimit(adjustedConstraints, POSITIVE_INFINITY);
+            BigDecimal lowerBD = constraint.getLowerLimit(adjustedConstraints, null);
+            BigDecimal upperBD = constraint.getUpperLimit(adjustedConstraints, null);
+
+            if (hasNonZeroScales) {
+                if (lowerBD != null && lowerBD.signum() != 0 && lowerBD.abs().compareTo(EFFECTIVELY_ZERO) < 0) {
+                    lowerBD = BigDecimal.ZERO;
+                }
+                if (upperBD != null && upperBD.signum() != 0 && upperBD.abs().compareTo(EFFECTIVELY_ZERO) < 0) {
+                    upperBD = BigDecimal.ZERO;
+                }
+            }
 
             Set<IntIndex> keys = constraint.getLinearKeySet();
             int[] varIndices = new int[keys.size()];
-            double[] rawCoeffs = new double[keys.size()];
 
+            int exprScale = SolverCPSAT.capExpressionScale(constraint, keys, adjustedConstraints, varScales);
+
+            long[] coeffs = new long[keys.size()];
             int i = 0;
             for (IntIndex key : keys) {
                 varIndices[i] = key.index;
-                rawCoeffs[i] = constraint.doubleValue(key, adjustedConstraints);
+                BigDecimal coeff = constraint.get(key, adjustedConstraints);
+                coeffs[i] = SolverCPSAT.toScaledLong(coeff, exprScale - varScales[key.index]);
                 i++;
             }
 
-            double[] toScale = Arrays.copyOf(rawCoeffs, rawCoeffs.length + 2);
-            toScale[rawCoeffs.length] = lower;
-            toScale[rawCoeffs.length + 1] = upper;
-            long factor = SolverCPSAT.scaleFactor(toScale);
-
-            long[] coeffs = new long[rawCoeffs.length];
-            for (int j = 0; j < rawCoeffs.length; j++) {
-                coeffs[j] = SolverCPSAT.scaledRound(rawCoeffs[j], factor);
+            int minExprScale = 0;
+            if (lowerBD != null) {
+                minExprScale = Math.max(minExprScale, Math.max(lowerBD.stripTrailingZeros().scale(), 0));
+            }
+            if (upperBD != null) {
+                minExprScale = Math.max(minExprScale, Math.max(upperBD.stripTrailingZeros().scale(), 0));
             }
 
-            long lowerLong = SolverCPSAT.toScaledDomainBound(lower, -CPSAT_INFINITY, true, factor);
-            long upperLong = SolverCPSAT.toScaledDomainBound(upper, CPSAT_INFINITY, false, factor);
+            while (exprScale > minExprScale && SolverCPSAT.activityOverflows(coeffs, varIndices, domLower, domUpper)) {
+                exprScale--;
+                i = 0;
+                for (IntIndex key : keys) {
+                    BigDecimal coeff = constraint.get(key, adjustedConstraints);
+                    coeffs[i] = SolverCPSAT.toScaledLong(coeff, exprScale - varScales[key.index]);
+                    i++;
+                }
+            }
+
+            long lowerLong = SolverCPSAT.toScaledDomainBound(lowerBD, true, exprScale);
+            long upperLong = SolverCPSAT.toScaledDomainBound(upperBD, false, exprScale);
+
+            if (hasNonZeroScales && lowerLong > upperLong) {
+                long temp = lowerLong;
+                lowerLong = upperLong;
+                upperLong = temp;
+            }
 
             ProtoWriter linear = new ProtoWriter();
             linear.packedInt32(1, varIndices);
@@ -531,38 +643,117 @@ public final class SolverCPSAT implements Optimisation.Solver {
         if (!objectiveKeys.isEmpty()) {
 
             int[] objVarIndices = new int[objectiveKeys.size()];
-            double[] rawObjCoeffs = new double[objectiveKeys.size()];
 
+            int objScale = SolverCPSAT.capExpressionScale(objective, objectiveKeys, adjustedObjective, varScales);
+
+            long sign = sense == Optimisation.Sense.MAX ? -1L : 1L;
+
+            long[] objCoeffs = new long[objectiveKeys.size()];
             int i = 0;
             for (IntIndex key : objectiveKeys) {
                 objVarIndices[i] = key.index;
-                rawObjCoeffs[i] = objective.doubleValue(key, adjustedObjective);
+                BigDecimal coeff = objective.get(key, adjustedObjective);
+                objCoeffs[i] = SolverCPSAT.toScaledLong(coeff, objScale - varScales[key.index]) * sign;
                 i++;
             }
 
-            long factor = SolverCPSAT.scaleFactor(rawObjCoeffs);
-
-            // CP-SAT only ever minimises. For a MAX model the coefficients are negated and the scaling
-            // factor's sign flips along with them - see CpObjectiveProto.scaling_factor's doc: "For a
-            // maximization problem, one can negate all coefficients in the objective and set scaling_factor
-            // to -1." The reported objective_value = scaling_factor * (sum(coeffs*vars) + offset) then comes
-            // back already in the model's own sense and units, with no separate un-negation needed here.
-            double sign = sense == Optimisation.Sense.MAX ? NEG : ONE;
-
-            long[] objCoeffs = new long[rawObjCoeffs.length];
-            for (int j = 0; j < rawObjCoeffs.length; j++) {
-                objCoeffs[j] = SolverCPSAT.scaledRound(rawObjCoeffs[j] * sign, factor);
+            while (objScale > 0 && SolverCPSAT.activityOverflows(objCoeffs, objVarIndices, domLower, domUpper)) {
+                objScale--;
+                i = 0;
+                for (IntIndex key : objectiveKeys) {
+                    BigDecimal coeff = objective.get(key, adjustedObjective);
+                    objCoeffs[i] = SolverCPSAT.toScaledLong(coeff, objScale - varScales[key.index]) * sign;
+                    i++;
+                }
             }
 
             ProtoWriter objectiveProto = new ProtoWriter();
             objectiveProto.packedInt32(1, objVarIndices);
             objectiveProto.packedInt64(4, objCoeffs);
-            objectiveProto.fixed64Double(3, sign / factor);
+            objectiveProto.fixed64Double(3, (double) sign / SolverCPSAT.pow10(objScale));
 
             model.message(4, objectiveProto);
         }
 
         return model.toByteArray();
+    }
+
+    private static int capExpressionScale(final Expression expression, final Set<IntIndex> keys, final boolean adjusted, final int[] varScales) {
+
+        int scale = Integration.expressionScale(expression, varScales);
+
+        if (scale == 0) {
+            return 0;
+        }
+
+        for (IntIndex key : keys) {
+            BigDecimal coeff = expression.get(key, adjusted).abs();
+            if (coeff.signum() == 0) {
+                continue;
+            }
+            while (scale > 0 && coeff.movePointRight(scale - varScales[key.index]).compareTo(LONG_MAX_BD) > 0) {
+                scale--;
+            }
+        }
+
+        BigDecimal lb = expression.getLowerLimit(adjusted, null);
+        BigDecimal ub = expression.getUpperLimit(adjusted, null);
+        if (lb != null) {
+            while (scale > 0 && lb.abs().movePointRight(scale).compareTo(LONG_MAX_BD) > 0) {
+                scale--;
+            }
+        }
+        if (ub != null) {
+            while (scale > 0 && ub.abs().movePointRight(scale).compareTo(LONG_MAX_BD) > 0) {
+                scale--;
+            }
+        }
+
+        return scale;
+    }
+
+    private static int[] capVariableScales(final int[] scales, final List<Variable> variables, final boolean adjustedBounds) {
+
+        BigDecimal cpsatInfBD = BigDecimal.valueOf(CPSAT_INFINITY);
+
+        for (int i = 0; i < scales.length; i++) {
+            if (scales[i] > 0) {
+                Variable var = variables.get(i);
+                BigDecimal lb = var.getLowerLimit(adjustedBounds, null);
+                BigDecimal ub = var.getUpperLimit(adjustedBounds, null);
+                BigDecimal maxBound = BigDecimal.ZERO;
+                if (lb != null) {
+                    maxBound = maxBound.max(lb.abs());
+                }
+                if (ub != null) {
+                    maxBound = maxBound.max(ub.abs());
+                }
+                while (scales[i] > 0 && maxBound.movePointRight(scales[i]).compareTo(cpsatInfBD) >= 0) {
+                    scales[i]--;
+                }
+            }
+        }
+
+        return scales;
+    }
+
+    /**
+     * CP-SAT validates that no linear expression can overflow {@code int64}. When variables have artificial
+     * (infinite) bounds replaced by {@link #CPSAT_INFINITY}, large scaled coefficients can make
+     * {@code sum(|coeff_i| * bound_i)} overflow. This pre-pass computes the tightest safe artificial bound by
+     * finding the constraint with the largest sum of absolute scaled coefficients.
+     */
+    private static long computeSafeInfinity(final List<Variable> variables, final List<Expression> constraints, final int[] varScales,
+            final boolean adjustedBounds, final boolean adjustedConstraints) {
+
+        long safeInfinity = CPSAT_INFINITY;
+
+        for (Expression constraint : constraints) {
+            safeInfinity = Math.min(safeInfinity,
+                    SolverCPSAT.safeInfinityForExpression(constraint, constraint.getLinearKeySet(), variables, varScales, adjustedBounds, adjustedConstraints));
+        }
+
+        return Math.max(safeInfinity, 1L);
     }
 
     /**
@@ -616,74 +807,118 @@ public final class SolverCPSAT implements Optimisation.Solver {
         return response;
     }
 
-    private static long scaledRound(final double value, final long factor) {
-        return Math.round(value * factor);
-    }
-
-    /**
-     * The smallest {@code 10^k} (k from 0 up to {@link #MAX_SCALE_DIGITS}) such that every finite, non-zero
-     * value in {@code values}, multiplied by it, is (at least very nearly) an integer - determined from each
-     * value's minimal decimal representation via {@link BigDecimal}. Infinite and zero entries are ignored
-     * (zero needs no scaling to become the integer 0; an infinite bound is handled separately, as the CP-SAT
-     * domain's own +/-infinity sentinel).
-     */
-    private static long scaleFactor(final double... values) {
-
+    private static long pow10(final int exponent) {
         long factor = 1L;
-
-        for (double value : values) {
-
-            if (value == ZERO || !Double.isFinite(value)) {
-                continue;
-            }
-
-            int decimals = Math.min(Math.max(BigDecimal.valueOf(value).stripTrailingZeros().scale(), 0), MAX_SCALE_DIGITS);
-
-            long candidate = 1L;
-            for (int i = 0; i < decimals; i++) {
-                candidate *= 10L;
-            }
-
-            if (candidate > factor) {
-                factor = candidate;
-            }
+        for (int i = 0; i < exponent; i++) {
+            factor *= 10L;
         }
-
         return factor;
     }
 
-    /**
-     * Rounds a (possibly infinite) bound to a CP-SAT domain endpoint, without any coefficient scaling - used
-     * for variable bounds, which CP-SAT always expresses 1:1 as integers. Rounds inwards (ceiling for a lower
-     * bound, floor for an upper bound) so the resulting integer domain never admits a value the original,
-     * possibly fractional, bound excluded.
-     */
-    private static long toDomainBound(final double value, final long infinityValue, final boolean isLower) {
+    private static long safeInfinityForExpression(final Expression expression, final Set<IntIndex> keys, final List<Variable> variables, final int[] varScales,
+            final boolean adjustedBounds, final boolean adjustedCoeffs) {
 
-        if (!Double.isFinite(value)) {
-            return infinityValue;
+        int exprScale = SolverCPSAT.capExpressionScale(expression, keys, adjustedCoeffs, varScales);
+
+        boolean overflow;
+        long fixedContribution;
+        long unboundedCoeffSum;
+
+        do {
+            overflow = false;
+            fixedContribution = 0;
+            unboundedCoeffSum = 0;
+
+            for (IntIndex key : keys) {
+                BigDecimal coeff = expression.get(key, adjustedCoeffs);
+                long absCoeff = Math.abs(SolverCPSAT.toScaledLong(coeff, exprScale - varScales[key.index]));
+                if (absCoeff == 0) {
+                    continue;
+                }
+
+                Variable var = variables.get(key.index);
+                BigDecimal lb = var.getLowerLimit(adjustedBounds, null);
+                BigDecimal ub = var.getUpperLimit(adjustedBounds, null);
+
+                if (lb != null && ub != null) {
+                    long maxAbsBound = Math.max(Math.abs(SolverCPSAT.toDomainBound(lb, varScales[key.index], 0, true)),
+                            Math.abs(SolverCPSAT.toDomainBound(ub, varScales[key.index], 0, false)));
+                    if (maxAbsBound > Long.MAX_VALUE / Math.max(absCoeff, 1L)) {
+                        overflow = true;
+                        break;
+                    }
+                    long product = absCoeff * maxAbsBound;
+                    if (fixedContribution > CPSAT_MAX_ACTIVITY - product) {
+                        overflow = true;
+                        break;
+                    }
+                    fixedContribution += product;
+                } else {
+                    unboundedCoeffSum += absCoeff;
+                }
+            }
+
+            if (overflow && exprScale > 0) {
+                exprScale--;
+            }
+        } while (overflow && exprScale >= 0);
+
+        if (unboundedCoeffSum <= 0) {
+            return CPSAT_INFINITY;
         }
 
-        double clamped = Math.max(-CPSAT_INFINITY, Math.min(CPSAT_INFINITY, value));
+        long remaining = CPSAT_MAX_ACTIVITY - fixedContribution;
+        if (remaining <= 0) {
+            return 1L;
+        }
 
-        return isLower ? (long) Math.ceil(clamped) : (long) Math.floor(clamped);
+        return remaining / unboundedCoeffSum;
     }
 
     /**
-     * As {@link #toDomainBound(double, long, boolean)}, but for a constraint bound that must additionally be
-     * multiplied by that row's integer coefficient scale factor before rounding.
+     * Converts a BigDecimal bound to a CP-SAT domain endpoint. The value is first scaled by the variable's
+     * power-of-10 scale (movePointRight), then rounded inwards (ceiling for lower, floor for upper). Null
+     * means unbounded → returns the infinity sentinel.
      */
-    private static long toScaledDomainBound(final double value, final long infinityValue, final boolean isLower, final long factor) {
+    private static long toDomainBound(final BigDecimal value, final int scaleDigits, final long infinityValue, final boolean isLower) {
 
-        if (!Double.isFinite(value)) {
+        if (value == null) {
             return infinityValue;
         }
 
-        double scaled = value * factor;
-        double bound = CPSAT_INFINITY * (double) factor;
-        double clamped = Math.max(-bound, Math.min(bound, scaled));
+        BigDecimal scaled = scaleDigits != 0 ? value.movePointRight(scaleDigits) : value;
+        long result = scaled.setScale(0, isLower ? RoundingMode.CEILING : RoundingMode.FLOOR).longValue();
 
-        return isLower ? (long) Math.ceil(clamped) : (long) Math.floor(clamped);
+        return Math.max(-CPSAT_INFINITY, Math.min(CPSAT_INFINITY, result));
+    }
+
+    /**
+     * Converts a BigDecimal constraint bound to a CP-SAT domain endpoint, scaled by 10^exprScale. Null means
+     * unbounded → returns the infinity sentinel.
+     */
+    private static long toScaledDomainBound(final BigDecimal value, final boolean isLower, final int exprScale) {
+
+        long bound;
+        if (exprScale != 0) {
+            BigDecimal boundBD = BigDecimal.valueOf(CPSAT_INFINITY).movePointRight(exprScale);
+            bound = boundBD.min(BigDecimal.valueOf(Long.MAX_VALUE)).longValue();
+        } else {
+            bound = CPSAT_INFINITY;
+        }
+
+        if (value == null) {
+            return isLower ? -bound : bound;
+        }
+
+        BigDecimal scaled = exprScale != 0 ? value.movePointRight(exprScale) : value;
+        long result = scaled.setScale(0, isLower ? RoundingMode.CEILING : RoundingMode.FLOOR).longValue();
+
+        return Math.max(-bound, Math.min(bound, result));
+    }
+
+    private static long toScaledLong(final BigDecimal value, final int shift) {
+        BigDecimal scaled = shift != 0 ? value.movePointRight(shift) : value;
+        return scaled.setScale(0, RoundingMode.HALF_EVEN).longValueExact();
     }
 
     /**
@@ -709,8 +944,10 @@ public final class SolverCPSAT implements Optimisation.Solver {
     private final byte[] myParamsProtoBytes;
     private final long myTimeAbortMillis;
     private final long myTimeSufficeMillis;
+    private final int[] myVariableScales;
 
-    SolverCPSAT(final byte[] modelProtoBytes, final byte[] paramsProtoBytes, final int numVars, final Optimisation.Options options) {
+    SolverCPSAT(final byte[] modelProtoBytes, final byte[] paramsProtoBytes, final int numVars, final Optimisation.Options options,
+            final int[] variableScales) {
         super();
         myModelProtoBytes = modelProtoBytes;
         myParamsProtoBytes = paramsProtoBytes;
@@ -719,6 +956,7 @@ public final class SolverCPSAT implements Optimisation.Solver {
         myIterationsSuffice = options.iterations_suffice;
         myTimeAbortMillis = options.time_abort;
         myTimeSufficeMillis = options.time_suffice;
+        myVariableScales = variableScales;
         myEnv = CPSATBindings.newEnv();
     }
 
@@ -742,7 +980,7 @@ public final class SolverCPSAT implements Optimisation.Solver {
         ResponseData response = SolverCPSAT.parseResponse(responseBytes);
         Optimisation.State state = SolverCPSAT.translate(response.status);
 
-        if (!state.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis) {
+        if (!state.isFeasible() && response.status != CPSATBindings.STATUS_MODEL_INVALID && myTimeSufficeMillis < myTimeAbortMillis) {
             long elapsed = System.currentTimeMillis() - startMillis;
             long remaining = myTimeAbortMillis - elapsed;
             if (remaining > 1000L) {
@@ -762,8 +1000,11 @@ public final class SolverCPSAT implements Optimisation.Solver {
                 System.arraycopy(myParamsProtoBytes, 0, phase2Params, 0, myParamsProtoBytes.length);
                 System.arraycopy(overrideBytes, 0, phase2Params, myParamsProtoBytes.length, overrideBytes.length);
 
-                try (InterruptForwarder interrupter = InterruptForwarder.watch(() -> CPSATBindings.stopSearch(myEnv))) {
-                    responseBytes = CPSATBindings.solveInterruptible(myEnv, myModelProtoBytes, phase2Params);
+                MemorySegment phase2Env = CPSATBindings.newEnv();
+                try (InterruptForwarder interrupter = InterruptForwarder.watch(() -> CPSATBindings.stopSearch(phase2Env))) {
+                    responseBytes = CPSATBindings.solveInterruptible(phase2Env, myModelProtoBytes, phase2Params);
+                } finally {
+                    CPSATBindings.destroyEnv(phase2Env);
                 }
 
                 response = SolverCPSAT.parseResponse(responseBytes);
@@ -776,7 +1017,7 @@ public final class SolverCPSAT implements Optimisation.Solver {
             double[] solution = new double[myNumVars];
             int count = Math.min(myNumVars, response.solution.length);
             for (int i = 0; i < count; i++) {
-                solution[i] = response.solution[i];
+                solution[i] = myVariableScales[i] != 0 ? BigDecimal.valueOf(response.solution[i], myVariableScales[i]).doubleValue() : response.solution[i];
             }
 
             return Optimisation.Result.of(response.objectiveValue, state, solution);

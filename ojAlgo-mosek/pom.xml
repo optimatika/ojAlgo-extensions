@@ -13,13 +13,13 @@
     <properties>
         <java.version>17</java.version>
         <!-- You have to change this! -->
-        <path.native.mosek>/Users/apete/Applications/mosek/11.0/tools/platform/osxaarch64/bin</path.native.mosek>
+        <path.native.mosek>/Applications/mosek/11.2/tools/platform/osxaarch64/bin</path.native.mosek>
     </properties>
     <dependencies>
         <dependency>
             <groupId>mosek</groupId>
             <artifactId>mosek</artifactId>
-            <version>11.0</version>
+            <version>11.2.4</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

@@ -23,41 +23,37 @@ package org.ojalgo.optimisation.solver.choco;
 
 import static org.ojalgo.function.constant.PrimitiveMath.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 
 import org.chocosolver.solver.Solution;
 import org.chocosolver.solver.search.SearchState;
+import org.chocosolver.solver.search.loop.monitors.NogoodFromRestarts;
+import org.chocosolver.solver.search.restart.LubyCutoff;
+import org.chocosolver.solver.search.restart.Restarter;
+import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.variables.IntVar;
+import org.chocosolver.solver.variables.RealVar;
+import org.chocosolver.solver.variables.Variable;
+import org.ojalgo.function.special.MissingMath;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
-import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
 
 /**
- * Choco-solver is a constraint programming (CP) solver. It only works with integer (finite domain) variables,
- * and its scalar/linear constraints only accept <code>int</code> coefficients and bounds.
+ * Choco-solver is a constraint programming (CP) solver. Integer variables are modelled as {@link IntVar} and
+ * continuous variables as {@link RealVar}. Constraints use {@code double} coefficients via the mixed
+ * {@link org.chocosolver.solver.constraints.real.PropScalarMixed} propagator.
  * <p>
- * This means:
- * <ol>
- * <li>Models with no integer variables at all are not accepted -
- * {@link Integration#isCapable(ExpressionsBasedModel)} requires
- * {@link ExpressionsBasedModel#isAnyVariableInteger()}.
- * <li>Quadratic expressions are not supported - {@link Integration#isCapable(ExpressionsBasedModel)} also
- * requires {@code !model.isAnyExpressionQuadratic()}.
- * <li>Variable bounds are rounded to the nearest feasible integer: the lower bound is rounded up
- * ({@link Math#ceil(double)}) and the upper bound is rounded down ({@link Math#floor(double)}).
- * <li>Constraint and objective coefficients - as well as constraint right-hand sides - are rounded to the
- * nearest {@code int} ({@link Math#round(double)}). Models with fractional (non-integer) coefficients or
- * limits will therefore not be translated exactly - this is a fundamental limitation of Choco's scalar
- * constraint API, not something this integration can work around. Only use this integration with models that
- * already have (or are close enough to) integer data.
- * </ol>
- * The objective is modelled as an extra {@link IntVar}, bounded by the min/max the weighted sum of the
- * decision variables' domains can attain, constrained to equal that weighted sum via
- * {@link org.chocosolver.solver.Model#scalar(IntVar[], int[], String, IntVar)}, and then optimized with
- * {@link org.chocosolver.solver.search.IResolutionHelper#findOptimalSolution(IntVar, boolean, org.chocosolver.util.criteria.Criterion...)}.
+ * The objective is modelled as an {@link IntVar} (since
+ * {@link org.chocosolver.solver.search.IResolutionHelper#findOptimalSolution(IntVar, boolean, org.chocosolver.util.criteria.Criterion...)}
+ * requires discrete search), bounded by the min/max the weighted sum of the decision variables' domains can
+ * attain, constrained to equal that weighted sum, and then optimized. This means the objective value is
+ * rounded to the nearest integer &ndash; a limitation of Choco's optimization API.
+ * <p>
+ * Quadratic expressions are not supported.
  */
 public final class SolverChoco implements Optimisation.Solver {
 
@@ -83,13 +79,13 @@ public final class SolverChoco implements Optimisation.Solver {
             return delegate;
         }
 
+        protected double precision() {
+            return 1.0E-6;
+        }
+
     }
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverChoco> {
-
-        private static final boolean ADJUSTED_BOUNDS = false;
-        private static final boolean ADJUSTED_CONSTRAINTS = false;
-        private static final boolean ADJUSTED_OBJECTIVE = false;
 
         Integration() {
             super();
@@ -101,76 +97,172 @@ public final class SolverChoco implements Optimisation.Solver {
             Configurator configurator = model.getConfigurator(DEFAULT);
 
             org.chocosolver.solver.Model delegate = configurator.newModel(model.options);
+            double precision = configurator.precision();
 
-            List<Variable> modVars = model.getVariables();
+            List<org.ojalgo.optimisation.Variable> modVars = model.getVariables();
             int nbVars = modVars.size();
 
-            IntVar[] delegateVars = new IntVar[nbVars];
+            Variable[] delegateVars = new Variable[nbVars];
+            boolean[] isIntVar = new boolean[nbVars];
+            boolean[] artificialLB = new boolean[nbVars];
+            boolean[] artificialUB = new boolean[nbVars];
+            double[] effectiveLB = new double[nbVars];
+            double[] effectiveUB = new double[nbVars];
 
             for (int i = 0; i < nbVars; i++) {
 
-                Variable modVar = modVars.get(i);
+                org.ojalgo.optimisation.Variable modVar = modVars.get(i);
 
                 String name = modVar.getName();
-                double lowerLimit = modVar.getLowerLimit(ADJUSTED_BOUNDS, NEGATIVE_INFINITY);
-                double upperLimit = modVar.getUpperLimit(ADJUSTED_BOUNDS, POSITIVE_INFINITY);
+                double lowerLimit = modVar.getLowerLimit(false, NEGATIVE_INFINITY);
+                double upperLimit = modVar.getUpperLimit(false, POSITIVE_INFINITY);
 
-                int lb = SolverChoco.toLowerBound(lowerLimit);
-                int ub = SolverChoco.toUpperBound(upperLimit);
-                if (ub < lb) {
-                    // Bounds became infeasible after rounding to int - keep them crossed so Choco itself
-                    // discovers the infeasibility rather than silently "fixing" the model.
-                    ub = lb;
+                if (modVar.isInteger()) {
+
+                    int lb = SolverChoco.toLowerIntBound(lowerLimit);
+                    int ub = SolverChoco.toUpperIntBound(upperLimit);
+                    if (ub < lb) {
+                        ub = lb;
+                    }
+
+                    artificialLB[i] = lb == IntVar.MIN_INT_BOUND;
+                    artificialUB[i] = ub == IntVar.MAX_INT_BOUND;
+                    effectiveLB[i] = lb;
+                    effectiveUB[i] = ub;
+
+                    delegateVars[i] = delegate.intVar(name, lb, ub);
+                    isIntVar[i] = true;
+
+                } else {
+
+                    double lb = Double.isFinite(lowerLimit) ? lowerLimit : -REAL_ARTIFICIAL_BOUND;
+                    double ub = Double.isFinite(upperLimit) ? upperLimit : REAL_ARTIFICIAL_BOUND;
+
+                    artificialLB[i] = !Double.isFinite(lowerLimit);
+                    artificialUB[i] = !Double.isFinite(upperLimit);
+                    effectiveLB[i] = lb;
+                    effectiveUB[i] = ub;
+
+                    delegateVars[i] = delegate.realVar(name, lb, ub, precision);
+                    isIntVar[i] = false;
                 }
-
-                delegateVars[i] = delegate.intVar(name, lb, ub);
             }
 
-            model.constraints().forEach(mConstr -> SolverChoco.addConstraint(delegate, mConstr, delegateVars, ADJUSTED_CONSTRAINTS));
+            model.constraints().forEach(mConstr -> SolverChoco.addConstraint(delegate, mConstr, delegateVars, isIntVar));
 
             Expression modObj = model.objective();
             Set<IntIndex> objKeys = modObj.getLinearKeySet();
             int nbObjTerms = objKeys.size();
 
-            IntVar[] objVars = new IntVar[nbObjTerms];
-            int[] objCoeffs = new int[nbObjTerms];
+            boolean allObjVarsInteger = true;
+            boolean artificialObjLB = false;
+            boolean artificialObjUB = false;
+            double rawObjMin = 0.0;
+            double rawObjMax = 0.0;
 
-            long objMin = 0L;
-            long objMax = 0L;
+            for (IntIndex key : objKeys) {
+                double rawCoeff = modObj.doubleValue(key, false);
+                allObjVarsInteger &= isIntVar[key.index];
+
+                double lo = rawCoeff * effectiveLB[key.index];
+                double hi = rawCoeff * effectiveUB[key.index];
+                rawObjMin += Math.min(lo, hi);
+                rawObjMax += Math.max(lo, hi);
+
+                if (rawCoeff > 0) {
+                    artificialObjLB |= artificialLB[key.index];
+                    artificialObjUB |= artificialUB[key.index];
+                } else if (rawCoeff < 0) {
+                    artificialObjLB |= artificialUB[key.index];
+                    artificialObjUB |= artificialLB[key.index];
+                }
+            }
+
+            double objScale = 1.0;
+            if (nbObjTerms > 0 && !modObj.isInteger()) {
+                BigDecimal integerStep = modObj.getIntegerStep();
+                if (integerStep != null && integerStep.signum() > 0) {
+                    double candidateScale = MissingMath.divide(BigDecimal.ONE, integerStep).doubleValue();
+                    objScale = candidateScale <= 10_000.0 ? candidateScale : 10_000.0;
+                } else {
+                    objScale = 10_000.0;
+                }
+            }
+
+            int[] intObjCoeffs = new int[nbObjTerms + 1];
+            IntVar[] intObjVars = new IntVar[nbObjTerms + 1];
+
+            Variable[] mixedObjVars = new Variable[nbObjTerms + 1];
+            double[] mixedObjCoeffs = new double[nbObjTerms + 1];
 
             int t = 0;
             for (IntIndex key : objKeys) {
 
-                IntVar termVar = delegateVars[key.index];
-                int coefficient = SolverChoco.toInt(modObj.doubleValue(key, ADJUSTED_OBJECTIVE));
+                double coefficient = modObj.doubleValue(key, false) * objScale;
 
-                objVars[t] = termVar;
-                objCoeffs[t] = coefficient;
+                intObjCoeffs[t] = (int) Math.round(coefficient);
+                intObjVars[t] = isIntVar[key.index] ? (IntVar) delegateVars[key.index] : null;
 
-                long lo = (long) coefficient * termVar.getLB();
-                long hi = (long) coefficient * termVar.getUB();
-                objMin += Math.min(lo, hi);
-                objMax += Math.max(lo, hi);
+                mixedObjVars[t] = delegateVars[key.index];
+                mixedObjCoeffs[t] = coefficient;
 
                 t++;
             }
 
-            int objLB = (int) Math.max(IntVar.MIN_INT_BOUND, objMin);
-            int objUB = (int) Math.min(IntVar.MAX_INT_BOUND, objMax);
+            double objMin = rawObjMin * objScale;
+            double objMax = rawObjMax * objScale;
+
+            int objLB = SolverChoco.toLowerIntBound(objMin);
+            int objUB = SolverChoco.toUpperIntBound(objMax);
             if (objUB < objLB) {
                 objUB = objLB;
             }
+            if ((long) objUB - (long) objLB > Integer.MAX_VALUE - 2L) {
+                int halfRange = (Integer.MAX_VALUE - 2) / 2;
+                objLB = Math.max(objLB, -halfRange);
+                objUB = Math.min(objUB, halfRange);
+            }
 
             IntVar objVar = delegate.intVar("objective", objLB, objUB);
+
             if (nbObjTerms > 0) {
-                delegate.scalar(objVars, objCoeffs, "=", objVar).post();
+                if (allObjVarsInteger) {
+                    intObjVars[nbObjTerms] = objVar;
+                    intObjCoeffs[nbObjTerms] = -1;
+                    delegate.scalar(intObjVars, intObjCoeffs, "=", 0).post();
+                } else {
+                    mixedObjVars[nbObjTerms] = objVar;
+                    mixedObjCoeffs[nbObjTerms] = -1.0;
+                    delegate.scalar(mixedObjVars, mixedObjCoeffs, "=", 0.0).post();
+                }
             } else {
                 delegate.arithm(objVar, "=", 0).post();
             }
 
             boolean maximise = model.getOptimisationSense() == Optimisation.Sense.MAX;
 
-            return new SolverChoco(delegate, delegateVars, objVar, maximise, model.options);
+            int intVarCount = 0;
+            for (int i = 0; i < nbVars; i++) {
+                if (isIntVar[i]) {
+                    intVarCount++;
+                }
+            }
+            if (intVarCount > 0) {
+                IntVar[] searchVars = new IntVar[intVarCount];
+                int si = 0;
+                for (int i = 0; i < nbVars; i++) {
+                    if (isIntVar[i]) {
+                        searchVars[si++] = (IntVar) delegateVars[i];
+                    }
+                }
+                org.chocosolver.solver.Solver solver = delegate.getSolver();
+                solver.setSearch(Search.activityBasedSearch(searchVars));
+                solver.addRestarter(new Restarter(new LubyCutoff(100), limit -> solver.getMeasures().getFailCount() >= limit, Integer.MAX_VALUE, false));
+                solver.plugMonitor(new NogoodFromRestarts(delegate));
+            }
+
+            return new SolverChoco(delegate, delegateVars, isIntVar, objVar, maximise, model.options, artificialLB, artificialUB, artificialObjLB,
+                    artificialObjUB, precision, objScale);
         }
 
         @Override
@@ -189,63 +281,90 @@ public final class SolverChoco implements Optimisation.Solver {
 
     static final Configurator DEFAULT = new Configurator();
 
-    /**
-     * Translates one {@link Expression} (constraint) of the ojAlgo model into 1-2 Choco scalar constraints
-     * (equality constraints become 1, ranged/one-sided constraints become as many as there are active
-     * bounds).
-     */
-    static void addConstraint(final org.chocosolver.solver.Model delegate, final Expression mConstr, final IntVar[] delegateVars, final boolean adjusted) {
+    static final double REAL_ARTIFICIAL_BOUND = 1.0E15;
+
+    static void addConstraint(final org.chocosolver.solver.Model delegate, final Expression mConstr, final Variable[] delegateVars,
+            final boolean[] isIntVar) {
 
         Set<IntIndex> keys = mConstr.getLinearKeySet();
         int nbTerms = keys.size();
 
-        IntVar[] termVars = new IntVar[nbTerms];
-        int[] termCoeffs = new int[nbTerms];
-
-        int t = 0;
-        for (IntIndex key : keys) {
-            termVars[t] = delegateVars[key.index];
-            termCoeffs[t] = SolverChoco.toInt(mConstr.doubleValue(key, adjusted));
-            t++;
-        }
-
         if (nbTerms <= 0) {
-            // No variables in this expression - nothing meaningful to constrain via a scalar constraint.
             return;
         }
 
-        if (mConstr.isEqualityConstraint()) {
-            int rhs = SolverChoco.toInt(mConstr.getLowerLimit(adjusted, ZERO));
-            delegate.scalar(termVars, termCoeffs, "=", rhs).post();
-        } else {
-            if (mConstr.isLowerConstraint()) {
-                int rhs = SolverChoco.toInt(mConstr.getLowerLimit(adjusted, NEGATIVE_INFINITY));
-                delegate.scalar(termVars, termCoeffs, ">=", rhs).post();
+        boolean useIntPropagator = true;
+        for (IntIndex key : keys) {
+            if (!isIntVar[key.index]) {
+                useIntPropagator = false;
+                break;
             }
-            if (mConstr.isUpperConstraint()) {
-                int rhs = SolverChoco.toInt(mConstr.getUpperLimit(adjusted, POSITIVE_INFINITY));
-                delegate.scalar(termVars, termCoeffs, "<=", rhs).post();
+            double coeff = mConstr.doubleValue(key, false);
+            if (Math.abs(coeff - Math.round(coeff)) > 1e-8) {
+                useIntPropagator = false;
+                break;
+            }
+        }
+
+        if (useIntPropagator) {
+
+            IntVar[] termVars = new IntVar[nbTerms];
+            int[] termCoeffs = new int[nbTerms];
+
+            int t = 0;
+            for (IntIndex key : keys) {
+                termVars[t] = (IntVar) delegateVars[key.index];
+                termCoeffs[t] = (int) Math.round(mConstr.doubleValue(key, false));
+                t++;
+            }
+
+            if (mConstr.isEqualityConstraint()) {
+                int rhs = (int) Math.round(mConstr.getLowerLimit(false, ZERO));
+                delegate.scalar(termVars, termCoeffs, "=", rhs).post();
+            } else {
+                if (mConstr.isLowerConstraint()) {
+                    double rawRhs = mConstr.getLowerLimit(false, NEGATIVE_INFINITY);
+                    if (Double.isFinite(rawRhs)) {
+                        delegate.scalar(termVars, termCoeffs, ">=", (int) Math.ceil(rawRhs - 1e-9)).post();
+                    }
+                }
+                if (mConstr.isUpperConstraint()) {
+                    double rawRhs = mConstr.getUpperLimit(false, POSITIVE_INFINITY);
+                    if (Double.isFinite(rawRhs)) {
+                        delegate.scalar(termVars, termCoeffs, "<=", (int) Math.floor(rawRhs + 1e-9)).post();
+                    }
+                }
+            }
+
+        } else {
+
+            Variable[] termVars = new Variable[nbTerms];
+            double[] termCoeffs = new double[nbTerms];
+
+            int t = 0;
+            for (IntIndex key : keys) {
+                termVars[t] = delegateVars[key.index];
+                termCoeffs[t] = mConstr.doubleValue(key, false);
+                t++;
+            }
+
+            if (mConstr.isEqualityConstraint()) {
+                double rhs = mConstr.getLowerLimit(false, ZERO);
+                delegate.scalar(termVars, termCoeffs, "=", rhs).post();
+            } else {
+                if (mConstr.isLowerConstraint()) {
+                    double rhs = mConstr.getLowerLimit(false, NEGATIVE_INFINITY);
+                    delegate.scalar(termVars, termCoeffs, ">=", rhs).post();
+                }
+                if (mConstr.isUpperConstraint()) {
+                    double rhs = mConstr.getUpperLimit(false, POSITIVE_INFINITY);
+                    delegate.scalar(termVars, termCoeffs, "<=", rhs).post();
+                }
             }
         }
     }
 
-    /**
-     * Rounds a model coefficient/limit to the nearest representable {@code int}, clamping rather than
-     * overflowing if the magnitude is too large. See the class javadoc for why this rounding happens at all.
-     */
-    static int toInt(final double value) {
-        if (Double.isNaN(value)) {
-            return 0;
-        } else if (value >= Integer.MAX_VALUE) {
-            return Integer.MAX_VALUE;
-        } else if (value <= -Integer.MAX_VALUE) {
-            return -Integer.MAX_VALUE;
-        } else {
-            return (int) Math.round(value);
-        }
-    }
-
-    static int toLowerBound(final double value) {
+    static int toLowerIntBound(final double value) {
         if (value <= IntVar.MIN_INT_BOUND) {
             return IntVar.MIN_INT_BOUND;
         } else if (value >= IntVar.MAX_INT_BOUND) {
@@ -255,7 +374,7 @@ public final class SolverChoco implements Optimisation.Solver {
         }
     }
 
-    static int toUpperBound(final double value) {
+    static int toUpperIntBound(final double value) {
         if (value >= IntVar.MAX_INT_BOUND) {
             return IntVar.MAX_INT_BOUND;
         } else if (value <= IntVar.MIN_INT_BOUND) {
@@ -265,22 +384,37 @@ public final class SolverChoco implements Optimisation.Solver {
         }
     }
 
+    private final boolean[] myArtificialLB;
+    private final boolean myArtificialObjLB;
+    private final boolean myArtificialObjUB;
+    private final boolean[] myArtificialUB;
     private final org.chocosolver.solver.Model myDelegateModel;
-    private final IntVar[] myDelegateVariables;
+    private final Variable[] myDelegateVariables;
+    private final boolean[] myIsIntVar;
     private final boolean myMaximise;
+    private final double myObjectiveScale;
     private final IntVar myObjectiveVariable;
+    private final double myPrecision;
     private final long myTimeAbortMillis;
     private final long myTimeSufficeMillis;
 
-    SolverChoco(final org.chocosolver.solver.Model model, final IntVar[] variables, final IntVar objective, final boolean maximise,
-            final Optimisation.Options options) {
+    SolverChoco(final org.chocosolver.solver.Model model, final Variable[] variables, final boolean[] isIntVar, final IntVar objective, final boolean maximise,
+            final Optimisation.Options options, final boolean[] artificialLB, final boolean[] artificialUB, final boolean artificialObjLB,
+            final boolean artificialObjUB, final double precision, final double objectiveScale) {
 
         super();
 
+        myArtificialLB = artificialLB;
+        myArtificialObjLB = artificialObjLB;
+        myArtificialObjUB = artificialObjUB;
+        myArtificialUB = artificialUB;
         myDelegateModel = model;
         myDelegateVariables = variables;
+        myIsIntVar = isIntVar;
         myObjectiveVariable = objective;
         myMaximise = maximise;
+        myObjectiveScale = objectiveScale;
+        myPrecision = precision;
         myTimeAbortMillis = options.time_abort;
         myTimeSufficeMillis = options.time_suffice;
     }
@@ -305,19 +439,24 @@ public final class SolverChoco implements Optimisation.Solver {
 
         if (solution != null) {
 
-            retState = delegateSolver.isObjectiveOptimal() ? Optimisation.State.OPTIMAL : Optimisation.State.FEASIBLE;
+            int objValue = solution.getIntVal(myObjectiveVariable);
 
-            retValue = solution.getIntVal(myObjectiveVariable);
-
-            for (int i = 0; i < retSolution.length; i++) {
-                retSolution[i] = solution.getIntVal(myDelegateVariables[i]);
+            if (this.isUnbounded(objValue)) {
+                return Optimisation.Result.of(Optimisation.State.UNBOUNDED, retSolution);
             }
+
+            this.extractSolution(solution, retSolution);
+
+            if (this.isUnbounded(retSolution)) {
+                return Optimisation.Result.of(Optimisation.State.UNBOUNDED, retSolution);
+            }
+
+            retState = delegateSolver.isObjectiveOptimal() ? Optimisation.State.OPTIMAL : Optimisation.State.FEASIBLE;
+            retValue = objValue / myObjectiveScale;
 
             return Optimisation.Result.of(retValue, retState, retSolution);
 
         } else if (delegateSolver.getSearchState() == SearchState.STOPPED) {
-            // Time (or other) limit reached before a first feasible solution was found - the search is
-            // neither exhausted (so not proven infeasible) nor did it produce anything to report.
             retState = Optimisation.State.FAILED;
 
             if (myTimeSufficeMillis < myTimeAbortMillis) {
@@ -329,22 +468,54 @@ public final class SolverChoco implements Optimisation.Solver {
                     solution = delegateSolver.findOptimalSolution(myObjectiveVariable, myMaximise);
 
                     if (solution != null) {
+                        this.extractSolution(solution, retSolution);
                         retState = delegateSolver.isObjectiveOptimal() ? Optimisation.State.OPTIMAL : Optimisation.State.FEASIBLE;
-                        retValue = solution.getIntVal(myObjectiveVariable);
-                        for (int i = 0; i < retSolution.length; i++) {
-                            retSolution[i] = solution.getIntVal(myDelegateVariables[i]);
-                        }
+                        retValue = solution.getIntVal(myObjectiveVariable) / myObjectiveScale;
                         return Optimisation.Result.of(retValue, retState, retSolution);
                     }
                 }
             }
 
         } else {
-            // The search space was exhausted without finding a solution - proven infeasible.
             retState = Optimisation.State.INFEASIBLE;
         }
 
         return Optimisation.Result.of(retState);
+    }
+
+    private void extractSolution(final Solution solution, final double[] target) {
+        for (int i = 0; i < target.length; i++) {
+            if (myIsIntVar[i]) {
+                target[i] = solution.getIntVal((IntVar) myDelegateVariables[i]);
+            } else {
+                double[] bounds = solution.getRealBounds((RealVar) myDelegateVariables[i]);
+                target[i] = (bounds[0] + bounds[1]) / 2.0;
+            }
+        }
+    }
+
+    private boolean isUnbounded(final double[] solution) {
+        for (int i = 0; i < solution.length; i++) {
+            if (myIsIntVar[i]) {
+                int val = (int) solution[i];
+                if (myArtificialUB[i] && val >= IntVar.MAX_INT_BOUND || myArtificialLB[i] && val <= IntVar.MIN_INT_BOUND) {
+                    return true;
+                }
+            } else {
+                if (myArtificialUB[i] && solution[i] >= REAL_ARTIFICIAL_BOUND - myPrecision
+                        || myArtificialLB[i] && solution[i] <= -REAL_ARTIFICIAL_BOUND + myPrecision) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isUnbounded(final int objValue) {
+        if (!myMaximise && myArtificialObjLB && objValue <= myObjectiveVariable.getLB()) {
+            return true;
+        }
+        return myMaximise && myArtificialObjUB && objValue >= myObjectiveVariable.getUB();
     }
 
 }
