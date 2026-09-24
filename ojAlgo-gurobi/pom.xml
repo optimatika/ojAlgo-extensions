@@ -11,10 +11,6 @@
 	<name>ojAlgo-gurobi</name>
 	<description>ojAlgo and GUROBI integration</description>
 	<version>3.3.0-SNAPSHOT</version>
-	<properties>
-		<!-- You have to change this! -->
-		<path.native.gurobi>/Library/gurobi952/macos_universal2/bin</path.native.gurobi>
-	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>com.gurobi</groupId>
@@ -22,18 +18,4 @@
 			<version>13.0.3</version>
 		</dependency>
 	</dependencies>
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<configuration>
-					<argLine>-Djava.library.path=${path.native.gurobi}</argLine>
-					<environmentVariables>
-						<LD_LIBRARY_PATH>${path.native.gurobi}</LD_LIBRARY_PATH>
-					</environmentVariables>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
 </project>

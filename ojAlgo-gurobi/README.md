@@ -14,44 +14,43 @@ ojAlgo integration with [Gurobi](https://www.gurobi.com). Use Gurobi as a solver
 
 ## Prerequisites
 
-1. **Gurobi installed and licensed.** Download from [gurobi.com](https://www.gurobi.com/downloads/) and activate a license.
+1. **The Gurobi Java API JAR.** Gurobi publishes `com.gurobi:gurobi` to Maven Central, so this is pulled automatically when you depend on `ojalgo-gurobi`. The JAR bundles the native libraries for Linux (x86-64 and ARM64), Windows (x86-64) and macOS (universal), and loads them itself. No manual JAR or library path setup is needed.
 
-2. **The Gurobi Java API JAR.** Gurobi publishes `com.gurobi:gurobi` to Maven Central, so this is pulled automatically when you depend on `ojalgo-gurobi` — no manual JAR setup needed.
+2. **A Gurobi license.** See [gurobi.com](https://www.gurobi.com/downloads/). Activating most license types uses the `grbgetkey` tool, which comes with the full Gurobi installation. A Web License Service (WLS) license only needs the `gurobi.lic` file. Gurobi looks for `gurobi.lic` in its default locations, or wherever the `GRB_LICENSE_FILE` environment variable points.
 
-3. **Native library on the library path.** When you run your program, the JVM must be able to find the Gurobi native library. Pass the path to the directory containing it:
+### Native access warning
+
+On recent JDKs, loading the native library prints a warning about restricted methods. To silence it, add this JVM argument:
 
 ```
--Djava.library.path=/path/to/gurobi/lib
+--enable-native-access=ALL-UNNAMED
 ```
 
-### Typical installation paths
+### Smaller dependency
 
-| Platform | Installation directory | Native library directory |
-| --- | --- | --- |
-| macOS | `/Library/gurobi<ver>/macos_universal2` | `lib/` |
-| Linux | `/opt/gurobi<ver>/linux64` | `lib/` |
-| Windows | `C:\gurobi<ver>\` | `lib\` |
-
-Replace `<ver>` with the version number, e.g. `gurobi1200` for Gurobi 12.0.0.
-
-If the `GUROBI_HOME` environment variable is set (the Gurobi installer typically sets it), the native library directory is `$GUROBI_HOME/lib`.
-
-### Maven Surefire
-
-To run tests via Maven, configure the surefire plugin:
+The default `com.gurobi:gurobi` JAR is large (~120 MB) because it contains the native libraries for all platforms. If you already have Gurobi installed locally, you can use the `core` classifier instead. It has the same Java classes but no native libraries:
 
 ```xml
-<plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-surefire-plugin</artifactId>
-    <configuration>
-        <argLine>-Djava.library.path=${env.GUROBI_HOME}/lib</argLine>
-        <environmentVariables>
-            <LD_LIBRARY_PATH>${env.GUROBI_HOME}/lib</LD_LIBRARY_PATH>
-        </environmentVariables>
-    </configuration>
-</plugin>
+<dependency>
+    <groupId>org.ojalgo</groupId>
+    <artifactId>ojalgo-gurobi</artifactId>
+    <version>X.Y.Z</version>
+    <exclusions>
+        <exclusion>
+            <groupId>com.gurobi</groupId>
+            <artifactId>gurobi</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+<dependency>
+    <groupId>com.gurobi</groupId>
+    <artifactId>gurobi</artifactId>
+    <version>A.B.C</version> <!-- the Gurobi version ojalgo-gurobi depends on -->
+    <classifier>core</classifier>
+</dependency>
 ```
+
+The local installation must be the same Gurobi version. If the JVM can't find the native library, point `java.library.path` at the installation's `lib` directory, for example `-Djava.library.path=/Library/gurobi1303/macos_universal2/lib`.
 
 ## Usage
 
