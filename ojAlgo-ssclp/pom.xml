@@ -24,7 +24,7 @@
         <dependency>
             <groupId>org.ssclab</groupId>
             <artifactId>SSC-LP</artifactId>
-            <version>4.7.8</version>
+            <version>4.7.9</version>
         </dependency>
     </dependencies>
 </project>
