@@ -21,9 +21,6 @@
  */
 package org.ojalgo.optimisation.solver.hipparchus;
 
-import java.util.Set;
-
-import org.hipparchus.optim.OptimizationData;
 import org.hipparchus.optim.nonlinear.vector.constrained.SQPOptimizerS;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 
@@ -41,8 +38,13 @@ public final class SQPOptimizerImplS extends ConvexImpl<SQPOptimizerS> {
     static final class Integration extends ConvexImpl.Integration<SQPOptimizerImplS> {
 
         @Override
-        SQPOptimizerImplS newSolver(final ExpressionsBasedModel model, final Set<OptimizationData> optimisationdata) {
-            return new SQPOptimizerImplS(optimisationdata, model.options, model.getConfigurator(DEFAULT));
+        boolean isBoundedConstraintSupported() {
+            return false;
+        }
+
+        @Override
+        SQPOptimizerImplS newSolver(final ExpressionsBasedModel model, final Translation translation) {
+            return new SQPOptimizerImplS(translation, model.options, model.getConfigurator(DEFAULT));
         }
 
     }
@@ -51,9 +53,9 @@ public final class SQPOptimizerImplS extends ConvexImpl<SQPOptimizerS> {
 
     static final Configurator DEFAULT = new Configurator();
 
-    SQPOptimizerImplS(final Set<OptimizationData> modelData, final Options options,
+    SQPOptimizerImplS(final Translation translation, final Options options,
             final org.ojalgo.optimisation.solver.hipparchus.AbstractImpl.Configurator<SQPOptimizerS> configurator) {
-        super(modelData, options, configurator);
+        super(translation, options, configurator);
     }
 
 }

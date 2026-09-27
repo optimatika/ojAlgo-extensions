@@ -26,7 +26,6 @@ import static org.ojalgo.function.constant.PrimitiveMath.*;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +34,7 @@ import java.util.function.Supplier;
 import org.ojalgo.array.ArrayR064;
 import org.ojalgo.matrix.store.R064CSC;
 import org.ojalgo.matrix.store.R064CSC.Builder;
+import org.ojalgo.optimisation.ConstraintsMetaData;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.ModelEntity;
@@ -61,8 +61,8 @@ import org.ojalgo.type.keyvalue.EntryPair;
  * OSQP (v1.0) C library directly.
  * <p>
  * OSQP has no notion of variable bounds; every row of {@code A} is either a translated model constraint or a
- * variable bound (an identity row), appended after the model constraints - so the solver's row count is
- * {@code numberOfConstraints + numberOfVariables}.
+ * variable bound (a single-coefficient row, one per variable with limits), appended after the model
+ * constraints.
  *
  * @see <a href="https://osqp.org">OSQP</a>
  */
@@ -76,6 +76,24 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
      * {@link Optimisation.Environment#setConfigurator(Object)}.
      */
     public static class Configurator {
+
+        /**
+         * The absolute termination tolerance, for the primal and the dual residuals alike. Far tighter than
+         * OSQP's own default (1e-3); polishing is what makes it reachable.
+         */
+        private static final double EPS_ABS = 5E-9;
+        /**
+         * The dual infeasibility (primal unboundedness) detection tolerance.
+         */
+        private static final double EPS_DUAL_INF = 5E-9;
+        /**
+         * The primal infeasibility detection tolerance.
+         */
+        private static final double EPS_PRIM_INF = 5E-9;
+        /**
+         * The relative termination tolerance, for the primal and the dual residuals alike.
+         */
+        private static final double EPS_REL = 1E-11;
 
         /**
          * Configure OSQP settings before solving.
@@ -103,13 +121,12 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
                 OSQPBindings.setTimeLimit(settings, effectiveTimeMillis / 1_000.0);
             }
 
-            double epsilon = options.feasibility.epsilon();
-            OSQPBindings.setEpsAbs(settings, epsilon);
-            OSQPBindings.setEpsPrimInf(settings, epsilon);
-            OSQPBindings.setEpsDualInf(settings, epsilon);
-
-            double relativeError = options.feasibility.getRelativeError();
-            OSQPBindings.setEpsRel(settings, relativeError);
+            // OSQP has no tolerance for primal feasibility alone - its termination tolerances apply to the dual
+            // residual as well - so options.feasibility is not used.
+            OSQPBindings.setEpsAbs(settings, EPS_ABS);
+            OSQPBindings.setEpsRel(settings, EPS_REL);
+            OSQPBindings.setEpsPrimInf(settings, EPS_PRIM_INF);
+            OSQPBindings.setEpsDualInf(settings, EPS_DUAL_INF);
         }
 
     }
@@ -137,7 +154,19 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
             Expression objective = model.objective();
             List<Expression> constraints = model.constraints().toList();
             int numModelConstraints = constraints.size();
-            int m = numModelConstraints + n;
+
+            // One row per variable with bounds, after the model's own constraints
+            int[] boundRows = new int[n];
+            int m = numModelConstraints;
+            for (int v = 0; v < n; v++) {
+                boundRows[v] = variables.get(v).isConstraint() ? m++ : -1;
+            }
+
+            double objectiveScale = ADJUSTED_OBJECTIVE ? objective.getAdjustmentFactor() : ONE;
+
+            ConstraintsMetaData constraintsMetaData = ConstraintsMetaData.newEntityMap(m);
+            constraintsMetaData.setMultiplierScale(objectiveScale);
+            constraintsMetaData.setSignedRows(true);
 
             boolean hasQP = objective.isAnyQuadraticFactorNonZero();
 
@@ -181,14 +210,20 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
                 for (IntIndex key : constraint.getLinearKeySet()) {
                     builderA.set(row, key.index, constraint.doubleValue(key, ADJUSTED_CONSTRAINTS));
                 }
+                constraintsMetaData.setEntry(row, constraint, constraint.getConstraintType(), false, ADJUSTED_CONSTRAINTS);
             }
 
+            double[] boundScales = new double[n];
             for (int v = 0; v < n; v++) {
-                Variable variable = variables.get(v);
-                int row = numModelConstraints + v;
-                l[row] = OSQPBindings.clampInfinity(variable.getLowerLimit(ADJUSTED_BOUNDS, NEGATIVE_INFINITY));
-                u[row] = OSQPBindings.clampInfinity(variable.getUpperLimit(ADJUSTED_BOUNDS, POSITIVE_INFINITY));
-                builderA.set(row, v, ONE);
+                int row = boundRows[v];
+                if (row >= 0) {
+                    Variable variable = variables.get(v);
+                    boundScales[v] = ADJUSTED_BOUNDS ? variable.getAdjustmentFactor() : ONE;
+                    l[row] = OSQPBindings.clampInfinity(variable.getLowerLimit(ADJUSTED_BOUNDS, NEGATIVE_INFINITY));
+                    u[row] = OSQPBindings.clampInfinity(variable.getUpperLimit(ADJUSTED_BOUNDS, POSITIVE_INFINITY));
+                    builderA.set(row, v, boundScales[v]);
+                    constraintsMetaData.setEntry(row, variable, variable.getConstraintType(), false, ADJUSTED_BOUNDS);
+                }
             }
 
             R064CSC mtrxA = builderA.build();
@@ -223,9 +258,12 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
 
                 MemorySegment solver = OSQPBindings.getSolver(solverPtrOut);
 
-                OSQPEntityMap entityMap = new OSQPEntityMap(n, constraints);
+                OSQPEntityMap entityMap = new OSQPEntityMap(n, constraints, constraintsMetaData);
 
-                return new SolverOSQP(solver, n, numModelConstraints, m, l, u, max, configurator, entityMap);
+                double objectiveConstant = ExpressionsBasedModel.Integration.getObjectiveConstant(model);
+
+                return new SolverOSQP(solver, n, numModelConstraints, m, l, u, max, configurator, entityMap, constraintsMetaData, mtrxP, q, mtrxA,
+                        boundRows, boundScales, objectiveScale, objectiveConstant);
 
             } finally {
                 arena.close();
@@ -253,27 +291,25 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
      * Maps solver variable/constraint indices to model entities.
      * <p>
      * All model variables are passed through to OSQP 1:1 (no free/fixed distinction, no presolve), so
-     * {@link #indexOf(int)} is a straight identity map. Only the model's own constraint expressions are
-     * exposed as "constraints" here - the extra, solver-only, variable-bound rows appended after them are not
-     * (there is nothing in the model for them to map back to beyond the variable itself).
+     * {@link #indexOf(int)} is a straight identity map. The model's own constraint expressions come first,
+     * followed by one row per variable with bounds (mapped to the variable).
      */
     static final class OSQPEntityMap implements ExpressionsBasedModel.EntityMap {
 
-        private final List<EntryPair<ModelEntity<?>, Optimisation.ConstraintType>> myConstraints;
+        private final ConstraintsMetaData myConstraints;
         private final int myNumEqualityConstraints;
         private final int myNumInequalityConstraints;
         private final int myNumModelVars;
 
-        OSQPEntityMap(final int numModelVars, final List<Expression> constraints) {
+        OSQPEntityMap(final int numModelVars, final List<Expression> constraints, final ConstraintsMetaData constraintsMetaData) {
 
             myNumModelVars = numModelVars;
 
-            myConstraints = new ArrayList<>(constraints.size());
+            myConstraints = constraintsMetaData;
             int equalityCount = 0;
             int inequalityCount = 0;
             for (Expression constraint : constraints) {
                 Optimisation.ConstraintType type = constraint.getConstraintType();
-                myConstraints.add(EntryPair.of(constraint, type));
                 if (type == Optimisation.ConstraintType.EQUALITY) {
                     equalityCount++;
                 } else if (type != Optimisation.ConstraintType.NONE) {
@@ -316,7 +352,7 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
 
         @Override
         public EntryPair<ModelEntity<?>, Optimisation.ConstraintType> getConstraint(final int idc) {
-            return myConstraints.get(idc);
+            return myConstraints.getEntry(idc);
         }
 
         @Override
@@ -367,11 +403,28 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
         }
     }
 
+    /**
+     * The constraint matrix, the model's constraints followed by the variable-bound rows.
+     */
+    private final R064CSC myA;
+    /**
+     * For each variable, the row of its bound constraint, or -1 if it has none.
+     */
+    private final int[] myBoundRows;
+    /**
+     * For each variable with a bound row, the coefficient of that row: the variable's adjustment factor if the
+     * bounds are adjusted, or else 1.
+     */
+    private final double[] myBoundScales;
     private final Configurator myConfigurator;
     /**
-     * Cached full dual vector (length {@link #myNumRows}) from the most recent solve - rows
-     * {@code [0, myNumModelConstraints)} are the model's own constraint duals, rows
-     * {@code [myNumModelConstraints, myNumRows)} are the variable-bound duals (reduced costs).
+     * Replaced, not modified, when a bound row's type changes – results already returned refer to it.
+     */
+    private ConstraintsMetaData myConstraintsMetaData;
+    /**
+     * Cached full dual vector (length {@link #myNumRows}) from the most recent solve, in OSQP's convention -
+     * rows {@code [0, myNumModelConstraints)} are the model's own constraint duals, the rest the variable-bound
+     * duals.
      */
     private double[] myDualY = null;
     private final OSQPEntityMap myEntityMap;
@@ -380,11 +433,33 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
     private final int myNumModelConstraints;
     private final int myNumRows;
     private final int myNumVars;
+    /**
+     * The objective constant, in model units and the model's sense.
+     */
+    private final double myObjectiveConstant;
+    /**
+     * The objective's adjustment factor – the objective OSQP solves is scaled by this.
+     */
+    private final double myObjectiveScale;
+    /**
+     * The quadratic part of the (minimisation form) objective, upper triangular.
+     */
+    private final R064CSC myP;
+    /**
+     * The linear part of the (minimisation form) objective.
+     */
+    private final double[] myQ;
+    /**
+     * Cached reduced gradient from the most recent solve, in model units and the model's sense.
+     */
+    private double[] myReducedGradient = null;
     private final MemorySegment mySolver;
     private final double[] myUpper;
 
     SolverOSQP(final MemorySegment solver, final int numVars, final int numModelConstraints, final int numRows, final double[] lower, final double[] upper,
-            final boolean maximisation, final Configurator configurator, final OSQPEntityMap entityMap) {
+            final boolean maximisation, final Configurator configurator, final OSQPEntityMap entityMap, final ConstraintsMetaData constraintsMetaData,
+            final R064CSC mtrxP, final double[] q, final R064CSC mtrxA, final int[] boundRows, final double[] boundScales, final double objectiveScale,
+            final double objectiveConstant) {
 
         super();
 
@@ -397,6 +472,14 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
         myMaximisation = maximisation;
         myConfigurator = configurator;
         myEntityMap = entityMap;
+        myConstraintsMetaData = constraintsMetaData;
+        myP = mtrxP;
+        myQ = q;
+        myA = mtrxA;
+        myBoundRows = boundRows;
+        myBoundScales = boundScales;
+        myObjectiveScale = objectiveScale;
+        myObjectiveConstant = objectiveConstant;
     }
 
     @Override
@@ -426,10 +509,10 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
 
     @Override
     public double getReducedGradient(final int index) {
-        if (myDualY == null) {
+        if (myReducedGradient == null) {
             throw new IllegalStateException();
         }
-        return myDualY[myNumModelConstraints + index];
+        return myReducedGradient[index];
     }
 
     @Override
@@ -456,13 +539,15 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
 
         if (exitflag != 0L || !state.isFeasible()) {
             myDualY = null;
+            myReducedGradient = null;
             return Optimisation.Result.of(state, new double[myNumVars]);
         }
 
-        double objectiveValue = OSQPBindings.getObjVal(info);
+        double objectiveValue = OSQPBindings.getObjVal(info) / myObjectiveScale;
         if (myMaximisation) {
             objectiveValue = -objectiveValue;
         }
+        objectiveValue += myObjectiveConstant;
 
         double[] solution = new double[myNumVars];
         myDualY = new double[myNumRows];
@@ -474,23 +559,27 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
         MemorySegment.copy(xPtr, ValueLayout.JAVA_DOUBLE, 0, solution, 0, myNumVars);
         MemorySegment.copy(yPtr, ValueLayout.JAVA_DOUBLE, 0, myDualY, 0, myNumRows);
 
-        double[] dualSnapshot = myDualY;
-        int numModelConstraints = myNumModelConstraints;
-        Supplier<Access1D<?>> reducedGradient = () -> ArrayR064.wrap(Arrays.copyOfRange(dualSnapshot, numModelConstraints, dualSnapshot.length));
+        myReducedGradient = this.computeReducedGradient(solution, myDualY);
 
-        return Optimisation.Result.of(objectiveValue, state, solution).withReducedGradient(reducedGradient);
+        double[] dualSnapshot = myDualY;
+        double[] reducedGradientSnapshot = myReducedGradient;
+        Supplier<Access1D<?>> reducedGradient = () -> ArrayR064.wrap(reducedGradientSnapshot);
+
+        return Optimisation.Result.of(objectiveValue, state, solution).withReducedGradient(reducedGradient).withDualValues(myConstraintsMetaData,
+                () -> ArrayR064.wrap(dualSnapshot));
     }
 
     @Override
     public boolean updateRange(final int index, final double lower, final double upper) {
 
-        if (index < 0 || index >= myNumVars) {
+        if (index < 0 || index >= myNumVars || myBoundRows[index] < 0) {
             return false;
         }
 
-        int row = myNumModelConstraints + index;
-        myLower[row] = OSQPBindings.clampInfinity(lower);
-        myUpper[row] = OSQPBindings.clampInfinity(upper);
+        int row = myBoundRows[index];
+        myLower[row] = OSQPBindings.clampInfinity(lower * myBoundScales[index]);
+        myUpper[row] = OSQPBindings.clampInfinity(upper * myBoundScales[index]);
+        myConstraintsMetaData = myConstraintsMetaData.withLimits(row, lower, upper);
 
         try (Arena arena = Arena.ofConfined()) {
             MemorySegment lSeg = OSQPBindings.allocateDoubleArray(arena, myLower);
@@ -501,7 +590,36 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
         }
 
         myDualY = null;
+        myReducedGradient = null;
         return true;
+    }
+
+    /**
+     * The reduced gradient, in the bounded-variable sense, in model units and the model's sense: the gradient
+     * of the Lagrangian, {@code Px + q + A'y}, without the variable-bound rows, so that at an optimum it is
+     * non-zero only for variables at an active bound. (The bound multipliers are also reported as dual values,
+     * with the variables.)
+     */
+    private double[] computeReducedGradient(final double[] x, final double[] y) {
+
+        double[] rowMultipliers = Arrays.copyOf(y, y.length);
+        for (int j = 0; j < myNumVars; j++) {
+            if (myBoundRows[j] >= 0) {
+                rowMultipliers[myBoundRows[j]] = ZERO;
+            }
+        }
+
+        double[] gradient = new double[myNumVars];
+        double[] yA = new double[myNumVars];
+        R064CSC.multiplySymmetric(gradient, myP, x);
+        R064CSC.multiply(yA, rowMultipliers, myA);
+
+        double scale = myMaximisation ? -ONE / myObjectiveScale : ONE / myObjectiveScale;
+        for (int j = 0; j < myNumVars; j++) {
+            gradient[j] = (gradient[j] + myQ[j] + yA[j]) * scale;
+        }
+
+        return gradient;
     }
 
     /**

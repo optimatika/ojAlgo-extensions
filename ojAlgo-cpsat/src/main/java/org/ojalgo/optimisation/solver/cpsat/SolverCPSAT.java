@@ -21,7 +21,7 @@
  */
 package org.ojalgo.optimisation.solver.cpsat;
 
-import static org.ojalgo.function.constant.PrimitiveMath.ZERO;
+import static org.ojalgo.function.constant.PrimitiveMath.*;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.foreign.MemorySegment;
@@ -30,6 +30,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.ojalgo.concurrent.InterruptForwarder;
@@ -38,6 +39,7 @@ import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
+import org.ojalgo.type.context.NumberContext;
 
 /**
  * Google CP-SAT solver integration for ojAlgo.
@@ -128,6 +130,14 @@ public final class SolverCPSAT implements Optimisation.Solver {
         }
 
         /**
+         * {@code absolute_gap_limit = 159}
+         */
+        public Parameters setAbsoluteGapLimit(final double value) {
+            myWriter.fixed64Double(159, value);
+            return this;
+        }
+
+        /**
          * {@code log_search_progress = 41}
          */
         public Parameters setLogSearchProgress(final boolean value) {
@@ -172,6 +182,14 @@ public final class SolverCPSAT implements Optimisation.Solver {
          */
         public Parameters setRandomSeed(final int value) {
             myWriter.int32(31, value);
+            return this;
+        }
+
+        /**
+         * {@code relative_gap_limit = 160}
+         */
+        public Parameters setRelativeGapLimit(final double value) {
+            myWriter.fixed64Double(160, value);
             return this;
         }
 
@@ -384,6 +402,9 @@ public final class SolverCPSAT implements Optimisation.Solver {
         /**
          * CP-SAT works with all model variables directly - nothing is presolved away or shifted before it
          * gets there - so bounds, constraint limits and objective coefficients are all read unadjusted.
+         * <p>
+         * The bounds must be. They are the variables' domains, so adjusting them would mean rescaling the
+         * variables themselves.
          */
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = false;
@@ -433,7 +454,19 @@ public final class SolverCPSAT implements Optimisation.Solver {
             Parameters parameters = new Parameters();
             configurator.configure(model, parameters);
 
-            return new SolverCPSAT(modelProtoBytes, parameters.toByteArray(), variables.size(), model.options, varScales);
+            double objectiveScale = ADJUSTED_OBJECTIVE ? objective.getAdjustmentFactor() : ONE;
+            double objectiveConstant = ExpressionsBasedModel.Integration.getObjectiveConstant(model);
+
+            // The MIP gap, only if configured to be something other than the default – the absolute gap in the
+            // objective's (scaled) units
+            Optional<NumberContext> gap = model.options.getConfiguredGapTolerance();
+            if (gap.isPresent()) {
+                parameters.setRelativeGapLimit(gap.get().getRelativeError());
+                parameters.setAbsoluteGapLimit(gap.get().getAbsoluteError() * objectiveScale);
+            }
+
+            return new SolverCPSAT(modelProtoBytes, parameters.toByteArray(), variables.size(), model.options, varScales, objectiveScale,
+                    objectiveConstant);
         }
 
         /**
@@ -681,6 +714,13 @@ public final class SolverCPSAT implements Optimisation.Solver {
     private static int capExpressionScale(final Expression expression, final Set<IntIndex> keys, final boolean adjusted, final int[] varScales) {
 
         int scale = Integration.expressionScale(expression, varScales);
+
+        if (adjusted) {
+            // The scale is deduced from the unadjusted parameters. Adjusting multiplies them by 10^exponent,
+            // which takes that many decimals less.
+            int exponent = (int) Math.round(Math.log10(expression.getAdjustmentFactor()));
+            scale = Math.max(0, scale - exponent);
+        }
 
         if (scale == 0) {
             return 0;
@@ -941,13 +981,21 @@ public final class SolverCPSAT implements Optimisation.Solver {
     private final int myIterationsSuffice;
     private final byte[] myModelProtoBytes;
     private final int myNumVars;
+    /**
+     * The objective constant, in model units.
+     */
+    private final double myObjectiveConstant;
+    /**
+     * The objective's adjustment factor – the objective CP-SAT solves is scaled by this.
+     */
+    private final double myObjectiveScale;
     private final byte[] myParamsProtoBytes;
     private final long myTimeAbortMillis;
     private final long myTimeSufficeMillis;
     private final int[] myVariableScales;
 
     SolverCPSAT(final byte[] modelProtoBytes, final byte[] paramsProtoBytes, final int numVars, final Optimisation.Options options,
-            final int[] variableScales) {
+            final int[] variableScales, final double objectiveScale, final double objectiveConstant) {
         super();
         myModelProtoBytes = modelProtoBytes;
         myParamsProtoBytes = paramsProtoBytes;
@@ -957,6 +1005,8 @@ public final class SolverCPSAT implements Optimisation.Solver {
         myTimeAbortMillis = options.time_abort;
         myTimeSufficeMillis = options.time_suffice;
         myVariableScales = variableScales;
+        myObjectiveScale = objectiveScale;
+        myObjectiveConstant = objectiveConstant;
         myEnv = CPSATBindings.newEnv();
     }
 
@@ -1020,7 +1070,9 @@ public final class SolverCPSAT implements Optimisation.Solver {
                 solution[i] = myVariableScales[i] != 0 ? BigDecimal.valueOf(response.solution[i], myVariableScales[i]).doubleValue() : response.solution[i];
             }
 
-            return Optimisation.Result.of(response.objectiveValue, state, solution);
+            double value = response.objectiveValue / myObjectiveScale + myObjectiveConstant;
+
+            return Optimisation.Result.of(value, state, solution);
 
         } else {
 

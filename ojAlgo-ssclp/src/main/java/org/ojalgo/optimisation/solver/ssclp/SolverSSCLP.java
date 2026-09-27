@@ -104,6 +104,10 @@ public final class SolverSSCLP implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverSSCLP> {
 
+        /**
+         * Must be false. SSC-LP handles variable bounds natively, not as constraint rows, so adjusting them would
+         * mean rescaling the variables themselves.
+         */
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = true;
         private static final boolean ADJUSTED_OBJECTIVE = true;
@@ -199,14 +203,17 @@ public final class SolverSSCLP implements Optimisation.Solver {
                     constraints.add(new org.ssclab.pl.milp.Constraint(binaries, ConsType.BIN, ZERO));
                 }
 
+                double objectiveScale = ADJUSTED_OBJECTIVE ? objective.getAdjustmentFactor() : ONE;
+                double objectiveConstant = ExpressionsBasedModel.Integration.getObjectiveConstant(model);
+
                 if (mip) {
                     MILP milp = new MILP(fo, constraints);
                     configurator.configure(milp, model.options);
-                    return new SolverSSCLP(milp, n);
+                    return new SolverSSCLP(milp, n, objectiveScale, objectiveConstant);
                 } else {
                     LP lp = new LP(fo, constraints);
                     configurator.configure(lp, model.options);
-                    return new SolverSSCLP(lp, n);
+                    return new SolverSSCLP(lp, n, objectiveScale, objectiveConstant);
                 }
 
             } catch (Exception cause) {
@@ -257,19 +264,31 @@ public final class SolverSSCLP implements Optimisation.Solver {
     private final LP myLP;
     private final MILP myMILP;
     private final int myNumVars;
+    /**
+     * The objective constant, in model units.
+     */
+    private final double myObjectiveConstant;
+    /**
+     * The objective's adjustment factor – the objective SSC-LP solves is scaled by this.
+     */
+    private final double myObjectiveScale;
 
-    SolverSSCLP(final LP lp, final int numVars) {
+    SolverSSCLP(final LP lp, final int numVars, final double objectiveScale, final double objectiveConstant) {
         super();
         myLP = lp;
         myMILP = null;
         myNumVars = numVars;
+        myObjectiveScale = objectiveScale;
+        myObjectiveConstant = objectiveConstant;
     }
 
-    SolverSSCLP(final MILP milp, final int numVars) {
+    SolverSSCLP(final MILP milp, final int numVars, final double objectiveScale, final double objectiveConstant) {
         super();
         myLP = null;
         myMILP = milp;
         myNumVars = numVars;
+        myObjectiveScale = objectiveScale;
+        myObjectiveConstant = objectiveConstant;
     }
 
     @Override
@@ -295,7 +314,7 @@ public final class SolverSSCLP implements Optimisation.Solver {
             Optimisation.State state = SolverSSCLP.translate(type);
 
             if (solution != null) {
-                double objectiveValue = solution.getOptimumValue();
+                double objectiveValue = solution.getOptimumValue() / myObjectiveScale + myObjectiveConstant;
                 double[] values = solution.getValuesSolution();
                 double[] result = new double[myNumVars];
                 System.arraycopy(values, 0, result, 0, Math.min(values.length, myNumVars));

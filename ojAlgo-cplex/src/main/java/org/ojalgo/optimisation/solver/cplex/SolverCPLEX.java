@@ -30,8 +30,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.ojalgo.array.ArrayR064;
 import org.ojalgo.concurrent.InterruptForwarder;
 import org.ojalgo.netio.BasicLogger;
+import org.ojalgo.optimisation.ConstraintsMetaData;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.ModelEntity;
@@ -41,6 +43,7 @@ import org.ojalgo.optimisation.UpdatableSolver;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
+import org.ojalgo.type.context.NumberContext;
 import org.ojalgo.type.keyvalue.EntryPair;
 
 import ilog.concert.IloException;
@@ -63,6 +66,11 @@ import ilog.cplex.IloCplex.Status;
 public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
 
     public static class Configurator {
+
+        /**
+         * The optimality (reduced cost) tolerance.
+         */
+        private static final double OPTIMALITY_TOLERANCE = 5E-9;
 
         protected IloCplex newIloCplex(final Optimisation.Options options) throws IloException {
 
@@ -103,11 +111,15 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
                 retVal.setParam(IloCplex.LongParam.BarItLim, effectiveIterations);
             }
 
-            double feasTol = options.feasibility.epsilon();
-            if (feasTol > ZERO && feasTol < ONE) {
-                retVal.setParam(IloCplex.DoubleParam.EpRHS, feasTol);
-                retVal.setParam(IloCplex.DoubleParam.EpOpt, feasTol);
+            // The feasibility tolerance, only if configured to be something other than the default – a
+            // requirement on both the constraints and the integrality, within CPLEX's allowed ranges
+            Optional<NumberContext> feasibility = options.getConfiguredFeasibilityTolerance();
+            if (feasibility.isPresent()) {
+                double tolerance = feasibility.get().getAbsoluteError();
+                retVal.setParam(IloCplex.DoubleParam.EpRHS, Math.min(Math.max(tolerance, 1E-9), 1E-1));
+                retVal.setParam(IloCplex.DoubleParam.EpInt, Math.min(tolerance, 0.5));
             }
+            retVal.setParam(IloCplex.DoubleParam.EpOpt, OPTIMALITY_TOLERANCE);
 
             int parallelism = options.getParallelism();
             if (parallelism > 0) {
@@ -121,17 +133,22 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
 
     static final class CPLEXEntityMap implements ExpressionsBasedModel.EntityMap {
 
-        private final List<EntryPair<ModelEntity<?>, ConstraintType>> myConstraints;
+        private final ConstraintsMetaData myConstraints;
         private final int myNumEqualityConstraints;
         private final int myNumInequalityConstraints;
         private final int myNumVars;
 
-        CPLEXEntityMap(final int numVars, final List<EntryPair<ModelEntity<?>, ConstraintType>> constraints) {
+        CPLEXEntityMap(final int numVars, final List<EntryPair<ModelEntity<?>, ConstraintType>> constraints, final double objectiveScale,
+                final boolean adjusted) {
             myNumVars = numVars;
-            myConstraints = constraints;
+            myConstraints = ConstraintsMetaData.newEntityMap(constraints.size());
+            myConstraints.setMultiplierScale(objectiveScale);
+            myConstraints.setSignedRows(true);
             int eq = 0;
             int ineq = 0;
-            for (EntryPair<ModelEntity<?>, ConstraintType> entry : constraints) {
+            for (int i = 0; i < constraints.size(); i++) {
+                EntryPair<ModelEntity<?>, ConstraintType> entry = constraints.get(i);
+                myConstraints.setEntry(i, entry.left(), entry.right(), false, adjusted);
                 if (entry.getValue() == ConstraintType.EQUALITY) {
                     eq++;
                 } else {
@@ -174,7 +191,7 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
 
         @Override
         public EntryPair<ModelEntity<?>, ConstraintType> getConstraint(final int idc) {
-            return myConstraints.get(idc);
+            return myConstraints.getEntry(idc);
         }
 
         @Override
@@ -192,10 +209,18 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
             return false;
         }
 
+        ConstraintsMetaData getConstraintsMetaData() {
+            return myConstraints;
+        }
+
     }
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverCPLEX> {
 
+        /**
+         * Must be false. CPLEX handles variable bounds natively, not as constraint rows, so adjusting them would
+         * mean rescaling the variables themselves.
+         */
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = false;
         private static final boolean ADJUSTED_OBJECTIVE = false;
@@ -275,9 +300,21 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
                     solver.addMinimize(sObj);
                 }
 
-                CPLEXEntityMap entityMap = new CPLEXEntityMap(nbVars, constrInfo);
+                double objectiveScale = ADJUSTED_OBJECTIVE ? mObj.getAdjustmentFactor() : ONE;
+                double objectiveConstant = ExpressionsBasedModel.Integration.getObjectiveConstant(model);
 
-                return new SolverCPLEX(solver, sVars, ranges.toArray(new ilog.concert.IloRange[0]), entityMap, model.options);
+                // The MIP gap, only if configured to be something other than the default – the absolute gap in the
+                // objective's (scaled) units
+                Optional<NumberContext> gap = model.options.getConfiguredGapTolerance();
+                if (gap.isPresent()) {
+                    solver.setParam(IloCplex.DoubleParam.EpGap, gap.get().getRelativeError());
+                    solver.setParam(IloCplex.DoubleParam.EpAGap, gap.get().getAbsoluteError() * objectiveScale);
+                }
+
+                CPLEXEntityMap entityMap = new CPLEXEntityMap(nbVars, constrInfo, objectiveScale, ADJUSTED_CONSTRAINTS);
+
+                return new SolverCPLEX(solver, sVars, ranges.toArray(new ilog.concert.IloRange[0]), entityMap, model.options,
+                        model.getOptimisationSense() == Optimisation.Sense.MAX, objectiveScale, objectiveConstant);
 
             } catch (IloException cause) {
                 throw new RuntimeException(cause);
@@ -379,13 +416,22 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
     private final CPLEXEntityMap myEntityMap;
     private final int myIterationsAbort;
     private final int myIterationsSuffice;
+    private final boolean myMaximisation;
+    /**
+     * The objective constant, in model units.
+     */
+    private final double myObjectiveConstant;
+    /**
+     * The objective's adjustment factor – the objective CPLEX solves is scaled by this.
+     */
+    private final double myObjectiveScale;
     private final IloCplex mySolver;
     private final long myTimeAbortMillis;
     private final long myTimeSufficeMillis;
     private final IloNumVar[] myVariables;
 
     SolverCPLEX(final IloCplex solver, final IloNumVar[] variables, final ilog.concert.IloRange[] constraints, final CPLEXEntityMap entityMap,
-            final Optimisation.Options options) {
+            final Optimisation.Options options, final boolean maximisation, final double objectiveScale, final double objectiveConstant) {
         super();
         myConstraints = constraints;
         myEntityMap = entityMap;
@@ -395,6 +441,9 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
         myTimeAbortMillis = options.time_abort;
         myTimeSufficeMillis = options.time_suffice;
         myVariables = variables;
+        myMaximisation = maximisation;
+        myObjectiveScale = objectiveScale;
+        myObjectiveConstant = objectiveConstant;
     }
 
     @Override
@@ -463,7 +512,7 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
                     retSolution[i] = mySolver.getValue(myVariables[i]);
                 }
 
-                retValue = mySolver.getObjValue();
+                retValue = mySolver.getObjValue() / myObjectiveScale + myObjectiveConstant;
             }
 
             retState = SolverCPLEX.translate(mySolver.getStatus());
@@ -487,11 +536,33 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
                         for (int i = 0; i < myVariables.length; i++) {
                             retSolution[i] = mySolver.getValue(myVariables[i]);
                         }
-                        retValue = mySolver.getObjValue();
+                        retValue = mySolver.getObjValue() / myObjectiveScale + myObjectiveConstant;
                     }
 
                     retState = SolverCPLEX.translate(mySolver.getStatus());
                 }
+            }
+
+            if (retState.isOptimal() && !mySolver.isMIP() && !mySolver.isQC()) {
+
+                // CPLEX's dual values are the rates of change of the objective function value with the
+                // constraint limits. For a minimisation that is minus the multipliers signed as for two-sided
+                // rows (positive when the upper limit is active), for a maximisation it is those multipliers.
+                double sign = myMaximisation ? ONE : NEG;
+                double[] duals = myConstraints.length > 0 ? mySolver.getDuals(myConstraints) : new double[0];
+                for (int i = 0; i < duals.length; i++) {
+                    duals[i] *= sign;
+                }
+
+                // The reduced costs are in the model's sense
+                double[] reducedGradient = mySolver.getReducedCosts(myVariables);
+                for (int j = 0; j < reducedGradient.length; j++) {
+                    reducedGradient[j] /= myObjectiveScale;
+                }
+
+                return Optimisation.Result.of(retValue, retState, retSolution)
+                        .withDualValues(myEntityMap.getConstraintsMetaData(), () -> ArrayR064.wrap(duals))
+                        .withReducedGradient(() -> ArrayR064.wrap(reducedGradient));
             }
 
         } catch (IloException cause) {

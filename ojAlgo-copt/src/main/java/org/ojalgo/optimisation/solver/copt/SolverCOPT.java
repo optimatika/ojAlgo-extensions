@@ -23,16 +23,15 @@ package org.ojalgo.optimisation.solver.copt;
 
 import static org.ojalgo.function.constant.PrimitiveMath.*;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.ojalgo.array.ArrayR064;
 import org.ojalgo.concurrent.InterruptForwarder;
+import org.ojalgo.optimisation.ConstraintsMetaData;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.ModelEntity;
@@ -43,6 +42,7 @@ import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
 import org.ojalgo.type.ForgetfulMap;
+import org.ojalgo.type.context.NumberContext;
 import org.ojalgo.type.keyvalue.EntryPair;
 
 import copt.*;
@@ -80,6 +80,15 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
                     delegateSolver.setIntParam(IntParam.Threads, parallelism);
                 }
 
+                // The feasibility tolerance, only if configured to be something other than the default – a
+                // requirement on both the constraints and the integrality, within COPT's allowed ranges
+                Optional<NumberContext> feasibility = options.getConfiguredFeasibilityTolerance();
+                if (feasibility.isPresent()) {
+                    double tolerance = feasibility.get().getAbsoluteError();
+                    delegateSolver.setDblParam(DblParam.FeasTol, Math.min(Math.max(tolerance, 1E-9), 1E-4));
+                    delegateSolver.setDblParam(DblParam.IntTol, Math.min(Math.max(tolerance, 1E-9), 1E-1));
+                }
+
             } catch (CoptException cause) {
                 throw new RuntimeException(cause);
             }
@@ -97,28 +106,37 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
 
     static final class COPTEntityMap implements ExpressionsBasedModel.EntityMap {
 
-        private final List<EntryPair<ModelEntity<?>, ConstraintType>> myConstraints;
+        private final ConstraintsMetaData myConstraints;
+        /**
+         * For each constraint, its index among COPT's linear or quadratic constraints (see {@link #myQuadratic}).
+         */
+        private final int[] myGroupIndices;
         private final int myNumEqualityConstraints;
         private final int myNumInequalityConstraints;
         private final int myNumVars;
-        private final int[] mySolverToModel;
+        private final boolean[] myQuadratic;
 
-        COPTEntityMap(final int numVars, final ExpressionsBasedModel model, final List<Variable> freeVariables,
-                final List<EntryPair<ModelEntity<?>, ConstraintType>> constraints) {
+        COPTEntityMap(final int numVars, final List<EntryPair<ModelEntity<?>, ConstraintType>> constraints) {
             myNumVars = numVars;
-            mySolverToModel = new int[numVars];
-            for (int i = 0; i < numVars; i++) {
-                mySolverToModel[i] = model.indexOf(freeVariables.get(i));
-            }
-            myConstraints = constraints;
+            int nbConstraints = constraints.size();
+            myConstraints = ConstraintsMetaData.newEntityMap(nbConstraints);
+            myConstraints.setSignedRows(true);
+            myGroupIndices = new int[nbConstraints];
+            myQuadratic = new boolean[nbConstraints];
             int eq = 0;
             int ineq = 0;
-            for (EntryPair<ModelEntity<?>, ConstraintType> entry : constraints) {
+            int linear = 0;
+            int quadratic = 0;
+            for (int i = 0; i < nbConstraints; i++) {
+                EntryPair<ModelEntity<?>, ConstraintType> entry = constraints.get(i);
+                myConstraints.setEntry(i, entry.left(), entry.right(), false, false);
                 if (entry.getValue() == ConstraintType.EQUALITY) {
                     eq++;
                 } else {
                     ineq++;
                 }
+                myQuadratic[i] = ((Expression) entry.left()).isAnyQuadraticFactorNonZero();
+                myGroupIndices[i] = myQuadratic[i] ? quadratic++ : linear++;
             }
             myNumEqualityConstraints = eq;
             myNumInequalityConstraints = ineq;
@@ -156,7 +174,7 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
 
         @Override
         public EntryPair<ModelEntity<?>, ConstraintType> getConstraint(final int idc) {
-            return myConstraints.get(idc);
+            return myConstraints.getEntry(idc);
         }
 
         @Override
@@ -166,8 +184,8 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
 
         @Override
         public int indexOf(final int solverIndex) {
-            if (solverIndex >= 0 && solverIndex < mySolverToModel.length) {
-                return mySolverToModel[solverIndex];
+            if (solverIndex >= 0 && solverIndex < myNumVars) {
+                return solverIndex;
             }
             return -1;
         }
@@ -177,13 +195,25 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
             return false;
         }
 
+        ConstraintsMetaData getConstraintsMetaData() {
+            return myConstraints;
+        }
+
+        int getGroupIndex(final int idc) {
+            return myGroupIndices[idc];
+        }
+
+        boolean isQuadratic(final int idc) {
+            return myQuadratic[idc];
+        }
+
     }
 
+    /**
+     * COPT gets the model as it is: all variables, including the fixed ones, and the constraints and the
+     * objective function without any scaling (adjustment). COPT's own presolve and scaling does the rest.
+     */
     static final class Integration extends ExpressionsBasedModel.Integration<SolverCOPT> {
-
-        private static final boolean ADJUSTED_BOUNDS = false;
-        private static final boolean ADJUSTED_CONSTRAINTS = true;
-        private static final boolean ADJUSTED_OBJECTIVE = true;
 
         private final ForgetfulMap.ValueCache<Envr> myEnvironmentCache;
 
@@ -207,12 +237,11 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
 
                 configurator.configure(delegateSolver, model.options);
 
-                List<Variable> freeModVars = model.getFreeVariables();
-                Set<IntIndex> fixedModVars = model.getFixedVariables();
+                List<Variable> modVars = model.getVariables();
 
-                Expression modObj = model.objective().compensate(fixedModVars);
+                Expression modObj = model.objective();
 
-                int numberOfVariables = freeModVars.size();
+                int numberOfVariables = modVars.size();
 
                 double[] lb = new double[numberOfVariables];
                 double[] ub = new double[numberOfVariables];
@@ -221,13 +250,10 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
                 String[] name = new String[numberOfVariables];
 
                 for (int v = 0; v < numberOfVariables; v++) {
-                    Variable variable = freeModVars.get(v);
+                    Variable variable = modVars.get(v);
 
-                    lb[v] = variable.getLowerLimit(ADJUSTED_BOUNDS, NEGATIVE_INFINITY);
-                    ub[v] = variable.getUpperLimit(ADJUSTED_BOUNDS, POSITIVE_INFINITY);
-
-                    BigDecimal weight = variable.getContributionWeight();
-                    obj[v] = weight != null ? weight.doubleValue() : ZERO;
+                    lb[v] = variable.getLowerLimit(false, NEGATIVE_INFINITY);
+                    ub[v] = variable.getUpperLimit(false, POSITIVE_INFINITY);
 
                     type[v] = Consts.CONTINUOUS;
                     if (variable.isBinary()) {
@@ -249,24 +275,32 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
 
                 List<EntryPair<ModelEntity<?>, ConstraintType>> constrInfo = new ArrayList<>();
 
-                List<Expression> tmpCollect = model.constraints().map(e -> e.compensate(fixedModVars)).collect(Collectors.toList());
-                for (Expression expr : tmpCollect) {
-                    SolverCOPT.buildAndConstrain(expr, model, delegateVariables, ADJUSTED_CONSTRAINTS, delegateSolver, constrInfo);
+                List<Expression> modConstrs = model.constraints().collect(Collectors.toList());
+                for (Expression expr : modConstrs) {
+                    SolverCOPT.buildAndConstrain(expr, delegateVariables, delegateSolver, constrInfo);
                 }
 
                 int sense = model.getOptimisationSense() == Optimisation.Sense.MAX ? Consts.MAXIMIZE : Consts.MINIMIZE;
 
                 if (modObj.isAnyQuadraticFactorNonZero()) {
-                    QuadExpr solObj = SolverCOPT.buildQuadExpression(modObj, model, delegateVariables, ADJUSTED_OBJECTIVE);
+                    QuadExpr solObj = SolverCOPT.buildQuadExpression(modObj, delegateVariables);
                     delegateSolver.setQuadObjective(solObj, sense);
                 } else {
-                    Expr solObj = SolverCOPT.buildLinExpression(modObj, model, delegateVariables, ADJUSTED_OBJECTIVE);
+                    Expr solObj = SolverCOPT.buildLinExpression(modObj, delegateVariables);
                     delegateSolver.setObjective(solObj, sense);
                 }
+                delegateSolver.setObjConst(ExpressionsBasedModel.Integration.getObjectiveConstant(model));
 
-                COPTEntityMap entityMap = new COPTEntityMap(numberOfVariables, model, freeModVars, constrInfo);
+                // The MIP gap, only if configured to be something other than the default
+                Optional<NumberContext> gap = model.options.getConfiguredGapTolerance();
+                if (gap.isPresent()) {
+                    delegateSolver.setDblParam(DblParam.RelGap, gap.get().getRelativeError());
+                    delegateSolver.setDblParam(DblParam.AbsGap, gap.get().getAbsoluteError());
+                }
 
-                return new SolverCOPT(delegateSolver, delegateVariables, entityMap, model.options);
+                COPTEntityMap entityMap = new COPTEntityMap(numberOfVariables, constrInfo);
+
+                return new SolverCOPT(delegateSolver, delegateVariables, entityMap, model.options, model.getOptimisationSense() == Optimisation.Sense.MAX);
 
             } catch (CoptException exception) {
                 exception.printStackTrace();
@@ -280,16 +314,6 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
             return true;
         }
 
-        @Override
-        public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
-            return ExpressionsBasedModel.Integration.expandFreeToFull(solverState, model, ArrayR064.FACTORY);
-        }
-
-        @Override
-        public Result toSolverState(final Result modelState, final ExpressionsBasedModel model) {
-            return ExpressionsBasedModel.Integration.reduceFullToFree(modelState, model, ArrayR064.FACTORY);
-        }
-
         private void dispose(final Envr env) {
             env.dispose();
         }
@@ -300,11 +324,6 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
             } catch (CoptException cause) {
                 throw new RuntimeException(cause);
             }
-        }
-
-        @Override
-        protected int getIndexInSolver(final ExpressionsBasedModel model, final Variable variable) {
-            return ExpressionsBasedModel.Integration.getIndexOfFreeInSolver(model, variable);
         }
 
         @Override
@@ -346,8 +365,8 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
         }
     }
 
-    static void buildAndConstrain(final Expression expression, final ExpressionsBasedModel model, final Var[] vars, final boolean adjusted,
-            final copt.Model delegateSolver, final List<EntryPair<ModelEntity<?>, ConstraintType>> constrInfo) throws CoptException {
+    static void buildAndConstrain(final Expression expression, final Var[] vars, final copt.Model delegateSolver,
+            final List<EntryPair<ModelEntity<?>, ConstraintType>> constrInfo) throws CoptException {
 
         Expr linExpr = null;
 
@@ -356,10 +375,7 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
             linExpr = new Expr();
 
             for (IntIndex key : expression.getLinearKeySet()) {
-                int freeInd = model.indexOfFreeVariable(key.index);
-                if (freeInd >= 0) {
-                    linExpr.addTerm(vars[freeInd], expression.doubleValue(key, adjusted));
-                }
+                linExpr.addTerm(vars[key.index], expression.doubleValue(key, false));
             }
         }
 
@@ -371,93 +387,96 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
             }
 
             for (IntRowColumn key : expression.getQuadraticKeySet()) {
-                int freeRow = model.indexOfFreeVariable(key.row);
-                int freeCol = model.indexOfFreeVariable(key.column);
-                if (freeRow >= 0 && freeCol >= 0) {
-                    quadExpr.addTerm(vars[freeRow], vars[freeCol], expression.doubleValue(key, adjusted));
-                }
+                quadExpr.addTerm(vars[key.row], vars[key.column], expression.doubleValue(key, false));
             }
 
-            SolverCOPT.setQuadBounds(quadExpr, expression, delegateSolver, adjusted, constrInfo);
+            SolverCOPT.setQuadBounds(quadExpr, expression, delegateSolver, constrInfo);
 
         } else if (linExpr != null) {
 
-            SolverCOPT.setLinBounds(linExpr, expression, delegateSolver, adjusted, constrInfo);
+            SolverCOPT.setLinBounds(linExpr, expression, delegateSolver, constrInfo);
         }
     }
 
-    static Expr buildLinExpression(final Expression expression, final ExpressionsBasedModel model, final Var[] vars, final boolean adjusted) {
+    static Expr buildLinExpression(final Expression expression, final Var[] vars) {
 
         Expr linExpr = new Expr();
 
         if (expression.isAnyLinearFactorNonZero()) {
             for (IntIndex key : expression.getLinearKeySet()) {
-                int freeInd = model.indexOfFreeVariable(key.index);
-                if (freeInd >= 0) {
-                    linExpr.addTerm(vars[freeInd], expression.doubleValue(key, adjusted));
-                }
+                linExpr.addTerm(vars[key.index], expression.doubleValue(key, false));
             }
         }
 
         return linExpr;
     }
 
-    static QuadExpr buildQuadExpression(final Expression expression, final ExpressionsBasedModel model, final Var[] vars, final boolean adjusted) {
+    static QuadExpr buildQuadExpression(final Expression expression, final Var[] vars) {
 
         QuadExpr quadExpr = new QuadExpr();
 
         if (expression.isAnyLinearFactorNonZero()) {
-            Expr linExpr = SolverCOPT.buildLinExpression(expression, model, vars, adjusted);
+            Expr linExpr = SolverCOPT.buildLinExpression(expression, vars);
             quadExpr.addLinExpr(linExpr, ONE);
         }
 
         if (expression.isAnyQuadraticFactorNonZero()) {
             for (IntRowColumn key : expression.getQuadraticKeySet()) {
-                int freeRow = model.indexOfFreeVariable(key.row);
-                int freeCol = model.indexOfFreeVariable(key.column);
-                if (freeRow >= 0 && freeCol >= 0) {
-                    quadExpr.addTerm(vars[freeRow], vars[freeCol], expression.doubleValue(key, adjusted));
-                }
+                quadExpr.addTerm(vars[key.row], vars[key.column], expression.doubleValue(key, false));
             }
         }
 
         return quadExpr;
     }
 
-    static void setLinBounds(final Expr solExpr, final Expression modExpr, final copt.Model delegateSolver, final boolean adjusted,
+    static void setLinBounds(final Expr solExpr, final Expression modExpr, final copt.Model delegateSolver,
             final List<EntryPair<ModelEntity<?>, ConstraintType>> constrInfo) {
         if (modExpr.isEqualityConstraint()) {
-            SolverCOPT.addLinConstraint(delegateSolver, solExpr, Consts.EQUAL, modExpr.getLowerLimit(adjusted, ZERO), modExpr.getName());
+            SolverCOPT.addLinConstraint(delegateSolver, solExpr, Consts.EQUAL, modExpr.getLowerLimit(false, ZERO), modExpr.getName());
             constrInfo.add(EntryPair.of(modExpr, ConstraintType.EQUALITY));
         } else if (modExpr.isLowerConstraint() && modExpr.isUpperConstraint()) {
-            double lb = modExpr.getLowerLimit(adjusted, NEGATIVE_INFINITY);
-            double ub = modExpr.getUpperLimit(adjusted, POSITIVE_INFINITY);
+            double lb = modExpr.getLowerLimit(false, NEGATIVE_INFINITY);
+            double ub = modExpr.getUpperLimit(false, POSITIVE_INFINITY);
             SolverCOPT.addLinRangeConstraint(delegateSolver, solExpr, lb, ub, modExpr.getName());
             constrInfo.add(EntryPair.of(modExpr, ConstraintType.RANGE));
         } else if (modExpr.isLowerConstraint()) {
-            SolverCOPT.addLinConstraint(delegateSolver, solExpr, Consts.GREATER_EQUAL, modExpr.getLowerLimit(adjusted, NEGATIVE_INFINITY), modExpr.getName());
+            SolverCOPT.addLinConstraint(delegateSolver, solExpr, Consts.GREATER_EQUAL, modExpr.getLowerLimit(false, NEGATIVE_INFINITY), modExpr.getName());
             constrInfo.add(EntryPair.of(modExpr, ConstraintType.LOWER));
         } else if (modExpr.isUpperConstraint()) {
-            SolverCOPT.addLinConstraint(delegateSolver, solExpr, Consts.LESS_EQUAL, modExpr.getUpperLimit(adjusted, POSITIVE_INFINITY), modExpr.getName());
+            SolverCOPT.addLinConstraint(delegateSolver, solExpr, Consts.LESS_EQUAL, modExpr.getUpperLimit(false, POSITIVE_INFINITY), modExpr.getName());
             constrInfo.add(EntryPair.of(modExpr, ConstraintType.UPPER));
         }
     }
 
-    static void setQuadBounds(final QuadExpr solExpr, final Expression modExpr, final copt.Model delegateSolver, final boolean adjusted,
+    static void setQuadBounds(final QuadExpr solExpr, final Expression modExpr, final copt.Model delegateSolver,
             final List<EntryPair<ModelEntity<?>, ConstraintType>> constrInfo) {
         if (modExpr.isEqualityConstraint()) {
-            SolverCOPT.addQuadConstraint(delegateSolver, solExpr, Consts.EQUAL, modExpr.getLowerLimit(adjusted, ZERO), modExpr.getName());
+            SolverCOPT.addQuadConstraint(delegateSolver, solExpr, Consts.EQUAL, modExpr.getLowerLimit(false, ZERO), modExpr.getName());
             constrInfo.add(EntryPair.of(modExpr, ConstraintType.EQUALITY));
         } else {
             if (modExpr.isLowerConstraint()) {
-                SolverCOPT.addQuadConstraint(delegateSolver, solExpr, Consts.GREATER_EQUAL, modExpr.getLowerLimit(adjusted, NEGATIVE_INFINITY),
+                SolverCOPT.addQuadConstraint(delegateSolver, solExpr, Consts.GREATER_EQUAL, modExpr.getLowerLimit(false, NEGATIVE_INFINITY),
                         modExpr.getName());
                 constrInfo.add(EntryPair.of(modExpr, ConstraintType.LOWER));
             }
             if (modExpr.isUpperConstraint()) {
-                SolverCOPT.addQuadConstraint(delegateSolver, solExpr, Consts.LESS_EQUAL, modExpr.getUpperLimit(adjusted, POSITIVE_INFINITY), modExpr.getName());
+                SolverCOPT.addQuadConstraint(delegateSolver, solExpr, Consts.LESS_EQUAL, modExpr.getUpperLimit(false, POSITIVE_INFINITY), modExpr.getName());
                 constrInfo.add(EntryPair.of(modExpr, ConstraintType.UPPER));
             }
+        }
+    }
+
+    /**
+     * Interrupting the solving thread reaches COPT through {@link copt.Model#interrupt()}.
+     */
+    static void solveInterruptibly(final copt.Model model) throws CoptException {
+        try (InterruptForwarder interrupter = InterruptForwarder.watch(() -> {
+            try {
+                model.interrupt();
+            } catch (CoptException ignored) {
+            }
+        })) {
+            model.solve();
         }
     }
 
@@ -484,10 +503,11 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
     private final COPTEntityMap myEntityMap;
     private final int myIterationsAbort;
     private final int myIterationsSuffice;
+    private final boolean myMaximisation;
     private final long myTimeAbortMillis;
     private final long myTimeSufficeMillis;
 
-    SolverCOPT(final copt.Model model, final Var[] variables, final COPTEntityMap entityMap, final Optimisation.Options options) {
+    SolverCOPT(final copt.Model model, final Var[] variables, final COPTEntityMap entityMap, final Optimisation.Options options, final boolean maximisation) {
         super();
         myCOPTModel = model;
         myCOPTVariables = variables;
@@ -496,6 +516,7 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
         myIterationsSuffice = options.iterations_suffice;
         myTimeAbortMillis = options.time_abort;
         myTimeSufficeMillis = options.time_suffice;
+        myMaximisation = maximisation;
     }
 
     @Override
@@ -514,7 +535,12 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
     @Override
     public double getDualMultiplier(final int index) {
         try {
-            return myCOPTModel.getConstr(index).get(DblInfo.Dual);
+            int groupIndex = myEntityMap.getGroupIndex(index);
+            if (myEntityMap.isQuadratic(index)) {
+                return myCOPTModel.getQConstrs().getQConstr(groupIndex).get(DblInfo.Dual);
+            } else {
+                return myCOPTModel.getConstr(groupIndex).get(DblInfo.Dual);
+            }
         } catch (CoptException cause) {
             throw new RuntimeException(cause);
         }
@@ -540,49 +566,58 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
         State retState = State.UNEXPLORED;
         double retValue = NaN;
         ArrayR064 retSolution = ArrayR064.make(myCOPTVariables.length);
+        double[] retDuals = null;
+        double[] retReducedGradient = null;
 
         try {
 
             long startMillis = System.currentTimeMillis();
 
-            try (InterruptForwarder interrupter = InterruptForwarder.watch(() -> {
-                try {
-                    myCOPTModel.interrupt();
-                } catch (CoptException ignored) {
-                }
-            })) {
-                myCOPTModel.solve();
-            }
+            retState = this.optimize();
 
-            retState = SolverCOPT.translate(myCOPTModel.getIntAttr(IntAttr.Status));
-
-            if (!retState.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis) {
+            if (retState == State.APPROXIMATE && myTimeSufficeMillis < myTimeAbortMillis) {
                 long elapsed = System.currentTimeMillis() - startMillis;
                 long remaining = myTimeAbortMillis - elapsed;
                 if (remaining > 1000L) {
-                    myCOPTModel.setDblParam(DblParam.TimeLimit, remaining / 1000.0);
-                    if (myIterationsSuffice < myIterationsAbort) {
-                        myCOPTModel.setIntParam(IntParam.BarIterLimit, myIterationsAbort);
-                    }
-
-                    try (InterruptForwarder interrupter = InterruptForwarder.watch(() -> {
-                        try {
-                            myCOPTModel.interrupt();
-                        } catch (CoptException ignored) {
-                        }
-                    })) {
-                        myCOPTModel.solve();
-                    }
-                    retState = SolverCOPT.translate(myCOPTModel.getIntAttr(IntAttr.Status));
+                    retState = this.optimizeUntilAbort(remaining);
                 }
             }
 
-            if (retState.isFeasible() && retState != State.UNBOUNDED) {
+            int status = myCOPTModel.getIntAttr(IntAttr.Status);
+            if (status == Status.UNBOUNDED || status == Status.INF_OR_UNB) {
+                return this.solveForFeasibleSolution();
+            }
+
+            if (retState.isApproximate() && this.hasSolution()) {
 
                 retValue = myCOPTModel.getDblAttr(DblAttr.ObjVal);
 
                 for (int i = 0; i < myCOPTVariables.length; i++) {
                     retSolution.set(i, myCOPTVariables[i].get(DblInfo.Value));
+                }
+
+                // Dual values only exist for continuous models, and are (here) not read with quadratic
+                // constraints
+                boolean duals = myCOPTModel.getIntAttr(IntAttr.HasLpSol) == 1 && myCOPTModel.getIntAttr(IntAttr.IsMIP) == 0
+                        && myCOPTModel.getIntAttr(IntAttr.QConstrs) == 0;
+
+                if (duals && retState.isOptimal()) {
+
+                    // COPT's dual values are the rates of change of the objective function value with the
+                    // constraint limits. For a minimisation that is minus the multipliers signed as for
+                    // two-sided rows (positive when the upper limit is active), for a maximisation it is
+                    // those multipliers.
+                    double sign = myMaximisation ? ONE : NEG;
+                    retDuals = new double[myEntityMap.getConstraintsMetaData().size()];
+                    for (int i = 0; i < retDuals.length; i++) {
+                        retDuals[i] = sign * myCOPTModel.getConstr(myEntityMap.getGroupIndex(i)).get(DblInfo.Dual);
+                    }
+
+                    // The reduced costs are in the model's sense
+                    retReducedGradient = new double[myCOPTVariables.length];
+                    for (int j = 0; j < retReducedGradient.length; j++) {
+                        retReducedGradient[j] = myCOPTVariables[j].get(DblInfo.RedCost);
+                    }
                 }
             }
 
@@ -590,7 +625,16 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
             throw new RuntimeException(cause);
         }
 
-        return new Result(retState, retValue, retSolution);
+        Result retVal = new Result(retState, retValue, retSolution);
+
+        if (retDuals != null) {
+            double[] duals = retDuals;
+            double[] reducedGradient = retReducedGradient;
+            retVal = retVal.withDualValues(myEntityMap.getConstraintsMetaData(), () -> ArrayR064.wrap(duals))
+                    .withReducedGradient(() -> ArrayR064.wrap(reducedGradient));
+        }
+
+        return retVal;
     }
 
     @Override
@@ -607,6 +651,91 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
         } catch (CoptException cause) {
             return false;
         }
+    }
+
+    /**
+     * The objective function value, including the constant, of a solution to this model.
+     */
+    private double evaluateObjective(final double[] solution) throws CoptException {
+        QuadExpr objective = myCOPTModel.getQuadObjective();
+        Expr linear = objective.getLinExpr();
+        double retVal = myCOPTModel.getDblAttr(DblAttr.ObjConst);
+        for (int i = 0, limit = (int) linear.size(); i < limit; i++) {
+            retVal += linear.getCoeff(i) * solution[linear.getVar(i).getIdx()];
+        }
+        for (int i = 0, limit = (int) objective.size(); i < limit; i++) {
+            retVal += objective.getCoeff(i) * solution[objective.getVar1(i).getIdx()] * solution[objective.getVar2(i).getIdx()];
+        }
+        return retVal;
+    }
+
+    /**
+     * COPT's status alone does not say if there is a solution when a limit was reached. A MIP incumbent is
+     * feasible, while a continuous model stopped early is at most approximate.
+     */
+    private State getState() throws CoptException {
+        State state = SolverCOPT.translate(myCOPTModel.getIntAttr(IntAttr.Status));
+        if (state == State.APPROXIMATE && myCOPTModel.getIntAttr(IntAttr.IsMIP) != 0 && myCOPTModel.getIntAttr(IntAttr.HasMipSol) != 0) {
+            return State.FEASIBLE;
+        }
+        return state;
+    }
+
+    private boolean hasSolution() throws CoptException {
+        String solution = myCOPTModel.getIntAttr(IntAttr.IsMIP) != 0 ? IntAttr.HasMipSol : IntAttr.HasLpSol;
+        return myCOPTModel.getIntAttr(solution) != 0;
+    }
+
+    private State optimize() throws CoptException {
+        SolverCOPT.solveInterruptibly(myCOPTModel);
+        return this.getState();
+    }
+
+    /**
+     * Optimise again, with the abort limits instead of the suffice limits. The model's limits are restored
+     * afterwards, so that the next solve starts from the configured ones.
+     */
+    private State optimizeUntilAbort(final long remainingMillis) throws CoptException {
+        double timeLimit = myCOPTModel.getDblParam(DblParam.TimeLimit);
+        int iterationLimit = myCOPTModel.getIntParam(IntParam.BarIterLimit);
+        try {
+            myCOPTModel.setDblParam(DblParam.TimeLimit, remainingMillis / 1000.0);
+            if (myIterationsSuffice < myIterationsAbort) {
+                myCOPTModel.setIntParam(IntParam.BarIterLimit, myIterationsAbort);
+            }
+            return this.optimize();
+        } finally {
+            myCOPTModel.setDblParam(DblParam.TimeLimit, timeLimit);
+            myCOPTModel.setIntParam(IntParam.BarIterLimit, iterationLimit);
+        }
+    }
+
+    /**
+     * COPT's unbounded status only says that the objective can improve without limit, not that there is a
+     * feasible solution, which ojAlgo's does - and for a MIP COPT may not be able to tell infeasible from
+     * unbounded at all. Solving a copy of the model with a zero objective finds a feasible solution, and then
+     * the model is unbounded, or proves there is none.
+     */
+    private Result solveForFeasibleSolution() throws CoptException {
+        copt.Model copy = myCOPTModel.clone();
+        try {
+            copy.setQuadObjective(new QuadExpr(), myMaximisation ? Consts.MAXIMIZE : Consts.MINIMIZE);
+            copy.setObjConst(ZERO);
+            SolverCOPT.solveInterruptibly(copy);
+            String solution = copy.getIntAttr(IntAttr.IsMIP) != 0 ? IntAttr.HasMipSol : IntAttr.HasLpSol;
+            if (copy.getIntAttr(solution) != 0) {
+                double[] values = copy.get(DblInfo.Value, copy.getVars());
+                return new Result(State.UNBOUNDED, this.evaluateObjective(values), ArrayR064.wrap(values));
+            }
+            State state = copy.getIntAttr(IntAttr.Status) == Status.INFEASIBLE ? State.INFEASIBLE : State.INVALID;
+            return new Result(state, NaN, ArrayR064.make(myCOPTVariables.length));
+        } finally {
+            copy.dispose();
+        }
+    }
+
+    copt.Model getCOPTModel() {
+        return myCOPTModel;
     }
 
 }

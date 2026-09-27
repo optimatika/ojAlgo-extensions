@@ -21,7 +21,11 @@
  */
 package org.ojalgo.optimisation.solver.joptimizer;
 
+import static org.ojalgo.function.constant.PrimitiveMath.*;
+
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -81,6 +85,10 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverJOptimizer> {
 
+        /**
+         * Variable bounds are native bounds for linear problems, so this must be false. (For quadratic problems
+         * they are inequality constraints, with coefficient 1 or the variable's adjustment factor.)
+         */
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = true;
         private static final boolean ADJUSTED_OBJECTIVE = true;
@@ -113,6 +121,8 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             Set<IntIndex> fixed = model.getFixedVariables();
 
             Expression objective = model.objective().compensate(fixed);
+            double objectiveScale = ADJUSTED_OBJECTIVE ? objective.getAdjustmentFactor() : ONE;
+            ConvexMultivariateRealFunction objectiveFunction;
 
             List<Expression> equalities = model.constraints().filter(expr -> expr.isEqualityConstraint() && !expr.isAnyQuadraticFactorNonZero())
                     .map(expr -> expr.compensate(fixed)).collect(Collectors.toList());
@@ -147,27 +157,28 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                 DenseDoubleMatrix1D lb = new DenseDoubleMatrix1D(nbVars);
                 DenseDoubleMatrix1D ub = new DenseDoubleMatrix1D(nbVars);
 
-                lb.assign(LPPrimalDualMethod.DEFAULT_MIN_LOWER_BOUND);
-                ub.assign(LPPrimalDualMethod.DEFAULT_MAX_UPPER_BOUND);
+                for (int j = 0; j < nbVars; j++) {
+
+                    Variable var = variables.get(j);
+
+                    double low = var.getLowerLimit(ADJUSTED_BOUNDS, Double.NEGATIVE_INFINITY);
+                    lb.setQuick(j, Double.isFinite(low) ? low : LPPrimalDualMethod.DEFAULT_MIN_LOWER_BOUND);
+
+                    double upp = var.getUpperLimit(ADJUSTED_BOUNDS, Double.POSITIVE_INFINITY);
+                    ub.setQuick(j, Double.isFinite(upp) ? upp : LPPrimalDualMethod.DEFAULT_MAX_UPPER_BOUND);
+                }
 
                 for (IntIndex key : objective.getLinearKeySet()) {
 
                     int freeIndex = model.indexOfFreeVariable(key);
 
                     if (freeIndex >= 0) {
-
-                        Variable var = model.getVariable(key);
-
                         double cost = objective.doubleValue(key, ADJUSTED_OBJECTIVE);
                         c.setQuick(freeIndex, max ? -cost : cost);
-
-                        double low = var.getLowerLimit(ADJUSTED_BOUNDS, Double.NEGATIVE_INFINITY);
-                        lb.setQuick(freeIndex, Double.isFinite(low) ? low : LPPrimalDualMethod.DEFAULT_MIN_LOWER_BOUND);
-
-                        double upp = var.getUpperLimit(ADJUSTED_BOUNDS, Double.POSITIVE_INFINITY);
-                        ub.setQuick(freeIndex, Double.isFinite(upp) ? upp : LPPrimalDualMethod.DEFAULT_MAX_UPPER_BOUND);
                     }
                 }
+
+                objectiveFunction = new LinearMultivariateRealFunction(c, ZERO);
 
                 List<Expression> lowIneq = model.constraints().filter(expr -> expr.isLowerConstraint() && !expr.isAnyQuadraticFactorNonZero())
                         .map(expr -> expr.compensate(fixed)).collect(Collectors.toList());
@@ -217,37 +228,42 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             } else {
                 // QP
 
-                ConvexMultivariateRealFunction objFunc = SolverJOptimizer.toObjectiveFunction(objective, nbVars, model, ADJUSTED_OBJECTIVE);
-                request.setF0(objFunc);
+                objectiveFunction = SolverJOptimizer.toObjectiveFunction(objective, nbVars, model, ADJUSTED_OBJECTIVE);
+                request.setF0(objectiveFunction);
 
-                List<Expression> lowerConstr = model.constraints().filter(Expression::isLowerConstraint).map(expr -> expr.compensate(fixed))
-                        .collect(Collectors.toList());
-                int nbLowerConstr = lowerConstr.size();
+                // Inequality constraints, fi(x) <= 0
 
-                List<Expression> upperConstr = model.constraints().filter(Expression::isUpperConstraint).map(expr -> expr.compensate(fixed))
-                        .collect(Collectors.toList());
-                int nbUpperConstr = upperConstr.size();
+                List<ConvexMultivariateRealFunction> constrs = new ArrayList<>();
 
-                if (nbLowerConstr + nbUpperConstr > 0) {
+                model.constraints().filter(Expression::isLowerConstraint).map(expr -> expr.compensate(fixed))
+                        .forEach(compC -> constrs.add(SolverJOptimizer.toLowerConstraint(compC, nbVars, model, ADJUSTED_CONSTRAINTS)));
 
-                    ConvexMultivariateRealFunction[] constrs = new ConvexMultivariateRealFunction[nbLowerConstr + nbUpperConstr];
+                model.constraints().filter(Expression::isUpperConstraint).map(expr -> expr.compensate(fixed))
+                        .forEach(compC -> constrs.add(SolverJOptimizer.toUpperConstraint(compC, nbVars, model, ADJUSTED_CONSTRAINTS)));
 
-                    for (int i = 0; i < nbLowerConstr; i++) {
-                        Expression compC = lowerConstr.get(0);
-                        ConvexMultivariateRealFunction c = SolverJOptimizer.toLowerConstraint(compC, nbVars, model, ADJUSTED_CONSTRAINTS);
-                        constrs[i] = c;
+                for (int j = 0; j < nbVars; j++) {
+
+                    Variable var = variables.get(j);
+                    double coefficient = ADJUSTED_BOUNDS ? var.getAdjustmentFactor() : ONE;
+
+                    if (var.isLowerLimitSet()) {
+                        double[] q = new double[nbVars];
+                        q[j] = -coefficient;
+                        constrs.add(new LinearMultivariateRealFunction(q, var.getLowerLimit(ADJUSTED_BOUNDS, Double.NEGATIVE_INFINITY)));
                     }
-                    for (int i = 0; i < nbUpperConstr; i++) {
-                        Expression compC = upperConstr.get(0);
-                        ConvexMultivariateRealFunction c = SolverJOptimizer.toUpperConstraint(compC, nbVars, model, ADJUSTED_CONSTRAINTS);
-                        constrs[nbLowerConstr + i] = c;
+                    if (var.isUpperLimitSet()) {
+                        double[] q = new double[nbVars];
+                        q[j] = coefficient;
+                        constrs.add(new LinearMultivariateRealFunction(q, -var.getUpperLimit(ADJUSTED_BOUNDS, Double.POSITIVE_INFINITY)));
                     }
+                }
 
-                    request.setFi(constrs);
+                if (constrs.size() > 0) {
+                    request.setFi(constrs.toArray(new ConvexMultivariateRealFunction[constrs.size()]));
                 }
             }
 
-            return new SolverJOptimizer(configurator, request, model.options);
+            return new SolverJOptimizer(configurator, request, model.options, objectiveFunction, objectiveScale);
         }
 
         @Override
@@ -257,7 +273,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
         @Override
         public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
-            return ExpressionsBasedModel.Integration.expandFreeToFull(solverState, model, ArrayR064.FACTORY);
+            return ExpressionsBasedModel.Integration.expandFreeToFull(solverState, model, ArrayR064.FACTORY, Optional.empty(), this.getSolverSense());
         }
 
         @Override
@@ -313,9 +329,12 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         }
     }
 
+    /**
+     * lower - g(x) &lt;= 0
+     */
     static ConvexMultivariateRealFunction toLowerConstraint(final Expression expression, final int dim, final ExpressionsBasedModel model,
             final boolean adjusted) {
-        return SolverJOptimizer.toFunction(expression, dim, false, model, expression.getLowerLimit(adjusted, Double.NEGATIVE_INFINITY), adjusted);
+        return SolverJOptimizer.toFunction(expression, dim, true, model, expression.getLowerLimit(adjusted, Double.NEGATIVE_INFINITY), adjusted);
     }
 
     static ConvexMultivariateRealFunction toObjectiveFunction(final Expression expression, final int dim, final ExpressionsBasedModel model,
@@ -323,22 +342,36 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         return SolverJOptimizer.toFunction(expression, dim, model.getOptimisationSense() == Optimisation.Sense.MAX, model, 0.0, adjusted);
     }
 
+    /**
+     * g(x) - upper &lt;= 0
+     */
     static ConvexMultivariateRealFunction toUpperConstraint(final Expression expression, final int dim, final ExpressionsBasedModel model,
             final boolean adjusted) {
         return SolverJOptimizer.toFunction(expression, dim, false, model, -expression.getUpperLimit(adjusted, Double.POSITIVE_INFINITY), adjusted);
     }
 
     private final Configurator myConfigurator;
+    /**
+     * The (minimisation form) objective function, of the free variables.
+     */
+    private final ConvexMultivariateRealFunction myObjective;
+    /**
+     * The objective's adjustment factor – the objective JOptimizer solves is scaled by this.
+     */
+    private final double myObjectiveScale;
     private final Optimisation.Options myOptions;
     private final OptimizationRequest myRequest;
 
-    SolverJOptimizer(final Configurator configurator, final OptimizationRequest request, final Optimisation.Options options) {
+    SolverJOptimizer(final Configurator configurator, final OptimizationRequest request, final Optimisation.Options options,
+            final ConvexMultivariateRealFunction objective, final double objectiveScale) {
 
         super();
 
         myConfigurator = configurator;
         myRequest = request;
         myOptions = options;
+        myObjective = objective;
+        myObjectiveScale = objectiveScale;
     }
 
     @Override
@@ -349,6 +382,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         myConfigurator.configure(myRequest, handler, myOptions);
 
         Optimisation.State retState = Optimisation.State.UNEXPLORED;
+        double retValue = NaN;
         Access1D<Double> retSolution = null;
 
         //        if (kickStarter != null && kickStarter.getState().isFeasible()) {
@@ -365,7 +399,9 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             OptimizationResponse response = handler.getOptimizationResponse();
 
             retState = Optimisation.State.OPTIMAL;
-            retSolution = Access1D.wrap(response.getSolution());
+            double[] solution = response.getSolution();
+            retValue = myObjective.value(new DenseDoubleMatrix1D(solution)) / myObjectiveScale;
+            retSolution = Access1D.wrap(solution);
 
         } catch (InfeasibleProblemException cause) {
 
@@ -390,7 +426,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             }
         }
 
-        return new Optimisation.Result(retState, retSolution);
+        return new Optimisation.Result(retState, retValue, retSolution);
     }
 
 }

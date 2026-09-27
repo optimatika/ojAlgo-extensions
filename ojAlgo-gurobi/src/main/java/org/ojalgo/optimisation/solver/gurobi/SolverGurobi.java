@@ -23,16 +23,15 @@ package org.ojalgo.optimisation.solver.gurobi;
 
 import static org.ojalgo.function.constant.PrimitiveMath.*;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.ojalgo.array.ArrayR064;
 import org.ojalgo.concurrent.InterruptForwarder;
+import org.ojalgo.optimisation.ConstraintsMetaData;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.ModelEntity;
@@ -43,6 +42,7 @@ import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
 import org.ojalgo.type.ForgetfulMap;
+import org.ojalgo.type.context.NumberContext;
 import org.ojalgo.type.keyvalue.EntryPair;
 
 import com.gurobi.gurobi.GRB;
@@ -51,6 +51,7 @@ import com.gurobi.gurobi.GRBException;
 import com.gurobi.gurobi.GRBExpr;
 import com.gurobi.gurobi.GRBLinExpr;
 import com.gurobi.gurobi.GRBModel;
+import com.gurobi.gurobi.GRBQConstr;
 import com.gurobi.gurobi.GRBQuadExpr;
 import com.gurobi.gurobi.GRBVar;
 
@@ -63,23 +64,48 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
 
     public static class Configurator {
 
+        /**
+         * Configure the environment. It is cached, and shared by all models built with the same
+         * {@link Integration}, so this is only for settings that are the same for all of them. Each model gets
+         * its own copy of the environment's parameters when it is created – settings specific to a model go in
+         * {@link #configure(GRBModel, Optimisation.Options)}.
+         */
         protected void configure(final GRBEnv environment, final Optimisation.Options options) {
             try {
                 environment.set(GRB.IntParam.OutputFlag, 0);
+            } catch (GRBException cause) {
+                throw new RuntimeException(cause);
+            }
+        }
+
+        /**
+         * Configure a model, its own copy of the environment's parameters.
+         */
+        protected void configure(final GRBModel model, final Optimisation.Options options) {
+            try {
 
                 long effectiveTimeMillis = Math.min(options.time_suffice, options.time_abort);
                 if (effectiveTimeMillis > 0L && effectiveTimeMillis < Long.MAX_VALUE) {
-                    environment.set(GRB.DoubleParam.TimeLimit, effectiveTimeMillis / 1000.0);
+                    model.set(GRB.DoubleParam.TimeLimit, effectiveTimeMillis / 1000.0);
                 }
 
                 int effectiveIterations = Math.min(options.iterations_suffice, options.iterations_abort);
                 if (effectiveIterations > 0 && effectiveIterations < Integer.MAX_VALUE) {
-                    environment.set(GRB.DoubleParam.IterationLimit, effectiveIterations);
+                    model.set(GRB.DoubleParam.IterationLimit, effectiveIterations);
                 }
 
                 int parallelism = options.getParallelism();
                 if (parallelism > 0) {
-                    environment.set(GRB.IntParam.Threads, parallelism);
+                    model.set(GRB.IntParam.Threads, parallelism);
+                }
+
+                // The feasibility tolerance, only if configured to be something other than the default – a
+                // requirement on both the constraints and the integrality, within Gurobi's allowed ranges
+                Optional<NumberContext> feasibility = options.getConfiguredFeasibilityTolerance();
+                if (feasibility.isPresent()) {
+                    double tolerance = feasibility.get().getAbsoluteError();
+                    model.set(GRB.DoubleParam.FeasibilityTol, Math.min(Math.max(tolerance, 1E-9), 1E-2));
+                    model.set(GRB.DoubleParam.IntFeasTol, Math.min(Math.max(tolerance, 1E-9), 1E-1));
                 }
 
             } catch (GRBException cause) {
@@ -100,28 +126,38 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
 
     static final class GurobiEntityMap implements ExpressionsBasedModel.EntityMap {
 
-        private final List<EntryPair<ModelEntity<?>, ConstraintType>> myConstraints;
+        private final ConstraintsMetaData myConstraints;
+        /**
+         * For each constraint, its index among Gurobi's linear or quadratic constraints (see
+         * {@link #myQuadratic}).
+         */
+        private final int[] myGroupIndices;
         private final int myNumEqualityConstraints;
         private final int myNumInequalityConstraints;
         private final int myNumVars;
-        private final int[] mySolverToModel;
+        private final boolean[] myQuadratic;
 
-        GurobiEntityMap(final int numVars, final ExpressionsBasedModel model, final List<Variable> freeVariables,
-                final List<EntryPair<ModelEntity<?>, ConstraintType>> constraints) {
+        GurobiEntityMap(final int numVars, final List<EntryPair<ModelEntity<?>, ConstraintType>> constraints) {
             myNumVars = numVars;
-            mySolverToModel = new int[numVars];
-            for (int i = 0; i < numVars; i++) {
-                mySolverToModel[i] = model.indexOf(freeVariables.get(i));
-            }
-            myConstraints = constraints;
+            int nbConstraints = constraints.size();
+            myConstraints = ConstraintsMetaData.newEntityMap(nbConstraints);
+            myConstraints.setSignedRows(true);
+            myGroupIndices = new int[nbConstraints];
+            myQuadratic = new boolean[nbConstraints];
             int eq = 0;
             int ineq = 0;
-            for (EntryPair<ModelEntity<?>, ConstraintType> entry : constraints) {
+            int linear = 0;
+            int quadratic = 0;
+            for (int i = 0; i < nbConstraints; i++) {
+                EntryPair<ModelEntity<?>, ConstraintType> entry = constraints.get(i);
+                myConstraints.setEntry(i, entry.left(), entry.right(), false, false);
                 if (entry.getValue() == ConstraintType.EQUALITY) {
                     eq++;
                 } else {
                     ineq++;
                 }
+                myQuadratic[i] = ((Expression) entry.left()).isAnyQuadraticFactorNonZero();
+                myGroupIndices[i] = myQuadratic[i] ? quadratic++ : linear++;
             }
             myNumEqualityConstraints = eq;
             myNumInequalityConstraints = ineq;
@@ -159,7 +195,7 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
 
         @Override
         public EntryPair<ModelEntity<?>, ConstraintType> getConstraint(final int idc) {
-            return myConstraints.get(idc);
+            return myConstraints.getEntry(idc);
         }
 
         @Override
@@ -169,8 +205,8 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
 
         @Override
         public int indexOf(final int solverIndex) {
-            if (solverIndex >= 0 && solverIndex < mySolverToModel.length) {
-                return mySolverToModel[solverIndex];
+            if (solverIndex >= 0 && solverIndex < myNumVars) {
+                return solverIndex;
             }
             return -1;
         }
@@ -180,13 +216,25 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
             return false;
         }
 
+        ConstraintsMetaData getConstraintsMetaData() {
+            return myConstraints;
+        }
+
+        int getGroupIndex(final int idc) {
+            return myGroupIndices[idc];
+        }
+
+        boolean isQuadratic(final int idc) {
+            return myQuadratic[idc];
+        }
+
     }
 
+    /**
+     * Gurobi gets the model as it is: all variables, including the fixed ones, and the constraints and the
+     * objective function without any scaling (adjustment). Gurobi's own presolve and scaling does the rest.
+     */
     static final class Integration extends ExpressionsBasedModel.Integration<SolverGurobi> {
-
-        private static final boolean ADJUSTED_BOUNDS = false;
-        private static final boolean ADJUSTED_CONSTRAINTS = true;
-        private static final boolean ADJUSTED_OBJECTIVE = true;
 
         private final boolean myEmpty;
         private final ForgetfulMap.ValueCache<GRBEnv> myEnvironmentCache;
@@ -213,27 +261,22 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
 
                 GRBModel delegateSolver = configurator.newGRBModel(environment);
 
-                List<Variable> freeModVars = model.getFreeVariables();
-                Set<IntIndex> fixedModVars = model.getFixedVariables();
+                configurator.configure(delegateSolver, model.options);
 
-                Expression modObj = model.objective().compensate(fixedModVars);
+                List<Variable> modVars = model.getVariables();
 
-                int numberOfVariables = freeModVars.size();
+                int numberOfVariables = modVars.size();
 
                 double[] lb = new double[numberOfVariables];
                 double[] ub = new double[numberOfVariables];
-                double[] obj = new double[numberOfVariables];
                 char[] type = new char[numberOfVariables];
                 String[] name = new String[numberOfVariables];
 
                 for (int v = 0; v < numberOfVariables; v++) {
-                    Variable variable = freeModVars.get(v);
+                    Variable variable = modVars.get(v);
 
-                    lb[v] = variable.getLowerLimit(ADJUSTED_BOUNDS, NEGATIVE_INFINITY);
-                    ub[v] = variable.getUpperLimit(ADJUSTED_BOUNDS, POSITIVE_INFINITY);
-
-                    BigDecimal weight = variable.getContributionWeight();
-                    obj[v] = weight != null ? weight.doubleValue() : ZERO;
+                    lb[v] = variable.getLowerLimit(false, NEGATIVE_INFINITY);
+                    ub[v] = variable.getUpperLimit(false, POSITIVE_INFINITY);
 
                     type[v] = GRB.CONTINUOUS;
                     if (variable.isBinary()) {
@@ -245,22 +288,31 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
                     name[v] = variable.getName();
                 }
 
-                delegateSolver.addVars(lb, ub, obj, type, name);
+                delegateSolver.addVars(lb, ub, null, type, name);
                 delegateSolver.update();
 
                 GRBVar[] delegateVariables = delegateSolver.getVars();
 
                 List<EntryPair<ModelEntity<?>, ConstraintType>> constrInfo = new ArrayList<>();
 
-                List<Expression> tmpCollect = model.constraints().map(e -> e.compensate(fixedModVars)).collect(Collectors.toList());
-                for (Expression expr : tmpCollect) {
+                List<Expression> modConstrs = model.constraints().collect(Collectors.toList());
+                for (Expression expr : modConstrs) {
 
-                    GRBExpr solExpr = SolverGurobi.buildExpression(expr, model, delegateVariables, ADJUSTED_CONSTRAINTS);
+                    GRBExpr solExpr = SolverGurobi.buildExpression(expr, delegateVariables);
 
-                    SolverGurobi.setBounds(solExpr, expr, delegateSolver, ADJUSTED_CONSTRAINTS, constrInfo);
+                    SolverGurobi.setBounds(solExpr, expr, delegateSolver, constrInfo);
                 }
 
-                GRBExpr solObj = SolverGurobi.buildExpression(modObj, model, delegateVariables, ADJUSTED_OBJECTIVE);
+                GRBExpr solObj = SolverGurobi.buildExpression(model.objective(), delegateVariables);
+                if (solObj == null) {
+                    solObj = new GRBLinExpr();
+                }
+                double objectiveConstant = ExpressionsBasedModel.Integration.getObjectiveConstant(model);
+                if (solObj instanceof GRBQuadExpr) {
+                    ((GRBQuadExpr) solObj).addConstant(objectiveConstant);
+                } else {
+                    ((GRBLinExpr) solObj).addConstant(objectiveConstant);
+                }
 
                 if (model.getOptimisationSense() == Optimisation.Sense.MAX) {
                     delegateSolver.setObjective(solObj, GRB.MAXIMIZE);
@@ -270,9 +322,22 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
 
                 delegateSolver.update();
 
-                GurobiEntityMap entityMap = new GurobiEntityMap(numberOfVariables, model, freeModVars, constrInfo);
+                // Dual values with quadratic constraints are only computed when asked for, and only for continuous
+                // models
+                if (delegateSolver.get(GRB.IntAttr.NumQConstrs) > 0 && !model.isAnyVariableInteger()) {
+                    delegateSolver.set(GRB.IntParam.QCPDual, 1);
+                }
 
-                return new SolverGurobi(delegateSolver, entityMap, model.options);
+                // The MIP gap, only if configured to be something other than the default
+                Optional<NumberContext> gap = model.options.getConfiguredGapTolerance();
+                if (gap.isPresent()) {
+                    delegateSolver.set(GRB.DoubleParam.MIPGap, gap.get().getRelativeError());
+                    delegateSolver.set(GRB.DoubleParam.MIPGapAbs, gap.get().getAbsoluteError());
+                }
+
+                GurobiEntityMap entityMap = new GurobiEntityMap(numberOfVariables, constrInfo);
+
+                return new SolverGurobi(delegateSolver, entityMap, model.options, model.getOptimisationSense() == Optimisation.Sense.MAX);
 
             } catch (GRBException exception) {
                 exception.printStackTrace();
@@ -284,16 +349,6 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
         @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
             return true;
-        }
-
-        @Override
-        public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
-            return ExpressionsBasedModel.Integration.expandFreeToFull(solverState, model, ArrayR064.FACTORY);
-        }
-
-        @Override
-        public Result toSolverState(final Result modelState, final ExpressionsBasedModel model) {
-            return ExpressionsBasedModel.Integration.reduceFullToFree(modelState, model, ArrayR064.FACTORY);
         }
 
         private void dispose(final GRBEnv env) {
@@ -310,11 +365,6 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
             } catch (GRBException cause) {
                 throw new RuntimeException(cause);
             }
-        }
-
-        @Override
-        protected int getIndexInSolver(final ExpressionsBasedModel model, final Variable variable) {
-            return ExpressionsBasedModel.Integration.getIndexOfFreeInSolver(model, variable);
         }
 
         @Override
@@ -353,8 +403,7 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
         }
     }
 
-    static GRBExpr buildExpression(final Expression expression, final ExpressionsBasedModel model, final GRBVar[] vars, final boolean adjusted)
-            throws GRBException {
+    static GRBExpr buildExpression(final Expression expression, final GRBVar[] vars) throws GRBException {
 
         GRBLinExpr linExpr = null;
         GRBQuadExpr quadExpr;
@@ -365,11 +414,7 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
             retVal = linExpr = new GRBLinExpr();
 
             for (IntIndex key : expression.getLinearKeySet()) {
-
-                int freeInd = model.indexOfFreeVariable(key.index);
-                if (freeInd >= 0) {
-                    linExpr.addTerm(expression.doubleValue(key, adjusted), vars[freeInd]);
-                }
+                linExpr.addTerm(expression.doubleValue(key, false), vars[key.index]);
             }
         }
 
@@ -382,30 +427,29 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
             retVal = quadExpr;
 
             for (IntRowColumn key : expression.getQuadraticKeySet()) {
-
-                int freeRow = model.indexOfFreeVariable(key.row);
-                int freeCol = model.indexOfFreeVariable(key.column);
-                if (freeRow >= 0 && freeCol >= 0) {
-                    quadExpr.addTerm(expression.doubleValue(key, adjusted), vars[freeRow], vars[freeCol]);
-                }
+                quadExpr.addTerm(expression.doubleValue(key, false), vars[key.row], vars[key.column]);
             }
         }
 
         return retVal;
     }
 
-    static void setBounds(final GRBExpr solExpr, final Expression modExpr, final GRBModel delegateSolver, final boolean adjusted,
+    static void setBounds(final GRBExpr solExpr, final Expression modExpr, final GRBModel delegateSolver,
             final List<EntryPair<ModelEntity<?>, ConstraintType>> constrInfo) {
+        if (solExpr == null) {
+            // No (non-zero) factors - there is no constraint to add
+            return;
+        }
         if (modExpr.isEqualityConstraint()) {
-            SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.EQUAL, modExpr.getLowerLimit(adjusted, ZERO), modExpr.getName());
+            SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.EQUAL, modExpr.getLowerLimit(false, ZERO), modExpr.getName());
             constrInfo.add(EntryPair.of(modExpr, ConstraintType.EQUALITY));
         } else {
             if (modExpr.isLowerConstraint()) {
-                SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.GREATER_EQUAL, modExpr.getLowerLimit(adjusted, NEGATIVE_INFINITY), modExpr.getName());
+                SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.GREATER_EQUAL, modExpr.getLowerLimit(false, NEGATIVE_INFINITY), modExpr.getName());
                 constrInfo.add(EntryPair.of(modExpr, ConstraintType.LOWER));
             }
             if (modExpr.isUpperConstraint()) {
-                SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.LESS_EQUAL, modExpr.getUpperLimit(adjusted, POSITIVE_INFINITY), modExpr.getName());
+                SolverGurobi.addConstraint(delegateSolver, solExpr, GRB.LESS_EQUAL, modExpr.getUpperLimit(false, POSITIVE_INFINITY), modExpr.getName());
                 constrInfo.add(EntryPair.of(modExpr, ConstraintType.UPPER));
             }
         }
@@ -432,7 +476,6 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
             case GRB.Status.OPTIMAL:
                 return State.OPTIMAL;
             case GRB.Status.UNBOUNDED:
-                // Perhaps a problem here – ojAlgo expects a feasible solution with this state
                 return State.UNBOUNDED;
             default:
                 return State.FAILED;
@@ -443,11 +486,16 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
     private final GRBModel myGRBModel;
     private final int myIterationsAbort;
     private final int myIterationsSuffice;
+    private final boolean myMaximisation;
     private final int myNumVars;
+    /**
+     * A MIP start was set, and has to be cleared should the next solve not have one.
+     */
+    private boolean myStart = false;
     private final long myTimeAbortMillis;
     private final long myTimeSufficeMillis;
 
-    SolverGurobi(final GRBModel model, final GurobiEntityMap entityMap, final Optimisation.Options options) {
+    SolverGurobi(final GRBModel model, final GurobiEntityMap entityMap, final Optimisation.Options options, final boolean maximisation) {
         super();
         myEntityMap = entityMap;
         myGRBModel = model;
@@ -456,6 +504,7 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
         myNumVars = model.getVars().length;
         myTimeAbortMillis = options.time_abort;
         myTimeSufficeMillis = options.time_suffice;
+        myMaximisation = maximisation;
     }
 
     @Override
@@ -474,7 +523,12 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
     @Override
     public double getDualMultiplier(final int index) {
         try {
-            return myGRBModel.getConstr(index).get(GRB.DoubleAttr.Pi);
+            int groupIndex = myEntityMap.getGroupIndex(index);
+            if (myEntityMap.isQuadratic(index)) {
+                return myGRBModel.getQConstrs()[groupIndex].get(GRB.DoubleAttr.QCPi);
+            } else {
+                return myGRBModel.getConstr(groupIndex).get(GRB.DoubleAttr.Pi);
+            }
         } catch (GRBException cause) {
             throw new RuntimeException(cause);
         }
@@ -502,41 +556,66 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
         State retState = State.UNEXPLORED;
         double retValue = NaN;
         ArrayR064 retSolution = ArrayR064.make(myGRBModel.getVars().length);
+        double[] retDuals = null;
+        double[] retReducedGradient = null;
 
         try {
 
+            this.setStart(kickStarter, tmpVars);
+
             long startMillis = System.currentTimeMillis();
 
-            // Gurobi's own way of being stopped from elsewhere, which is what makes an interrupt of the
-            // solving thread reach it.
-            try (InterruptForwarder interrupter = InterruptForwarder.watch(myGRBModel::terminate)) {
-                myGRBModel.optimize();
-            }
+            retState = this.optimize();
 
-            retState = SolverGurobi.translate(myGRBModel.get(GRB.IntAttr.Status));
-
-            if (!retState.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis) {
+            if (retState == State.APPROXIMATE && myTimeSufficeMillis < myTimeAbortMillis) {
                 long elapsed = System.currentTimeMillis() - startMillis;
                 long remaining = myTimeAbortMillis - elapsed;
                 if (remaining > 1000L) {
-                    myGRBModel.getEnv().set(GRB.DoubleParam.TimeLimit, remaining / 1000.0);
-                    if (myIterationsSuffice < myIterationsAbort) {
-                        myGRBModel.getEnv().set(GRB.DoubleParam.IterationLimit, myIterationsAbort);
-                    }
-
-                    try (InterruptForwarder interrupter = InterruptForwarder.watch(myGRBModel::terminate)) {
-                        myGRBModel.optimize();
-                    }
-                    retState = SolverGurobi.translate(myGRBModel.get(GRB.IntAttr.Status));
+                    retState = this.optimizeUntilAbort(remaining);
                 }
             }
 
-            if (retState.isFeasible()) {
+            if (retState == State.UNBOUNDED) {
+                return this.solveForFeasibleSolution();
+            }
+
+            if (retState.isApproximate() && myGRBModel.get(GRB.IntAttr.SolCount) > 0) {
 
                 retValue = myGRBModel.get(GRB.DoubleAttr.ObjVal);
 
                 for (int i = 0; i < tmpVars.length; i++) {
                     retSolution.set(i, tmpVars[i].get(GRB.DoubleAttr.X));
+                }
+
+                // Gurobi only computes dual values for continuous models, and not for non-convex quadratic
+                // constraints
+                if (retState.isOptimal() && myGRBModel.get(GRB.IntAttr.IsMIP) == 0) {
+                    try {
+
+                        // Gurobi's dual values are the rates of change of the objective function value with the
+                        // constraint limits. For a minimisation that is minus the multipliers signed as for
+                        // two-sided rows (positive when the upper limit is active), for a maximisation it is
+                        // those multipliers. The same for linear (Pi) and quadratic (QCPi) constraints.
+                        double sign = myMaximisation ? ONE : NEG;
+                        double[] pi = myGRBModel.get(GRB.DoubleAttr.Pi, myGRBModel.getConstrs());
+                        GRBQConstr[] quadraticConstraints = myGRBModel.getQConstrs();
+                        double[] qcpi = quadraticConstraints.length > 0 ? myGRBModel.get(GRB.DoubleAttr.QCPi, quadraticConstraints) : new double[0];
+                        retDuals = new double[myEntityMap.getConstraintsMetaData().size()];
+                        for (int i = 0; i < retDuals.length; i++) {
+                            int groupIndex = myEntityMap.getGroupIndex(i);
+                            retDuals[i] = sign * (myEntityMap.isQuadratic(i) ? qcpi[groupIndex] : pi[groupIndex]);
+                        }
+
+                        // The reduced costs are in the model's sense
+                        retReducedGradient = myGRBModel.get(GRB.DoubleAttr.RC, tmpVars);
+
+                    } catch (GRBException cause) {
+                        if (cause.getErrorCode() != GRB.Error.DATA_NOT_AVAILABLE) {
+                            throw cause;
+                        }
+                        retDuals = null;
+                        retReducedGradient = null;
+                    }
                 }
             }
 
@@ -544,7 +623,16 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
             throw new RuntimeException(cause);
         }
 
-        return new Result(retState, retValue, retSolution);
+        Result retVal = new Result(retState, retValue, retSolution);
+
+        if (retDuals != null) {
+            double[] duals = retDuals;
+            double[] reducedGradient = retReducedGradient;
+            retVal = retVal.withDualValues(myEntityMap.getConstraintsMetaData(), () -> ArrayR064.wrap(duals))
+                    .withReducedGradient(() -> ArrayR064.wrap(reducedGradient));
+        }
+
+        return retVal;
     }
 
     @Override
@@ -563,6 +651,126 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
         } catch (GRBException cause) {
             return false;
         }
+    }
+
+    /**
+     * Gurobi's status alone does not say if there is a solution when a limit was reached, the solution count
+     * does. A MIP incumbent is feasible, while a continuous model stopped early is at most approximate.
+     */
+    private State getState() throws GRBException {
+        State state = SolverGurobi.translate(myGRBModel.get(GRB.IntAttr.Status));
+        if (state == State.APPROXIMATE && myGRBModel.get(GRB.IntAttr.IsMIP) != 0 && myGRBModel.get(GRB.IntAttr.SolCount) > 0) {
+            return State.FEASIBLE;
+        }
+        return state;
+    }
+
+    /**
+     * Should Gurobi only conclude that the model is infeasible or unbounded, it is optimised again without dual
+     * reductions to find out which.
+     * <p>
+     * Asked for dual values with quadratic constraints (QCPDual), Gurobi refuses to solve a non-convex model. It
+     * is then optimised again without them - Gurobi solves non-convex models to global optimality, but has no
+     * dual values for them anyway.
+     * <p>
+     * Interrupting the solving thread reaches Gurobi through {@link GRBModel#terminate()}.
+     */
+    private State optimize() throws GRBException {
+        try (InterruptForwarder interrupter = InterruptForwarder.watch(myGRBModel::terminate)) {
+            try {
+                myGRBModel.optimize();
+            } catch (GRBException cause) {
+                if (cause.getErrorCode() != GRB.Error.ERROR_Q_NOT_PSD || myGRBModel.get(GRB.IntParam.QCPDual) == 0) {
+                    throw cause;
+                }
+                myGRBModel.set(GRB.IntParam.QCPDual, 0);
+                myGRBModel.optimize();
+            }
+            if (myGRBModel.get(GRB.IntAttr.Status) == GRB.Status.INF_OR_UNBD) {
+                int dualReductions = myGRBModel.get(GRB.IntParam.DualReductions);
+                myGRBModel.set(GRB.IntParam.DualReductions, 0);
+                try {
+                    myGRBModel.optimize();
+                } finally {
+                    myGRBModel.set(GRB.IntParam.DualReductions, dualReductions);
+                }
+            }
+        }
+        return this.getState();
+    }
+
+    /**
+     * Optimise again, with the abort limits instead of the suffice limits. The model's limits are restored
+     * afterwards, so that the next solve starts from the configured ones.
+     */
+    private State optimizeUntilAbort(final long remainingMillis) throws GRBException {
+        double timeLimit = myGRBModel.get(GRB.DoubleParam.TimeLimit);
+        double iterationLimit = myGRBModel.get(GRB.DoubleParam.IterationLimit);
+        try {
+            myGRBModel.set(GRB.DoubleParam.TimeLimit, remainingMillis / 1000.0);
+            if (myIterationsSuffice < myIterationsAbort) {
+                myGRBModel.set(GRB.DoubleParam.IterationLimit, myIterationsAbort);
+            }
+            return this.optimize();
+        } finally {
+            myGRBModel.set(GRB.DoubleParam.TimeLimit, timeLimit);
+            myGRBModel.set(GRB.DoubleParam.IterationLimit, iterationLimit);
+        }
+    }
+
+    /**
+     * A feasible solution to start from is Gurobi's MIP start. Anything else, such as what ojAlgo derives from
+     * the variables' values when no solution is supplied, is not passed on - Gurobi would spend time trying to
+     * repair it. Ignored for continuous models.
+     */
+    private void setStart(final Result kickStarter, final GRBVar[] variables) throws GRBException {
+
+        if (myGRBModel.get(GRB.IntAttr.IsMIP) == 0) {
+            return;
+        }
+
+        boolean start = kickStarter != null && kickStarter.getState().isFeasible() && kickStarter.size() == variables.length;
+
+        if (start || myStart) {
+            double[] values = new double[variables.length];
+            for (int i = 0; i < values.length; i++) {
+                values[i] = start ? kickStarter.doubleValue(i) : GRB.UNDEFINED;
+            }
+            myGRBModel.set(GRB.DoubleAttr.Start, variables, values);
+            myStart = start;
+        }
+    }
+
+    /**
+     * Gurobi's unbounded status only says that the objective can improve without limit, not that there is a
+     * feasible solution, which ojAlgo's does. Solving a copy of the model with a zero objective finds one, or
+     * proves there is none.
+     * <p>
+     * A MIP may already have incumbents, but they lie far out along the unbounded ray, where Gurobi considers
+     * the values infinite.
+     */
+    private Result solveForFeasibleSolution() throws GRBException {
+        GRBModel copy = new GRBModel(myGRBModel);
+        try {
+            GRBExpr objective = copy.getObjective();
+            copy.setObjective(new GRBLinExpr());
+            copy.set(GRB.IntParam.QCPDual, 0);
+            try (InterruptForwarder interrupter = InterruptForwarder.watch(copy::terminate)) {
+                copy.optimize();
+            }
+            if (copy.get(GRB.IntAttr.SolCount) > 0) {
+                double value = objective instanceof GRBQuadExpr ? ((GRBQuadExpr) objective).getValue() : ((GRBLinExpr) objective).getValue();
+                return new Result(State.UNBOUNDED, value, ArrayR064.wrap(copy.get(GRB.DoubleAttr.X, copy.getVars())));
+            }
+            State state = copy.get(GRB.IntAttr.Status) == GRB.Status.INFEASIBLE ? State.INFEASIBLE : State.INVALID;
+            return new Result(state, NaN, ArrayR064.make(myNumVars));
+        } finally {
+            copy.dispose();
+        }
+    }
+
+    GRBModel getGRBModel() {
+        return myGRBModel;
     }
 
 }

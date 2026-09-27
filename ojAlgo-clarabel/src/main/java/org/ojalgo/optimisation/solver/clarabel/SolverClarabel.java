@@ -27,8 +27,11 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
 import java.util.List;
 
+import org.ojalgo.array.ArrayR064;
 import org.ojalgo.array.SparseArray;
 import org.ojalgo.array.SparseArray.NonzeroView;
 import org.ojalgo.matrix.decomposition.Cholesky;
@@ -37,13 +40,16 @@ import org.ojalgo.matrix.store.ColumnsSupplier;
 import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.PhysicalStore;
 import org.ojalgo.matrix.store.R064Store;
+import org.ojalgo.optimisation.ConstraintsMetaData;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
+import org.ojalgo.optimisation.ModelEntity;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
 import org.ojalgo.type.FloatingPointReceptacle;
+import org.ojalgo.type.keyvalue.EntryPair;
 
 /**
  * Clarabel solver integration for ojAlgo using Panama FFI.
@@ -59,6 +65,21 @@ public final class SolverClarabel implements Optimisation.Solver {
 
     public static class Configurator {
 
+        /**
+         * The feasibility tolerance, for the primal and the dual residuals alike.
+         */
+        private static final double TOL_FEAS = 5E-9;
+        /**
+         * The absolute and relative duality gap tolerances.
+         */
+        private static final double TOL_GAP_ABS = 5E-9;
+        private static final double TOL_GAP_REL = 1E-11;
+        /**
+         * The absolute and relative infeasibility detection tolerances.
+         */
+        private static final double TOL_INFEAS_ABS = 5E-9;
+        private static final double TOL_INFEAS_REL = 1E-11;
+
         protected void configure(final MemorySegment settings, final Optimisation.Options options) {
 
             if (options.iterations_abort > 0L) {
@@ -72,16 +93,13 @@ public final class SolverClarabel implements Optimisation.Solver {
             boolean verbose = options.logger_appender != null && options.logger_detailed;
             ClarabelBindings.setVerbose(settings, verbose);
 
-            double epsilon = options.feasibility.epsilon();
-            ClarabelBindings.setTolFeas(settings, epsilon);
-
-            double relativeError = options.feasibility.getRelativeError();
-            double absoluteError = options.feasibility.getAbsoluteError();
-
-            ClarabelBindings.setTolInfeasRel(settings, relativeError);
-            ClarabelBindings.setTolInfeasAbs(settings, absoluteError);
-            ClarabelBindings.setTolGapRel(settings, relativeError);
-            ClarabelBindings.setTolGapAbs(settings, absoluteError);
+            // Clarabel has no tolerance for primal feasibility alone - tol_feas applies to the dual residual as
+            // well - so options.feasibility is not used.
+            ClarabelBindings.setTolFeas(settings, TOL_FEAS);
+            ClarabelBindings.setTolInfeasRel(settings, TOL_INFEAS_REL);
+            ClarabelBindings.setTolInfeasAbs(settings, TOL_INFEAS_ABS);
+            ClarabelBindings.setTolGapRel(settings, TOL_GAP_REL);
+            ClarabelBindings.setTolGapAbs(settings, TOL_GAP_ABS);
 
             int parallelism = options.getParallelism();
             if (parallelism > 0) {
@@ -93,7 +111,13 @@ public final class SolverClarabel implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverClarabel> {
 
-        private static final boolean ADJUSTED_BOUNDS = true;
+        /**
+         * Variable bounds are rows of A, with coefficient 1 (or the variable's adjustment factor if adjusted).
+         */
+        private static final boolean ADJUSTED_BOUNDS = false;
+        /**
+         * Applies to the quadratic constraints too.
+         */
         private static final boolean ADJUSTED_CONSTRAINTS = true;
         private static final boolean ADJUSTED_OBJECTIVE = true;
 
@@ -116,22 +140,54 @@ public final class SolverClarabel implements Optimisation.Solver {
             ColumnsSupplier<Double> aColumns = R064Store.FACTORY.makeColumnsSupplier(Integer.MAX_VALUE);
             FloatingPointReceptacle bValues = new FloatingPointReceptacle();
 
-            // Linear equality constraints -> ZeroCone
+            // The model entity (and constraint type) of each dual value, and where to find it among Clarabel's
+            // dual variables: the first row and the number of rows to sum.
+            List<EntryPair<ModelEntity<?>, ConstraintType>> dualEntries = new ArrayList<>();
+            List<int[]> dualRows = new ArrayList<>();
+            BitSet dualAdjusted = new BitSet();
+
+            // Each variable's bound rows (-1 if none), and their coefficient. The "upper" row is the one where
+            // the variable has a positive coefficient - its upper bound, or its level if it is fixed.
+            int[] upperRows = new int[nbProbVars];
+            int[] lowerRows = new int[nbProbVars];
+            double[] boundScales = new double[nbProbVars];
+            Arrays.fill(upperRows, -1);
+            Arrays.fill(lowerRows, -1);
+
+            // Linear equality constraints and fixed variables -> ZeroCone. (Fixed variables as a pair of
+            // opposing inequalities would leave no interior for the interior point method.)
             Expression[] linEquExprs = model.constraints().filter(expr -> !expr.isAnyQuadraticFactorNonZero()).filter(Expression::isEqualityConstraint)
                     .toArray(Expression[]::new);
 
-            if (linEquExprs.length > 0) {
-                int count = 0;
-                for (Expression expression : linEquExprs) {
-                    SolverClarabel.ensureColumns(aColumns, aColDim);
-                    for (IntIndex key : expression.getLinearKeySet()) {
-                        aColumns.add(aRowDim, key.index, expression.doubleValue(key, ADJUSTED_CONSTRAINTS));
-                    }
-                    bValues.append(expression.getUpperLimit(ADJUSTED_CONSTRAINTS, POSITIVE_INFINITY));
-                    aRowDim++;
-                    count++;
+            int zeroCount = 0;
+            for (Expression expression : linEquExprs) {
+                SolverClarabel.ensureColumns(aColumns, aColDim);
+                for (IntIndex key : expression.getLinearKeySet()) {
+                    aColumns.add(aRowDim, key.index, expression.doubleValue(key, ADJUSTED_CONSTRAINTS));
                 }
-                coneSpecs.add(new int[] { ClarabelBindings.CONE_ZERO, count });
+                bValues.append(expression.getUpperLimit(ADJUSTED_CONSTRAINTS, POSITIVE_INFINITY));
+                dualAdjusted.set(dualEntries.size(), ADJUSTED_CONSTRAINTS);
+                SolverClarabel.addDual(dualEntries, dualRows, expression, ConstraintType.EQUALITY, aRowDim, 1);
+                aRowDim++;
+                zeroCount++;
+            }
+            for (Variable variable : variables) {
+                if (variable.isEqualityConstraint()) {
+                    int col = model.indexOf(variable);
+                    double val = ADJUSTED_BOUNDS ? variable.getAdjustmentFactor() : ONE;
+                    SolverClarabel.ensureColumns(aColumns, aColDim);
+                    aColumns.add(aRowDim, col, val);
+                    bValues.append(variable.getUpperLimit(ADJUSTED_BOUNDS, POSITIVE_INFINITY));
+                    dualAdjusted.set(dualEntries.size(), ADJUSTED_BOUNDS);
+                    SolverClarabel.addDual(dualEntries, dualRows, variable, ConstraintType.EQUALITY, aRowDim, 1);
+                    boundScales[col] = val;
+                    upperRows[col] = aRowDim;
+                    aRowDim++;
+                    zeroCount++;
+                }
+            }
+            if (zeroCount > 0) {
+                coneSpecs.add(new int[] { ClarabelBindings.CONE_ZERO, zeroCount });
             }
 
             // Linear inequality constraints + variable bounds -> NonnegativeCone
@@ -150,6 +206,8 @@ public final class SolverClarabel implements Optimisation.Solver {
                         aColumns.add(aRowDim, key.index, expression.doubleValue(key, ADJUSTED_CONSTRAINTS));
                     }
                     bValues.append(ub);
+                    dualAdjusted.set(dualEntries.size(), ADJUSTED_CONSTRAINTS);
+                    SolverClarabel.addDual(dualEntries, dualRows, expression, ConstraintType.UPPER, aRowDim, 1);
                     aRowDim++;
                     nnCount++;
                 }
@@ -158,28 +216,41 @@ public final class SolverClarabel implements Optimisation.Solver {
                         aColumns.add(aRowDim, key.index, -expression.doubleValue(key, ADJUSTED_CONSTRAINTS));
                     }
                     bValues.append(-lb);
+                    dualAdjusted.set(dualEntries.size(), ADJUSTED_CONSTRAINTS);
+                    SolverClarabel.addDual(dualEntries, dualRows, expression, ConstraintType.LOWER, aRowDim, 1);
                     aRowDim++;
                     nnCount++;
                 }
             }
 
             for (Variable variable : variables) {
+                if (variable.isEqualityConstraint()) {
+                    continue;
+                }
                 int col = model.indexOf(variable);
                 double lb = variable.getLowerLimit(ADJUSTED_BOUNDS, NEGATIVE_INFINITY);
                 double ub = variable.getUpperLimit(ADJUSTED_BOUNDS, POSITIVE_INFINITY);
-                double val = variable.getAdjustmentFactor();
+                double val = ADJUSTED_BOUNDS ? variable.getAdjustmentFactor() : ONE;
 
                 SolverClarabel.ensureColumns(aColumns, aColDim);
+
+                boundScales[col] = val;
 
                 if (ub < POSITIVE_INFINITY) {
                     aColumns.add(aRowDim, col, val);
                     bValues.append(ub);
+                    dualAdjusted.set(dualEntries.size(), ADJUSTED_BOUNDS);
+                    SolverClarabel.addDual(dualEntries, dualRows, variable, ConstraintType.UPPER, aRowDim, 1);
+                    upperRows[col] = aRowDim;
                     aRowDim++;
                     nnCount++;
                 }
                 if (lb > NEGATIVE_INFINITY) {
                     aColumns.add(aRowDim, col, -val);
                     bValues.append(-lb);
+                    dualAdjusted.set(dualEntries.size(), ADJUSTED_BOUNDS);
+                    SolverClarabel.addDual(dualEntries, dualRows, variable, ConstraintType.LOWER, aRowDim, 1);
+                    lowerRows[col] = aRowDim;
                     aRowDim++;
                     nnCount++;
                 }
@@ -194,6 +265,10 @@ public final class SolverClarabel implements Optimisation.Solver {
                 int socRows = SolverClarabel.addSecondOrderCone(expression, aColumns, bValues, aRowDim, aColDim);
                 if (socRows > 0) {
                     coneSpecs.add(new int[] { ClarabelBindings.CONE_SECOND_ORDER, socRows });
+                    // The constraint's multiplier is the sum of the cone's first two dual variables
+                    ConstraintType type = expression.isUpperLimitSet() ? ConstraintType.UPPER : ConstraintType.LOWER;
+                    dualAdjusted.set(dualEntries.size(), ADJUSTED_CONSTRAINTS);
+                    SolverClarabel.addDual(dualEntries, dualRows, expression, type, aRowDim, 2);
                     aRowDim += socRows;
                 }
             }
@@ -201,22 +276,37 @@ public final class SolverClarabel implements Optimisation.Solver {
             boolean max = model.getOptimisationSense() == Optimisation.Sense.MAX;
 
             Expression mObj = model.objective();
+            double objectiveScale = ADJUSTED_OBJECTIVE ? mObj.getAdjustmentFactor() : ONE;
+
             double[] q = new double[nbProbVars];
             for (IntIndex key : mObj.getLinearKeySet()) {
                 double val = mObj.doubleValue(key, ADJUSTED_OBJECTIVE);
                 q[key.index] = max ? -val : val;
             }
 
-            // Build P (upper triangle of objective Hessian) in CSC
+            // P - quadratic part of the objective, upper triangular. A quadratic key (row,col) with value v
+            // contributes v*x_row*x_col to the objective; in the 0.5 x'Px form that is P[row][col] = v off the
+            // diagonal (in the upper triangle, whatever the key's order), and P[row][row] = 2v on it.
             ColumnsSupplier<Double> pColumns = R064Store.FACTORY.makeColumnsSupplier(Integer.MAX_VALUE);
+            SolverClarabel.ensureColumns(pColumns, nbProbVars);
             for (IntRowColumn key : mObj.getQuadraticKeySet()) {
                 double val = mObj.doubleValue(key, ADJUSTED_OBJECTIVE);
-                if (key.row <= key.column) {
-                    SolverClarabel.ensureColumns(pColumns, nbProbVars);
-                    pColumns.add(key.row, key.column, max ? -val : val);
-                    pColumns.add(key.column, key.row, max ? -val : val);
+                if (max) {
+                    val = -val;
                 }
+                int row = Math.min(key.row, key.column);
+                int col = Math.max(key.row, key.column);
+                pColumns.add(row, col, row == col ? val + val : val);
             }
+
+            ConstraintsMetaData constraintsMetaData = ConstraintsMetaData.newEntityMap(dualEntries.size());
+            constraintsMetaData.setMultiplierScale(objectiveScale);
+            for (int i = 0; i < dualEntries.size(); i++) {
+                EntryPair<ModelEntity<?>, ConstraintType> entry = dualEntries.get(i);
+                constraintsMetaData.setEntry(i, entry.left(), entry.right(), false, dualAdjusted.get(i));
+            }
+
+            double objectiveConstant = ExpressionsBasedModel.Integration.getObjectiveConstant(model);
 
             Arena arena = Arena.ofConfined();
 
@@ -254,7 +344,8 @@ public final class SolverClarabel implements Optimisation.Solver {
                 // Create solver
                 MemorySegment solver = ClarabelBindings.solverNew(pSeg, qSeg, aSeg, bSeg, nCones, conesSeg, settings);
 
-                return new SolverClarabel(solver, max, nbProbVars, arena);
+                return new SolverClarabel(solver, max, nbProbVars, arena, constraintsMetaData, dualRows.toArray(new int[dualRows.size()][]), upperRows,
+                        lowerRows, boundScales, objectiveScale, objectiveConstant);
 
             } catch (RuntimeException e) {
                 arena.close();
@@ -283,9 +374,13 @@ public final class SolverClarabel implements Optimisation.Solver {
 
     public static final ExpressionsBasedModel.Integration<SolverClarabel> INTEGRATION = new Integration();
 
-    private static final boolean ADJUSTED = true;
-
     static final Configurator DEFAULT = new Configurator();
+
+    private static void addDual(final List<EntryPair<ModelEntity<?>, ConstraintType>> entries, final List<int[]> rows, final ModelEntity<?> entity,
+            final ConstraintType type, final int row, final int nbRows) {
+        entries.add(EntryPair.of(entity, type));
+        rows.add(new int[] { row, nbRows });
+    }
 
     /**
      * Model a quadratic constraint x'Qx + c'x &lt;= bound as a second-order cone.
@@ -305,8 +400,8 @@ public final class SolverClarabel implements Optimisation.Solver {
     private static int addSecondOrderCone(final Expression constraint, final ColumnsSupplier<Double> aColumns, final FloatingPointReceptacle bValues,
             final int aRowDim, final int aColDim) {
 
-        double ub = constraint.getUpperLimit(ADJUSTED, POSITIVE_INFINITY);
-        double lb = constraint.getLowerLimit(ADJUSTED, NEGATIVE_INFINITY);
+        double ub = constraint.getUpperLimit(Integration.ADJUSTED_CONSTRAINTS, POSITIVE_INFINITY);
+        double lb = constraint.getLowerLimit(Integration.ADJUSTED_CONSTRAINTS, NEGATIVE_INFINITY);
 
         boolean hasUpper = ub < POSITIVE_INFINITY;
         boolean hasLower = lb > NEGATIVE_INFINITY;
@@ -343,7 +438,7 @@ public final class SolverClarabel implements Optimisation.Solver {
         for (IntRowColumn key : constraint.getQuadraticKeySet()) {
             int i = varIdx.indexOf(key.row);
             int j = varIdx.indexOf(key.column);
-            double val = HALF * constraint.doubleValue(key, ADJUSTED);
+            double val = HALF * constraint.doubleValue(key, Integration.ADJUSTED_CONSTRAINTS);
             if (negate) {
                 val = -val;
             }
@@ -359,7 +454,7 @@ public final class SolverClarabel implements Optimisation.Solver {
         // The two rows carrying t = bound - c'x. Both get the same linear coefficients; they differ only
         // in the constant, which is where the +1 / -1 of the reformulation goes.
         for (IntIndex key : constraint.getLinearKeySet()) {
-            double val = constraint.doubleValue(key, ADJUSTED);
+            double val = constraint.doubleValue(key, Integration.ADJUSTED_CONSTRAINTS);
             if (negate) {
                 val = -val;
             }
@@ -517,24 +612,60 @@ public final class SolverClarabel implements Optimisation.Solver {
 
     private final Arena myArena;
     /**
+     * For each variable, the coefficient of its bound rows: the variable's adjustment factor if the bounds are
+     * adjusted, or else 1.
+     */
+    private final double[] myBoundScales;
+    private final ConstraintsMetaData myConstraintsMetaData;
+    /**
+     * For each dual value (entry in {@link #myConstraintsMetaData}): the first of Clarabel's dual variables, and
+     * the number of them to sum.
+     */
+    private final int[][] myDualRows;
+    /**
      * The upcall stub Clarabel calls to ask whether it should stop. Kept in a field because the automatic
      * arena it lives in frees it once nothing refers to it any more.
      */
     private MemorySegment myInterruptCallback = null;
+    /**
+     * For each variable, the row of its lower bound, or -1 if it has none.
+     */
+    private final int[] myLowerRows;
     private final boolean myMaximisation;
     private final int myNumberOfVariables;
+    /**
+     * The objective constant, in model units and the model's sense.
+     */
+    private final double myObjectiveConstant;
+    /**
+     * The objective's adjustment factor – the objective Clarabel solves is scaled by this.
+     */
+    private final double myObjectiveScale;
     /**
      * The thread inside {@link #solve(Result)}, whose interrupt flag the callback reports.
      */
     private volatile Thread mySolving = null;
     private final MemorySegment mySolver;
+    /**
+     * For each variable, the row of its upper bound (or its level, if it is fixed), or -1 if it has none.
+     */
+    private final int[] myUpperRows;
 
-    SolverClarabel(final MemorySegment solver, final boolean maximisation, final int numberOfVariables, final Arena arena) {
+    SolverClarabel(final MemorySegment solver, final boolean maximisation, final int numberOfVariables, final Arena arena,
+            final ConstraintsMetaData constraintsMetaData, final int[][] dualRows, final int[] upperRows, final int[] lowerRows, final double[] boundScales,
+            final double objectiveScale, final double objectiveConstant) {
         super();
         mySolver = solver;
         myMaximisation = maximisation;
         myNumberOfVariables = numberOfVariables;
         myArena = arena;
+        myConstraintsMetaData = constraintsMetaData;
+        myDualRows = dualRows;
+        myUpperRows = upperRows;
+        myLowerRows = lowerRows;
+        myBoundScales = boundScales;
+        myObjectiveScale = objectiveScale;
+        myObjectiveConstant = objectiveConstant;
     }
 
     @Override
@@ -564,10 +695,11 @@ public final class SolverClarabel implements Optimisation.Solver {
 
         if (state.isFeasible() && state != Optimisation.State.UNBOUNDED) {
 
-            double obj = ClarabelBindings.solutionObjVal(solution);
+            double obj = ClarabelBindings.solutionObjVal(solution) / myObjectiveScale;
             if (myMaximisation) {
                 obj = -obj;
             }
+            obj += myObjectiveConstant;
 
             MemorySegment xPtr = ClarabelBindings.solutionX(solution);
             long xLen = ClarabelBindings.solutionXLength(solution);
@@ -580,12 +712,46 @@ public final class SolverClarabel implements Optimisation.Solver {
                 x = trimmed;
             }
 
-            return Optimisation.Result.of(obj, state, x);
+            MemorySegment zPtr = ClarabelBindings.solutionZ(solution);
+            long zLen = ClarabelBindings.solutionZLength(solution);
+
+            double[] z = zPtr.reinterpret(zLen * ValueLayout.JAVA_DOUBLE.byteSize()).toArray(ValueLayout.JAVA_DOUBLE);
+
+            double[] duals = new double[myDualRows.length];
+            for (int i = 0; i < duals.length; i++) {
+                int[] rows = myDualRows[i];
+                for (int r = rows[0], limit = rows[0] + rows[1]; r < limit; r++) {
+                    duals[i] += z[r];
+                }
+            }
+
+            double[] reducedGradient = this.computeReducedGradient(z);
+
+            return Optimisation.Result.of(obj, state, x).withDualValues(myConstraintsMetaData, () -> ArrayR064.wrap(duals))
+                    .withReducedGradient(() -> ArrayR064.wrap(reducedGradient));
 
         } else {
 
             return Optimisation.Result.of(state, new double[myNumberOfVariables]);
         }
+    }
+
+    /**
+     * The reduced gradient, in the bounded-variable sense, in model units and the model's sense. Clarabel's
+     * solution satisfies Px + q + A'z = 0, so the objective's gradient plus the constraint rows' terms equals
+     * minus the variable-bound rows' terms – non-zero only for variables at an active bound.
+     */
+    private double[] computeReducedGradient(final double[] z) {
+
+        double scale = myMaximisation ? -ONE / myObjectiveScale : ONE / myObjectiveScale;
+
+        double[] retVal = new double[myNumberOfVariables];
+        for (int j = 0; j < myNumberOfVariables; j++) {
+            double lowerDual = myLowerRows[j] >= 0 ? z[myLowerRows[j]] : ZERO;
+            double upperDual = myUpperRows[j] >= 0 ? z[myUpperRows[j]] : ZERO;
+            retVal[j] = myBoundScales[j] * (lowerDual - upperDual) * scale;
+        }
+        return retVal;
     }
 
     /**

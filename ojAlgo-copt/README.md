@@ -22,7 +22,7 @@ ojAlgo integration with [COPT](https://www.shanshu.ai/copt) (Cardinal Optimizer)
 mvn install:install-file \
   -Dfile=/path/to/copt/lib/copt.jar \
   -DgroupId=copt -DartifactId=copt \
-  -Dversion=8.0.6 -Dpackaging=jar
+  -Dversion=8.0.7 -Dpackaging=jar
 ```
 
 Adjust the file path and version to match your installation.

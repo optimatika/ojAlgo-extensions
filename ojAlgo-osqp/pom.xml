@@ -10,7 +10,7 @@
     <artifactId>ojalgo-osqp</artifactId>
     <name>ojAlgo-osqp</name>
     <description>ojAlgo and OSQP integration</description>
-    <version>1.0.0</version>
+    <version>1.1.0-SNAPSHOT</version>
     <dependencies>
     </dependencies>
     <properties>

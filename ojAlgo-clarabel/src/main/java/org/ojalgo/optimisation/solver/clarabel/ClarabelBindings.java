@@ -93,6 +93,8 @@ final class ClarabelBindings {
 
     private static final VarHandle SOL_X = SOLUTION_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("x"));
     private static final VarHandle SOL_X_LEN = SOLUTION_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("x_length"));
+    private static final VarHandle SOL_Z = SOLUTION_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("z"));
+    private static final VarHandle SOL_Z_LEN = SOLUTION_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("z_length"));
     private static final VarHandle SOL_STATUS = SOLUTION_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("status"));
     private static final VarHandle SOL_OBJ_VAL = SOLUTION_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("obj_val"));
 
@@ -333,6 +335,14 @@ final class ClarabelBindings {
 
     static long solutionXLength(final MemorySegment solution) {
         return (long) SOL_X_LEN.get(solution, 0L);
+    }
+
+    static MemorySegment solutionZ(final MemorySegment solution) {
+        return (MemorySegment) SOL_Z.get(solution, 0L);
+    }
+
+    static long solutionZLength(final MemorySegment solution) {
+        return (long) SOL_Z_LEN.get(solution, 0L);
     }
 
     static void setMaxIter(final MemorySegment settings, final int value) {

@@ -24,7 +24,6 @@ package org.ojalgo.optimisation.solver.hipparchus;
 import static org.ojalgo.function.constant.PrimitiveMath.ZERO;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -39,7 +38,7 @@ import org.hipparchus.optim.linear.NonNegativeConstraint;
 import org.hipparchus.optim.linear.Relationship;
 import org.hipparchus.optim.nonlinear.scalar.GoalType;
 import org.hipparchus.optim.nonlinear.scalar.MultivariateOptimizer;
-import org.ojalgo.function.multiary.MultiaryFunction.TwiceDifferentiable;
+import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.structure.Access1D;
 import org.ojalgo.structure.Primitive1D;
@@ -49,13 +48,13 @@ abstract class LinearImpl<S extends MultivariateOptimizer> extends AbstractImpl<
     abstract static class Integration<S extends LinearImpl<?>> extends AbstractImpl.Integration<S> {
 
         @Override
-        Set<OptimizationData> toOptimizationData(final TwiceDifferentiable<Double> objective, final boolean maximize, final List<ConstraintTemplate> equalities,
-                final List<ConstraintTemplate> ranges, final boolean negative) {
+        void translate(final Translation translation, final Expression objective, final int dim, final boolean maximise,
+                final List<ConstraintTemplate> equalities, final List<ConstraintTemplate> ranges, final boolean negative) {
 
-            Set<OptimizationData> retVal = new HashSet<>();
+            Set<OptimizationData> retVal = translation.data;
 
-            retVal.add(new LinearObjectiveFunction(objective.getLinearFactors(false).toRawCopy1D(), ZERO));
-            retVal.add(maximize ? GoalType.MAXIMIZE : GoalType.MINIMIZE);
+            retVal.add(new LinearObjectiveFunction(AbstractImpl.Integration.getLinearFactors(objective, dim), ZERO));
+            retVal.add(maximise ? GoalType.MAXIMIZE : GoalType.MINIMIZE);
 
             List<LinearConstraint> constraints = new ArrayList<>();
 
@@ -75,14 +74,20 @@ abstract class LinearImpl<S extends MultivariateOptimizer> extends AbstractImpl<
             retVal.add(new LinearConstraintSet(constraints));
 
             retVal.add(new NonNegativeConstraint(!negative));
-
-            return retVal;
         }
 
     }
 
-    LinearImpl(final Set<OptimizationData> modelData, final Options options, final Configurator<S> configurator) {
-        super(modelData, options, configurator);
+    LinearImpl(final Translation translation, final Options options, final Configurator<S> configurator) {
+        super(translation, options, configurator);
+    }
+
+    /**
+     * The simplex solver provides no dual values.
+     */
+    @Override
+    Optimisation.Result complete(final Optimisation.Result result, final PointValuePair solutionAndValue, final Translation translation) {
+        return result;
     }
 
     @Override

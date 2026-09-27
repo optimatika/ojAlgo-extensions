@@ -25,9 +25,12 @@ import static org.ojalgo.function.constant.PrimitiveMath.*;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
+import org.ojalgo.array.ArrayR064;
 import org.ojalgo.concurrent.InterruptForwarder;
 import org.ojalgo.netio.BasicLogger;
+import org.ojalgo.optimisation.ConstraintsMetaData;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
@@ -261,6 +264,10 @@ public final class SolverORTools implements Optimisation.Solver, UpdatableSolver
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverORTools> {
 
+        /**
+         * Must be false. OR-Tools handles variable bounds natively, not as constraint rows, so adjusting them
+         * would mean rescaling the variables themselves.
+         */
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = false;
         private static final boolean ADJUSTED_OBJECTIVE = false;
@@ -301,7 +308,16 @@ public final class SolverORTools implements Optimisation.Solver, UpdatableSolver
                 builder.setVarUpperBound(index, ub);
             }
 
-            model.constraints().forEach(mConstr -> {
+            Expression mObj = model.objective();
+            double objectiveScale = ADJUSTED_OBJECTIVE ? mObj.getAdjustmentFactor() : ONE;
+
+            List<Expression> mConstrs = model.constraints().collect(Collectors.toList());
+
+            ConstraintsMetaData constraintsMetaData = ConstraintsMetaData.newEntityMap(mConstrs.size());
+            constraintsMetaData.setMultiplierScale(objectiveScale);
+            constraintsMetaData.setSignedRows(true);
+
+            for (Expression mConstr : mConstrs) {
 
                 double lb = mConstr.getLowerLimit(ADJUSTED_CONSTRAINTS, NEGATIVE_INFINITY);
                 double ub = mConstr.getUpperLimit(ADJUSTED_CONSTRAINTS, POSITIVE_INFINITY);
@@ -315,9 +331,10 @@ public final class SolverORTools implements Optimisation.Solver, UpdatableSolver
 
                 builder.setConstraintLowerBound(index, lb);
                 builder.setConstraintUpperBound(index, ub);
-            });
 
-            Expression mObj = model.objective();
+                constraintsMetaData.setEntry(index, mConstr, mConstr.getConstraintType(), false, ADJUSTED_CONSTRAINTS);
+            }
+
             for (IntIndex key : mObj.getLinearKeySet()) {
                 double coefficient = mObj.doubleValue(key, ADJUSTED_OBJECTIVE);
                 builder.setVarObjectiveCoefficient(key.index, coefficient);
@@ -327,7 +344,13 @@ public final class SolverORTools implements Optimisation.Solver, UpdatableSolver
             String solverName = configurator.getSolverName(mip, false);
             ModelSolverHelper solver = configurator.newModelSolverHelper(solverName, model.options);
 
-            return new SolverORTools(builder, solver, nbVars, model.options);
+            double objectiveConstant = ExpressionsBasedModel.Integration.getObjectiveConstant(model);
+
+            // Dual values and reduced costs only exist for continuous (LP) models
+            ConstraintsMetaData duals = mip ? null : constraintsMetaData;
+
+            return new SolverORTools(builder, solver, nbVars, model.options, duals, model.getOptimisationSense() == Optimisation.Sense.MAX, objectiveScale,
+                    objectiveConstant);
         }
 
         @Override
@@ -391,10 +414,22 @@ public final class SolverORTools implements Optimisation.Solver, UpdatableSolver
      * Look at {@link ModelBuilder} for hints on how to use this.
      */
     private final ModelBuilderHelper myBuilder;
-
+    /**
+     * Null for MIP models – dual values and reduced costs only exist for continuous (LP) models.
+     */
+    private final ConstraintsMetaData myConstraintsMetaData;
     private final int myIterationsAbort;
     private final int myIterationsSuffice;
+    private final boolean myMaximisation;
     private final int myNumVars;
+    /**
+     * The objective constant, in model units.
+     */
+    private final double myObjectiveConstant;
+    /**
+     * The objective's adjustment factor – the objective OR-Tools solves is scaled by this.
+     */
+    private final double myObjectiveScale;
     /**
      * Look at {@link ModelSolver} for hints on how to use this.
      */
@@ -408,13 +443,18 @@ public final class SolverORTools implements Optimisation.Solver, UpdatableSolver
      */
     private final AtomicBoolean myInterruptRefused = new AtomicBoolean(false);
 
-    SolverORTools(final ModelBuilderHelper builder, final ModelSolverHelper solver, final int numVars, final Optimisation.Options options) {
+    SolverORTools(final ModelBuilderHelper builder, final ModelSolverHelper solver, final int numVars, final Optimisation.Options options,
+            final ConstraintsMetaData constraintsMetaData, final boolean maximisation, final double objectiveScale, final double objectiveConstant) {
 
         super();
 
         myBuilder = builder;
         mySolver = solver;
         myNumVars = numVars;
+        myConstraintsMetaData = constraintsMetaData;
+        myMaximisation = maximisation;
+        myObjectiveScale = objectiveScale;
+        myObjectiveConstant = objectiveConstant;
         myIterationsAbort = options.iterations_abort;
         myIterationsSuffice = options.iterations_suffice;
         myTimeAbortMillis = options.time_abort;
@@ -493,14 +533,36 @@ public final class SolverORTools implements Optimisation.Solver, UpdatableSolver
 
             mySolutionAvailable = true;
 
-            double retValue = mySolver.getObjectiveValue();
+            double retValue = mySolver.getObjectiveValue() / myObjectiveScale + myObjectiveConstant;
 
             double[] retSolution = new double[myNumVars];
             for (int i = 0; i < retSolution.length; i++) {
                 retSolution[i] = mySolver.getVariableValue(i);
             }
 
-            return Optimisation.Result.of(retValue, retState, retSolution);
+            Optimisation.Result retVal = Optimisation.Result.of(retValue, retState, retSolution);
+
+            if (myConstraintsMetaData != null) {
+
+                // OR-Tools' dual values are the rates of change of the objective function value with the
+                // constraint limits. For a minimisation that is minus the multipliers signed as for two-sided
+                // rows (positive when the upper limit is active), for a maximisation it is those multipliers.
+                double sign = myMaximisation ? ONE : NEG;
+                double[] duals = new double[myConstraintsMetaData.size()];
+                for (int i = 0; i < duals.length; i++) {
+                    duals[i] = sign * mySolver.getDualValue(i);
+                }
+
+                // The reduced costs are in the model's sense
+                double[] reducedGradient = new double[myNumVars];
+                for (int j = 0; j < reducedGradient.length; j++) {
+                    reducedGradient[j] = mySolver.getReducedCost(j) / myObjectiveScale;
+                }
+
+                retVal = retVal.withDualValues(myConstraintsMetaData, () -> ArrayR064.wrap(duals)).withReducedGradient(() -> ArrayR064.wrap(reducedGradient));
+            }
+
+            return retVal;
 
         } else {
 

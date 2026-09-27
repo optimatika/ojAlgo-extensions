@@ -24,6 +24,7 @@ package org.ojalgo.optimisation.solver.choco;
 import static org.ojalgo.function.constant.PrimitiveMath.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -33,6 +34,7 @@ import org.chocosolver.solver.search.loop.monitors.NogoodFromRestarts;
 import org.chocosolver.solver.search.restart.LubyCutoff;
 import org.chocosolver.solver.search.restart.Restarter;
 import org.chocosolver.solver.search.strategy.Search;
+import org.chocosolver.solver.search.strategy.strategy.AbstractStrategy;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.RealVar;
 import org.chocosolver.solver.variables.Variable;
@@ -50,8 +52,9 @@ import org.ojalgo.structure.Structure1D.IntIndex;
  * The objective is modelled as an {@link IntVar} (since
  * {@link org.chocosolver.solver.search.IResolutionHelper#findOptimalSolution(IntVar, boolean, org.chocosolver.util.criteria.Criterion...)}
  * requires discrete search), bounded by the min/max the weighted sum of the decision variables' domains can
- * attain, constrained to equal that weighted sum, and then optimized. This means the objective value is
- * rounded to the nearest integer &ndash; a limitation of Choco's optimization API.
+ * attain, constrained to equal that weighted sum (scaled so that it is integral when possible), and then
+ * optimized. This means the objective is optimized to that integer resolution &ndash; a limitation of Choco's
+ * optimization API. The objective function value reported is that of the solution found.
  * <p>
  * Quadratic expressions are not supported.
  */
@@ -154,6 +157,12 @@ public final class SolverChoco implements Optimisation.Solver {
             Set<IntIndex> objKeys = modObj.getLinearKeySet();
             int nbObjTerms = objKeys.size();
 
+            // To evaluate the objective function at the solution
+            double[] objectiveCoefficients = new double[nbVars];
+            for (IntIndex key : objKeys) {
+                objectiveCoefficients[key.index] = modObj.doubleValue(key, false);
+            }
+
             boolean allObjVarsInteger = true;
             boolean artificialObjLB = false;
             boolean artificialObjUB = false;
@@ -241,28 +250,39 @@ public final class SolverChoco implements Optimisation.Solver {
 
             boolean maximise = model.getOptimisationSense() == Optimisation.Sense.MAX;
 
-            int intVarCount = 0;
+            List<IntVar> intVars = new ArrayList<>();
+            List<RealVar> realVars = new ArrayList<>();
             for (int i = 0; i < nbVars; i++) {
                 if (isIntVar[i]) {
-                    intVarCount++;
+                    intVars.add((IntVar) delegateVars[i]);
+                } else {
+                    realVars.add((RealVar) delegateVars[i]);
                 }
             }
-            if (intVarCount > 0) {
-                IntVar[] searchVars = new IntVar[intVarCount];
-                int si = 0;
-                for (int i = 0; i < nbVars; i++) {
-                    if (isIntVar[i]) {
-                        searchVars[si++] = (IntVar) delegateVars[i];
-                    }
+            if (intVars.size() > 0) {
+
+                // Decide the integer variables, then the continuous ones, and then the objective variable (if
+                // the others have not already instantiated it) – a solution needs them all instantiated.
+                List<AbstractStrategy<?>> strategies = new ArrayList<>();
+                strategies.add(Search.activityBasedSearch(intVars.toArray(new IntVar[intVars.size()])));
+                if (realVars.size() > 0) {
+                    strategies.add(Search.realVarSearch(realVars.toArray(new RealVar[realVars.size()])));
                 }
+                strategies.add(Search.inputOrderLBSearch(objVar));
+
                 org.chocosolver.solver.Solver solver = delegate.getSolver();
-                solver.setSearch(Search.activityBasedSearch(searchVars));
+                solver.setSearch(strategies.toArray(new AbstractStrategy<?>[strategies.size()]));
                 solver.addRestarter(new Restarter(new LubyCutoff(100), limit -> solver.getMeasures().getFailCount() >= limit, Integer.MAX_VALUE, false));
-                solver.plugMonitor(new NogoodFromRestarts(delegate));
+                if (realVars.size() == 0) {
+                    // Only handles decisions on integer variables
+                    solver.plugMonitor(new NogoodFromRestarts(delegate));
+                }
             }
 
+            double objectiveConstant = ExpressionsBasedModel.Integration.getObjectiveConstant(model);
+
             return new SolverChoco(delegate, delegateVars, isIntVar, objVar, maximise, model.options, artificialLB, artificialUB, artificialObjLB,
-                    artificialObjUB, precision, objScale);
+                    artificialObjUB, precision, objectiveCoefficients, objectiveConstant);
         }
 
         @Override
@@ -392,7 +412,14 @@ public final class SolverChoco implements Optimisation.Solver {
     private final Variable[] myDelegateVariables;
     private final boolean[] myIsIntVar;
     private final boolean myMaximise;
-    private final double myObjectiveScale;
+    /**
+     * The objective function's linear coefficients (unadjusted, all variables).
+     */
+    private final double[] myObjectiveCoefficients;
+    /**
+     * The objective constant, in model units.
+     */
+    private final double myObjectiveConstant;
     private final IntVar myObjectiveVariable;
     private final double myPrecision;
     private final long myTimeAbortMillis;
@@ -400,7 +427,7 @@ public final class SolverChoco implements Optimisation.Solver {
 
     SolverChoco(final org.chocosolver.solver.Model model, final Variable[] variables, final boolean[] isIntVar, final IntVar objective, final boolean maximise,
             final Optimisation.Options options, final boolean[] artificialLB, final boolean[] artificialUB, final boolean artificialObjLB,
-            final boolean artificialObjUB, final double precision, final double objectiveScale) {
+            final boolean artificialObjUB, final double precision, final double[] objectiveCoefficients, final double objectiveConstant) {
 
         super();
 
@@ -413,7 +440,8 @@ public final class SolverChoco implements Optimisation.Solver {
         myIsIntVar = isIntVar;
         myObjectiveVariable = objective;
         myMaximise = maximise;
-        myObjectiveScale = objectiveScale;
+        myObjectiveCoefficients = objectiveCoefficients;
+        myObjectiveConstant = objectiveConstant;
         myPrecision = precision;
         myTimeAbortMillis = options.time_abort;
         myTimeSufficeMillis = options.time_suffice;
@@ -452,7 +480,7 @@ public final class SolverChoco implements Optimisation.Solver {
             }
 
             retState = delegateSolver.isObjectiveOptimal() ? Optimisation.State.OPTIMAL : Optimisation.State.FEASIBLE;
-            retValue = objValue / myObjectiveScale;
+            retValue = this.evaluate(retSolution);
 
             return Optimisation.Result.of(retValue, retState, retSolution);
 
@@ -470,7 +498,7 @@ public final class SolverChoco implements Optimisation.Solver {
                     if (solution != null) {
                         this.extractSolution(solution, retSolution);
                         retState = delegateSolver.isObjectiveOptimal() ? Optimisation.State.OPTIMAL : Optimisation.State.FEASIBLE;
-                        retValue = solution.getIntVal(myObjectiveVariable) / myObjectiveScale;
+                        retValue = this.evaluate(retSolution);
                         return Optimisation.Result.of(retValue, retState, retSolution);
                     }
                 }
@@ -481,6 +509,17 @@ public final class SolverChoco implements Optimisation.Solver {
         }
 
         return Optimisation.Result.of(retState);
+    }
+
+    /**
+     * The objective function value, in model units and including the constant.
+     */
+    private double evaluate(final double[] solution) {
+        double retVal = myObjectiveConstant;
+        for (int j = 0; j < solution.length; j++) {
+            retVal += myObjectiveCoefficients[j] * solution[j];
+        }
+        return retVal;
     }
 
     private void extractSolution(final Solution solution, final double[] target) {

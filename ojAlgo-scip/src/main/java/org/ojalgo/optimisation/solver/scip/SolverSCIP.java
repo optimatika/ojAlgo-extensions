@@ -28,6 +28,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.ojalgo.concurrent.InterruptForwarder;
 import org.ojalgo.optimisation.Expression;
@@ -37,6 +38,7 @@ import org.ojalgo.optimisation.UpdatableSolver;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
+import org.ojalgo.type.context.NumberContext;
 
 /**
  * SCIP solver integration for ojAlgo.
@@ -121,6 +123,10 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverSCIP> {
 
+        /**
+         * Must be false. SCIP handles variable bounds natively, not as constraint rows, so adjusting them would
+         * mean rescaling the variables themselves.
+         */
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = true;
         private static final boolean ADJUSTED_OBJECTIVE = true;
@@ -226,7 +232,18 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
                 boolean concurrent = configurator.isConcurrent(model.options) && SCIPBindings.hasSolveConcurrent() && !model.isAnyExpressionQuadratic();
 
-                return new SolverSCIP(scip, varPtrs, n, arena, concurrent, model.options);
+                double objectiveScale = ADJUSTED_OBJECTIVE ? objective.getAdjustmentFactor() : ONE;
+                double objectiveConstant = ExpressionsBasedModel.Integration.getObjectiveConstant(model);
+
+                // The MIP gap, only if configured to be something other than the default – the absolute gap in the
+                // objective's (scaled) units
+                Optional<NumberContext> gap = model.options.getConfiguredGapTolerance();
+                if (gap.isPresent()) {
+                    SCIPBindings.setRealParam(scip, SCIPBindings.allocateString(arena, "limits/gap"), gap.get().getRelativeError());
+                    SCIPBindings.setRealParam(scip, SCIPBindings.allocateString(arena, "limits/absgap"), gap.get().getAbsoluteError() * objectiveScale);
+                }
+
+                return new SolverSCIP(scip, varPtrs, n, arena, concurrent, model.options, objectiveScale, objectiveConstant);
 
             } catch (RuntimeException e) {
                 arena.close();
@@ -402,13 +419,21 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
     private final int myIterationsAbort;
     private final int myIterationsSuffice;
     private final int myNumVars;
+    /**
+     * The objective constant, in model units.
+     */
+    private final double myObjectiveConstant;
+    /**
+     * The objective's adjustment factor – the objective SCIP solves is scaled by this.
+     */
+    private final double myObjectiveScale;
     private final MemorySegment myScip;
     private final long myTimeAbortMillis;
     private final long myTimeSufficeMillis;
     private final MemorySegment[] myVarPtrs;
 
     SolverSCIP(final MemorySegment scip, final MemorySegment[] varPtrs, final int numVars, final Arena arena, final boolean concurrent,
-            final Optimisation.Options options) {
+            final Optimisation.Options options, final double objectiveScale, final double objectiveConstant) {
         super();
         myScip = scip;
         myVarPtrs = varPtrs;
@@ -419,6 +444,8 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
         myIterationsSuffice = options.iterations_suffice;
         myTimeAbortMillis = options.time_abort;
         myTimeSufficeMillis = options.time_suffice;
+        myObjectiveScale = objectiveScale;
+        myObjectiveConstant = objectiveConstant;
     }
 
     @Override
@@ -500,7 +527,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
                 return Optimisation.Result.of(state, new double[myNumVars]);
             }
 
-            double objectiveValue = SCIPBindings.getSolOrigObj(myScip, sol);
+            double objectiveValue = SCIPBindings.getSolOrigObj(myScip, sol) / myObjectiveScale + myObjectiveConstant;
 
             double[] solution = new double[myNumVars];
             for (int i = 0; i < myNumVars; i++) {

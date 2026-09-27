@@ -24,13 +24,17 @@ package org.ojalgo.optimisation.solver.xpress;
 import static org.ojalgo.function.constant.PrimitiveMath.*;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.ojalgo.array.ArrayR064;
 import org.ojalgo.concurrent.InterruptForwarder;
+import org.ojalgo.optimisation.ConstraintsMetaData;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.ModelEntity;
@@ -39,6 +43,7 @@ import org.ojalgo.optimisation.UpdatableSolver;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
+import org.ojalgo.type.context.NumberContext;
 import org.ojalgo.type.keyvalue.EntryPair;
 
 import com.dashoptimization.XPRS;
@@ -75,6 +80,15 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
             if (parallelism > 0) {
                 problem.setIntControl(XPRSconstants.THREADS, parallelism);
             }
+
+            // The feasibility tolerance, only if configured to be something other than the default – a
+            // requirement on both the constraints and the integrality, within Xpress' allowed ranges
+            Optional<NumberContext> feasibility = options.getConfiguredFeasibilityTolerance();
+            if (feasibility.isPresent()) {
+                double tolerance = feasibility.get().getAbsoluteError();
+                problem.setDblControl(XPRSconstants.FEASTOL, Math.min(Math.max(tolerance, 1E-9), 1E-2));
+                problem.setDblControl(XPRSconstants.MIPTOL, Math.min(Math.max(tolerance, 1E-9), 0.5));
+            }
         }
 
         protected XPRSprob newProblem() {
@@ -92,6 +106,10 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverXpress> {
 
+        /**
+         * Must be false. Xpress handles variable bounds natively, not as constraint rows, so adjusting them would
+         * mean rescaling the variables themselves.
+         */
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = false;
         private static final boolean ADJUSTED_OBJECTIVE = false;
@@ -189,6 +207,7 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
                         constrInfo.add(EntryPair.of(mConstr, ConstraintType.UPPER));
                     } else {
                         rowType[r] = (byte) 'N';
+                        constrInfo.add(EntryPair.of(mConstr, ConstraintType.NONE));
                     }
                 }
                 rowStart[nbRows] = cursor;
@@ -231,28 +250,47 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
 
                 if (mObj.isAnyQuadraticFactorNonZero()) {
 
-                    var quadKeys = mObj.getQuadraticKeySet();
-                    int nqtr = quadKeys.size();
+                    // One triangle of Q, where the quadratic part is x'Qx/2. The keys (i,j) and (j,i) are the
+                    // same element, and are added.
+                    Map<IntRowColumn, Double> triangle = new LinkedHashMap<>();
+                    for (IntRowColumn key : mObj.getQuadraticKeySet()) {
+                        double value = mObj.doubleValue(key, ADJUSTED_OBJECTIVE);
+                        IntRowColumn element = new IntRowColumn(Math.min(key.row, key.column), Math.max(key.row, key.column));
+                        triangle.merge(element, key.row == key.column ? value + value : value, Double::sum);
+                    }
+
+                    int nqtr = triangle.size();
 
                     int[] mqcol1 = new int[nqtr];
                     int[] mqcol2 = new int[nqtr];
                     double[] dqe = new double[nqtr];
 
                     int q = 0;
-                    for (IntRowColumn key : quadKeys) {
-                        mqcol1[q] = key.row;
-                        mqcol2[q] = key.column;
-                        double value = mObj.doubleValue(key, ADJUSTED_OBJECTIVE);
-                        dqe[q] = key.row == key.column ? value + value : value;
+                    for (Entry<IntRowColumn, Double> element : triangle.entrySet()) {
+                        mqcol1[q] = element.getKey().row;
+                        mqcol2[q] = element.getKey().column;
+                        dqe[q] = element.getValue().doubleValue();
                         q++;
                     }
 
                     problem.addQMatrix(-1, nqtr, mqcol1, mqcol2, dqe);
                 }
 
-                XpressEntityMap entityMap = new XpressEntityMap(nbVars, constrInfo);
+                double objectiveScale = ADJUSTED_OBJECTIVE ? mObj.getAdjustmentFactor() : ONE;
+                double objectiveConstant = ExpressionsBasedModel.Integration.getObjectiveConstant(model);
 
-                return new SolverXpress(problem, nbVars, mip, entityMap, model.options);
+                // The MIP gap, only if configured to be something other than the default – the absolute gap in the
+                // objective's (scaled) units
+                Optional<NumberContext> gap = model.options.getConfiguredGapTolerance();
+                if (gap.isPresent()) {
+                    problem.setDblControl(XPRSconstants.MIPRELSTOP, gap.get().getRelativeError());
+                    problem.setDblControl(XPRSconstants.MIPABSSTOP, gap.get().getAbsoluteError() * objectiveScale);
+                }
+
+                XpressEntityMap entityMap = new XpressEntityMap(nbVars, constrInfo, objectiveScale, ADJUSTED_CONSTRAINTS);
+
+                return new SolverXpress(problem, nbVars, mip, entityMap, model.options, model.getOptimisationSense() == Optimisation.Sense.MAX, objectiveScale,
+                        objectiveConstant);
 
             } catch (RuntimeException cause) {
                 throw cause;
@@ -275,17 +313,22 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
 
     static final class XpressEntityMap implements ExpressionsBasedModel.EntityMap {
 
-        private final List<EntryPair<ModelEntity<?>, ConstraintType>> myConstraints;
+        private final ConstraintsMetaData myConstraints;
         private final int myNumEqualityConstraints;
         private final int myNumInequalityConstraints;
         private final int myNumVars;
 
-        XpressEntityMap(final int numVars, final List<EntryPair<ModelEntity<?>, ConstraintType>> constraints) {
+        XpressEntityMap(final int numVars, final List<EntryPair<ModelEntity<?>, ConstraintType>> constraints, final double objectiveScale,
+                final boolean adjusted) {
             myNumVars = numVars;
-            myConstraints = constraints;
+            myConstraints = ConstraintsMetaData.newEntityMap(constraints.size());
+            myConstraints.setMultiplierScale(objectiveScale);
+            myConstraints.setSignedRows(true);
             int eq = 0;
             int ineq = 0;
-            for (EntryPair<ModelEntity<?>, ConstraintType> entry : constraints) {
+            for (int i = 0; i < constraints.size(); i++) {
+                EntryPair<ModelEntity<?>, ConstraintType> entry = constraints.get(i);
+                myConstraints.setEntry(i, entry.left(), entry.right(), false, adjusted);
                 if (entry.getValue() == ConstraintType.EQUALITY) {
                     eq++;
                 } else {
@@ -328,7 +371,7 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
 
         @Override
         public EntryPair<ModelEntity<?>, ConstraintType> getConstraint(final int idc) {
-            return myConstraints.get(idc);
+            return myConstraints.getEntry(idc);
         }
 
         @Override
@@ -344,6 +387,10 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
         @Override
         public boolean isNegated(final int solverIndex) {
             return false;
+        }
+
+        ConstraintsMetaData getConstraintsMetaData() {
+            return myConstraints;
         }
 
     }
@@ -414,15 +461,29 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
     private final XpressEntityMap myEntityMap;
     private final int myIterationsAbort;
     private final int myIterationsSuffice;
+    private final boolean myMaximisation;
     private final boolean myMIP;
     private final int myNumberOfVariables;
+    /**
+     * The objective constant, in model units.
+     */
+    private final double myObjectiveConstant;
+    /**
+     * The objective's adjustment factor – the objective Xpress solves is scaled by this.
+     */
+    private final double myObjectiveScale;
     private final XPRSprob myProblem;
     private final long myTimeAbortMillis;
     private final long myTimeSufficeMillis;
 
-    SolverXpress(final XPRSprob problem, final int numberOfVariables, final boolean mip, final XpressEntityMap entityMap, final Optimisation.Options options) {
+    SolverXpress(final XPRSprob problem, final int numberOfVariables, final boolean mip, final XpressEntityMap entityMap, final Optimisation.Options options,
+            final boolean maximisation, final double objectiveScale, final double objectiveConstant) {
 
         super();
+
+        myMaximisation = maximisation;
+        myObjectiveScale = objectiveScale;
+        myObjectiveConstant = objectiveConstant;
 
         myProblem = problem;
         myNumberOfVariables = numberOfVariables;
@@ -516,8 +577,31 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
             if (retState.isFeasible()) {
 
                 retValue = myMIP ? myProblem.getDblAttrib(XPRSconstants.MIPOBJVAL) : myProblem.getDblAttrib(XPRSconstants.LPOBJVAL);
+                retValue = retValue / myObjectiveScale + myObjectiveConstant;
 
                 retSolution = myProblem.getSolution();
+
+                if (!myMIP && retState.isOptimal()) {
+
+                    // Xpress' dual values are the rates of change of the objective function value with the
+                    // constraint limits. For a minimisation that is minus the multipliers signed as for
+                    // two-sided rows (positive when the upper limit is active), for a maximisation it is those
+                    // multipliers.
+                    double sign = myMaximisation ? ONE : NEG;
+                    double[] duals = myProblem.getDuals();
+                    for (int i = 0; i < duals.length; i++) {
+                        duals[i] *= sign;
+                    }
+
+                    // The reduced costs are in the model's sense
+                    double[] reducedGradient = myProblem.getRedCosts();
+                    for (int j = 0; j < reducedGradient.length; j++) {
+                        reducedGradient[j] /= myObjectiveScale;
+                    }
+
+                    return new Result(retState, retValue, ArrayR064.wrap(retSolution)).withDualValues(myEntityMap.getConstraintsMetaData(),
+                            () -> ArrayR064.wrap(duals)).withReducedGradient(() -> ArrayR064.wrap(reducedGradient));
+                }
             }
 
         } catch (RuntimeException cause) {

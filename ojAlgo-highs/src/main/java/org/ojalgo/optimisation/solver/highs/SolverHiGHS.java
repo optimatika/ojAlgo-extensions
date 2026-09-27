@@ -26,7 +26,6 @@ import static org.ojalgo.function.constant.PrimitiveMath.*;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -35,6 +34,7 @@ import org.ojalgo.array.ArrayR064;
 import org.ojalgo.matrix.store.R064CSC;
 import org.ojalgo.matrix.store.R064CSC.Builder;
 import org.ojalgo.netio.BasicLogger;
+import org.ojalgo.optimisation.ConstraintsMetaData;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.ModelEntity;
@@ -44,6 +44,7 @@ import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Access1D;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
+import org.ojalgo.type.context.NumberContext;
 import org.ojalgo.type.keyvalue.EntryPair;
 
 /**
@@ -128,14 +129,14 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
      */
     static final class HiGHSEntityMap implements ExpressionsBasedModel.EntityMap {
 
-        private final List<EntryPair<ModelEntity<?>, Optimisation.ConstraintType>> myConstraints;
+        private final ConstraintsMetaData myConstraints;
         private final int myNumEqualityConstraints;
         private final int myNumInequalityConstraints;
         private final int myNumModelVars;
         private final int[] mySolverToModel;
 
-        HiGHSEntityMap(final int numModelVars, final int numConstraints, final ExpressionsBasedModel model, final List<Variable> freeVariables,
-                final List<Expression> constraints) {
+        HiGHSEntityMap(final int numModelVars, final ExpressionsBasedModel model, final List<Variable> freeVariables, final List<Expression> constraints,
+                final ConstraintsMetaData constraintsMetaData) {
             myNumModelVars = numModelVars;
 
             mySolverToModel = new int[numModelVars];
@@ -143,12 +144,11 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
                 mySolverToModel[i] = model.indexOf(freeVariables.get(i));
             }
 
-            myConstraints = new ArrayList<>(numConstraints);
+            myConstraints = constraintsMetaData;
             int equalityCount = 0;
             int inequalityCount = 0;
             for (Expression constraint : constraints) {
                 Optimisation.ConstraintType type = constraint.getConstraintType();
-                myConstraints.add(EntryPair.of(constraint, type));
                 if (type == Optimisation.ConstraintType.EQUALITY) {
                     equalityCount++;
                 } else if (type != Optimisation.ConstraintType.NONE) {
@@ -191,7 +191,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
         @Override
         public EntryPair<ModelEntity<?>, Optimisation.ConstraintType> getConstraint(final int idc) {
-            return myConstraints.get(idc);
+            return myConstraints.getEntry(idc);
         }
 
         @Override
@@ -216,6 +216,10 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverHiGHS> {
 
+        /**
+         * Must be false. HiGHS handles variable bounds natively (column bounds), not as constraint rows, so
+         * adjusting them would mean rescaling the variables themselves.
+         */
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = true;
         private static final boolean ADJUSTED_OBJECTIVE = true;
@@ -298,12 +302,30 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
             R064CSC mtrxA = builderA.build();
 
+            double objectiveScale = ADJUSTED_OBJECTIVE ? objective.getAdjustmentFactor() : ONE;
+
+            ConstraintsMetaData constraintsMetaData = ConstraintsMetaData.newEntityMap(m);
+            constraintsMetaData.setMultiplierScale(objectiveScale);
+            constraintsMetaData.setSignedRows(true);
+            for (int row = 0; row < m; row++) {
+                Expression constraint = constraints.get(row);
+                constraintsMetaData.setEntry(row, constraint, constraint.getConstraintType(), false, ADJUSTED_CONSTRAINTS);
+            }
+
             MemorySegment highs = HiGHSBindings.create();
             Arena arena = Arena.ofConfined();
 
             try {
 
                 configurator.configure(model, highs, arena);
+
+                // The MIP gap, only if configured to be something other than the default – the absolute gap in the
+                // objective's (scaled) units
+                Optional<NumberContext> gap = model.options.getConfiguredGapTolerance();
+                if (gap.isPresent()) {
+                    HiGHSBindings.setDoubleOptionValue(highs, HiGHSBindings.allocateString(arena, "mip_rel_gap"), gap.get().getRelativeError());
+                    HiGHSBindings.setDoubleOptionValue(highs, HiGHSBindings.allocateString(arena, "mip_abs_gap"), gap.get().getAbsoluteError() * objectiveScale);
+                }
 
                 MemorySegment colCostSeg = HiGHSBindings.allocateDoubleArray(arena, colCost);
                 MemorySegment colLowerSeg = HiGHSBindings.allocateDoubleArray(arena, colLower);
@@ -346,9 +368,12 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
                 arena.close();
             }
 
-            HiGHSEntityMap entityMap = new HiGHSEntityMap(n, m, model, variables, constraints);
+            HiGHSEntityMap entityMap = new HiGHSEntityMap(n, model, variables, constraints, constraintsMetaData);
 
-            return new SolverHiGHS(highs, n, m, entityMap, model.options);
+            boolean maximisation = model.getOptimisationSense() == Optimisation.Sense.MAX;
+            double objectiveConstant = ExpressionsBasedModel.Integration.getObjectiveConstant(model);
+
+            return new SolverHiGHS(highs, n, m, entityMap, constraintsMetaData, objectiveScale, objectiveConstant, maximisation, model.options);
         }
 
         /**
@@ -411,6 +436,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
     }
 
     private double[] myColDual;
+    private final ConstraintsMetaData myConstraintsMetaData;
     private final HiGHSEntityMap myEntityMap;
     private final MemorySegment myHighs;
     /**
@@ -420,8 +446,17 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
     private MemorySegment myInterruptCallback = null;
     private final int myIterationsAbort;
     private final int myIterationsSuffice;
+    private final boolean myMaximisation;
     private final int myNumCol;
     private final int myNumRow;
+    /**
+     * The objective constant, in model units and the model's sense.
+     */
+    private final double myObjectiveConstant;
+    /**
+     * The objective's adjustment factor – the objective HiGHS solves is scaled by this.
+     */
+    private final double myObjectiveScale;
     private double[] myRowDual;
     /**
      * The thread inside {@link #solve(Result)}. Read from the callback, which HiGHS may make from a thread of
@@ -431,12 +466,17 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
     private final long myTimeAbortMillis;
     private final long myTimeSufficeMillis;
 
-    SolverHiGHS(final MemorySegment highs, final int numCol, final int numRow, final HiGHSEntityMap entityMap, final Optimisation.Options options) {
+    SolverHiGHS(final MemorySegment highs, final int numCol, final int numRow, final HiGHSEntityMap entityMap, final ConstraintsMetaData constraintsMetaData,
+            final double objectiveScale, final double objectiveConstant, final boolean maximisation, final Optimisation.Options options) {
         super();
         myHighs = highs;
         myNumCol = numCol;
         myNumRow = numRow;
         myEntityMap = entityMap;
+        myConstraintsMetaData = constraintsMetaData;
+        myObjectiveScale = objectiveScale;
+        myObjectiveConstant = objectiveConstant;
+        myMaximisation = maximisation;
         myIterationsAbort = options.iterations_abort;
         myIterationsSuffice = options.iterations_suffice;
         myTimeAbortMillis = options.time_abort;
@@ -526,7 +566,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
         if (state.isFeasible()) {
 
-            double objectiveValue = HiGHSBindings.getObjectiveValue(myHighs);
+            double objectiveValue = HiGHSBindings.getObjectiveValue(myHighs) / myObjectiveScale + myObjectiveConstant;
 
             double[] solution = new double[myNumCol];
             myColDual = new double[myNumCol];
@@ -546,11 +586,24 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
             // HiGHS was given the model's actual sense (MIN or MAX), so myColDual is already in the
             // model's optimisation-sense convention and indexed by model variable (no presolve mapping
-            // is applied between model and HiGHS — all model variables are passed through).
+            // is applied between model and HiGHS — all model variables are passed through). Only the
+            // objective's scaling needs to be undone.
+            for (int j = 0; j < myNumCol; j++) {
+                myColDual[j] /= myObjectiveScale;
+            }
             double[] colDualSnapshot = myColDual;
             Supplier<Access1D<?>> reducedGradient = () -> ArrayR064.wrap(colDualSnapshot);
 
-            return Optimisation.Result.of(objectiveValue, state, solution).withReducedGradient(reducedGradient);
+            // With colDual = c - A'y, in the model's sense, a HiGHS row dual y is positive at an active
+            // lower limit when minimising, and negative when maximising. In the minimisation form that is
+            // the signed rows convention (positive at an active upper limit) with the sign reversed.
+            double[] signedRowDual = new double[myNumRow];
+            for (int i = 0; i < myNumRow; i++) {
+                signedRowDual[i] = myMaximisation ? myRowDual[i] : -myRowDual[i];
+            }
+
+            return Optimisation.Result.of(objectiveValue, state, solution).withReducedGradient(reducedGradient)
+                    .withDualValues(myConstraintsMetaData, () -> ArrayR064.wrap(signedRowDual));
 
         } else {
             myColDual = null;

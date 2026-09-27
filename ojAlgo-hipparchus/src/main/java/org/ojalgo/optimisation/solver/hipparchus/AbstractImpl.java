@@ -21,8 +21,11 @@
  */
 package org.ojalgo.optimisation.solver.hipparchus;
 
+import static org.ojalgo.function.constant.PrimitiveMath.ONE;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -30,12 +33,15 @@ import org.hipparchus.exception.Localizable;
 import org.hipparchus.exception.MathIllegalStateException;
 import org.hipparchus.optim.BaseMultivariateOptimizer;
 import org.hipparchus.optim.OptimizationData;
-import org.ojalgo.function.multiary.MultiaryFunction.TwiceDifferentiable;
+import org.ojalgo.optimisation.ConstraintsMetaData;
+import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
+import org.ojalgo.optimisation.ModelEntity;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Access1D;
 import org.ojalgo.structure.Structure1D.IntIndex;
+import org.ojalgo.structure.Structure2D.IntRowColumn;
 
 abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implements Optimisation.Solver {
 
@@ -48,12 +54,32 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
     static final class ConstraintTemplate {
 
         final double[] body;
+        /**
+         * For a variable's bound: its coefficient in the body, else 0.
+         */
+        final double boundCoefficient;
+        /**
+         * Whether the body and limits are the entity's adjusted (scaled) parameters.
+         */
+        final boolean adjusted;
+        /**
+         * The model entity - an expression, or a variable for its bounds.
+         */
+        final ModelEntity<?> entity;
         double lower = Double.NEGATIVE_INFINITY;
         double upper = Double.POSITIVE_INFINITY;
+        /**
+         * For a variable's bound: its index, else -1.
+         */
+        final int variable;
 
-        ConstraintTemplate(final int dim) {
+        ConstraintTemplate(final int dim, final ModelEntity<?> entity, final boolean adjusted, final int variable, final double boundCoefficient) {
             super();
             body = new double[dim];
+            this.entity = entity;
+            this.adjusted = adjusted;
+            this.variable = variable;
+            this.boundCoefficient = boundCoefficient;
         }
 
         @Override
@@ -73,9 +99,30 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
 
     static abstract class Integration<S extends Optimisation.Solver> extends ExpressionsBasedModel.Integration<S> {
 
-        static final boolean ADJUSTED_BOUNDS = true;
+        /**
+         * Variable bounds are constraints, with coefficient 1 (or the variable's adjustment factor if adjusted).
+         */
+        static final boolean ADJUSTED_BOUNDS = false;
         static final boolean ADJUSTED_CONSTRAINTS = true;
-        static final boolean ADJUSTED_OBJECTIVE = true;
+        static final boolean ADJUSTED_OBJECTIVE = false;
+
+        static double[][] getHessian(final Expression objective, final int dim) {
+            double[][] retVal = new double[dim][dim];
+            for (IntRowColumn key : objective.getQuadraticKeySet()) {
+                double value = objective.doubleValue(key, ADJUSTED_OBJECTIVE);
+                retVal[key.row][key.column] += value;
+                retVal[key.column][key.row] += value;
+            }
+            return retVal;
+        }
+
+        static double[] getLinearFactors(final Expression objective, final int dim) {
+            double[] retVal = new double[dim];
+            for (IntIndex key : objective.getLinearKeySet()) {
+                retVal[key.index] = objective.doubleValue(key, ADJUSTED_OBJECTIVE);
+            }
+            return retVal;
+        }
 
         @Override
         public final S build(final ExpressionsBasedModel model) {
@@ -86,11 +133,9 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
             List<Variable> variables = model.getVariables();
             int nbVariables = variables.size();
 
-            TwiceDifferentiable<Double> objective = model.objective().toFunction();
-
             model.constraints().forEach(expr -> {
 
-                ConstraintTemplate template = new ConstraintTemplate(nbVariables);
+                ConstraintTemplate template = new ConstraintTemplate(nbVariables, expr, ADJUSTED_CONSTRAINTS, -1, 0.0);
                 double[] coeffs = template.body;
 
                 for (IntIndex key : expr.getLinearKeySet()) {
@@ -116,10 +161,10 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
 
                 if (tmpVariable.isConstraint()) {
 
-                    ConstraintTemplate template = new ConstraintTemplate(nbVariables);
-                    double[] coeffs = template.body;
+                    double coefficient = ADJUSTED_BOUNDS ? tmpVariable.getAdjustmentFactor() : ONE;
 
-                    coeffs[i] = ADJUSTED_BOUNDS ? tmpVariable.getAdjustmentFactor() : 1.0;
+                    ConstraintTemplate template = new ConstraintTemplate(nbVariables, tmpVariable, ADJUSTED_BOUNDS, i, coefficient);
+                    template.body[i] = coefficient;
 
                     template.lower = tmpVariable.getLowerLimit(ADJUSTED_BOUNDS, Double.NEGATIVE_INFINITY);
                     template.upper = tmpVariable.getUpperLimit(ADJUSTED_BOUNDS, Double.POSITIVE_INFINITY);
@@ -132,10 +177,15 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
                 }
             }
 
-            Set<OptimizationData> optimisationdata = this.toOptimizationData(objective, model.getOptimisationSense() == Optimisation.Sense.MAX, equalities,
-                    ranges, anyVariableNegative);
+            Expression objective = model.objective();
 
-            return this.newSolver(model, optimisationdata);
+            Translation translation = new Translation(ADJUSTED_OBJECTIVE ? objective.getAdjustmentFactor() : ONE,
+                    ExpressionsBasedModel.Integration.getObjectiveConstant(model));
+
+            this.translate(translation, objective, nbVariables, model.getOptimisationSense() == Optimisation.Sense.MAX, equalities, ranges,
+                    anyVariableNegative);
+
+            return this.newSolver(model, translation);
         }
 
         @Override
@@ -143,22 +193,66 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
             return null;
         }
 
-        abstract S newSolver(ExpressionsBasedModel model, Set<OptimizationData> optimisationdata);
+        abstract S newSolver(ExpressionsBasedModel model, Translation translation);
 
-        abstract Set<OptimizationData> toOptimizationData(TwiceDifferentiable<Double> objective, boolean maximize, List<ConstraintTemplate> equalities,
+        abstract void translate(Translation translation, Expression objective, int dim, boolean maximise, List<ConstraintTemplate> equalities,
                 List<ConstraintTemplate> ranges, boolean negative);
 
     }
 
-    private final Configurator<S> myConfigurator;
-    private final Set<OptimizationData> myModelData;
-    private final Optimisation.Options myOptions;
+    /**
+     * The data handed to the Hipparchus solver, and what is needed to translate its solution back to model
+     * terms.
+     */
+    static final class Translation {
 
-    AbstractImpl(final Set<OptimizationData> modelData, final Optimisation.Options options, final Configurator<S> configurator) {
+        /**
+         * For each of the solver's multipliers: the index of the variable whose bound it is (else -1), and
+         * that variable's coefficient.
+         */
+        double[] boundCoefficients = null;
+        int[] boundVariables = null;
+        /**
+         * Only set for solvers that provide multipliers – matches them, converted by {@link #dualSigns}, to the
+         * model entities.
+         */
+        ConstraintsMetaData constraints = null;
+        final Set<OptimizationData> data = new HashSet<>();
+        /**
+         * For each of the solver's multipliers, the factor (1 or -1) that converts it to the signed convention
+         * of {@link ConstraintsMetaData#setSignedRows(boolean)}.
+         */
+        double[] dualSigns = null;
+        /**
+         * The objective was negated, to minimise a maximisation problem.
+         */
+        boolean negated = false;
+        /**
+         * The objective constant, in model units and the model's sense.
+         */
+        final double objectiveConstant;
+        /**
+         * The objective's adjustment factor – the objective the solver sees is scaled by this.
+         */
+        final double objectiveScale;
+
+        Translation(final double objectiveScale, final double objectiveConstant) {
+            super();
+            this.objectiveScale = objectiveScale;
+            this.objectiveConstant = objectiveConstant;
+        }
+
+    }
+
+    private final Configurator<S> myConfigurator;
+    private final Optimisation.Options myOptions;
+    private final Translation myTranslation;
+
+    AbstractImpl(final Translation translation, final Optimisation.Options options, final Configurator<S> configurator) {
 
         super();
 
-        myModelData = modelData;
+        myTranslation = translation;
         myOptions = options;
         myConfigurator = configurator;
     }
@@ -166,27 +260,39 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
     @Override
     public final Optimisation.Result solve(final Result kickStarter) {
 
-        Optimisation.State state = Optimisation.State.UNEXPLORED;
-        double value = Double.NaN;
-        Access1D<?> solution = kickStarter;
-
         try {
 
             S solver = myConfigurator.newDelegateSolver(myOptions);
 
-            R solutionAndValue = solver.optimize(myModelData.toArray(new OptimizationData[myModelData.size()]));
+            Set<OptimizationData> data = myTranslation.data;
+            R solutionAndValue = solver.optimize(data.toArray(new OptimizationData[data.size()]));
 
-            state = Optimisation.State.OPTIMAL;
-            value = this.extractValue(solutionAndValue);
-            solution = this.extractSolution(solutionAndValue);
+            double value = this.extractValue(solutionAndValue) / myTranslation.objectiveScale;
+            if (myTranslation.negated) {
+                value = -value;
+            }
+            value += myTranslation.objectiveConstant;
+
+            Optimisation.Result result = new Optimisation.Result(Optimisation.State.OPTIMAL, value, this.extractSolution(solutionAndValue));
+
+            return this.complete(result, solutionAndValue, myTranslation);
 
         } catch (MathIllegalStateException cause) {
 
-            state = this.extractState(cause.getSpecifier());
-        }
+            return new Optimisation.Result(this.extractState(cause.getSpecifier()), Double.NaN, kickStarter);
 
-        return new Optimisation.Result(state, value, solution);
+        } catch (RuntimeException cause) {
+
+            // Hipparchus' optimisers can fail in other ways too (the SQP optimisers throw NullPointerException
+            // or MathIllegalArgumentException on some problems)
+            return new Optimisation.Result(Optimisation.State.FAILED, Double.NaN, kickStarter);
+        }
     }
+
+    /**
+     * Add whatever else (dual values...) the solver provides to the result.
+     */
+    abstract Optimisation.Result complete(Optimisation.Result result, R solutionAndValue, Translation translation);
 
     abstract Access1D<?> extractSolution(R solutionAndValue);
 

@@ -21,7 +21,7 @@
  */
 package org.ojalgo.optimisation.solver.acm;
 
-import static org.ojalgo.function.constant.PrimitiveMath.ZERO;
+import static org.ojalgo.function.constant.PrimitiveMath.*;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -39,6 +39,7 @@ import org.apache.commons.math3.optim.linear.Relationship;
 import org.apache.commons.math3.optim.linear.SimplexSolver;
 import org.apache.commons.math3.optim.linear.UnboundedSolutionException;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
+import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
@@ -65,9 +66,12 @@ public final class SolverACM implements Optimisation.Solver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverACM> {
 
-        private static final boolean ADJUSTED_BOUNDS = true;
+        /**
+         * Variable bounds are constraints, with coefficient 1 (or the variable's adjustment factor if adjusted).
+         */
+        private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = true;
-        private static final boolean ADJUSTED_OBJECTIVE = true;
+        private static final boolean ADJUSTED_OBJECTIVE = false;
 
         Integration() {
             super();
@@ -83,9 +87,10 @@ public final class SolverACM implements Optimisation.Solver {
             List<Variable> variables = model.getVariables();
             int nbVariables = variables.size();
 
-            double[] weights = model.objective().toFunction().getLinearFactors(false).toRawCopy1D();
-            if (weights.length != nbVariables) {
-                throw new IllegalStateException();
+            Expression objective = model.objective();
+            double[] weights = new double[nbVariables];
+            for (IntIndex key : objective.getLinearKeySet()) {
+                weights[key.index] = objective.doubleValue(key, ADJUSTED_OBJECTIVE);
             }
             optimizationData.add(new LinearObjectiveFunction(weights, ZERO));
             optimizationData.add(model.getOptimisationSense() == Optimisation.Sense.MAX ? GoalType.MAXIMIZE : GoalType.MINIMIZE);
@@ -122,7 +127,7 @@ public final class SolverACM implements Optimisation.Solver {
                 if (tmpVariable.isConstraint()) {
 
                     double[] coeffs = new double[nbVariables];
-                    coeffs[i] = tmpVariable.getAdjustmentFactor();
+                    coeffs[i] = ADJUSTED_BOUNDS ? tmpVariable.getAdjustmentFactor() : ONE;
 
                     if (tmpVariable.isEqualityConstraint()) {
                         constraints.add(new LinearConstraint(coeffs, Relationship.EQ, tmpVariable.getUpperLimit(ADJUSTED_BOUNDS, Double.POSITIVE_INFINITY)));
@@ -142,7 +147,10 @@ public final class SolverACM implements Optimisation.Solver {
 
             optimizationData.add(new NonNegativeConstraint(!anyVariableNegative));
 
-            return new SolverACM(configurator, optimizationData, model.options);
+            double objectiveScale = ADJUSTED_OBJECTIVE ? objective.getAdjustmentFactor() : ONE;
+            double objectiveConstant = ExpressionsBasedModel.Integration.getObjectiveConstant(model);
+
+            return new SolverACM(configurator, optimizationData, model.options, objectiveScale, objectiveConstant);
         }
 
         @Override
@@ -163,15 +171,26 @@ public final class SolverACM implements Optimisation.Solver {
 
     private final Configurator myConfigurator;
     private final Set<OptimizationData> myModelData;
+    /**
+     * The objective constant, in model units.
+     */
+    private final double myObjectiveConstant;
+    /**
+     * The objective's adjustment factor – the objective the solver sees is scaled by this.
+     */
+    private final double myObjectiveScale;
     private final Optimisation.Options myOptions;
 
-    SolverACM(final Configurator configurator, final Set<OptimizationData> modelData, final Optimisation.Options options) {
+    SolverACM(final Configurator configurator, final Set<OptimizationData> modelData, final Optimisation.Options options, final double objectiveScale,
+            final double objectiveConstant) {
 
         super();
 
         myConfigurator = configurator;
         myModelData = modelData;
         myOptions = options;
+        myObjectiveScale = objectiveScale;
+        myObjectiveConstant = objectiveConstant;
     }
 
     @Override
@@ -192,7 +211,7 @@ public final class SolverACM implements Optimisation.Solver {
             PointValuePair solutionAndValue = solver.optimize(myModelData.toArray(new OptimizationData[myModelData.size()]));
 
             state = Optimisation.State.OPTIMAL;
-            value = solutionAndValue.getValue().doubleValue();
+            value = solutionAndValue.getValue().doubleValue() / myObjectiveScale + myObjectiveConstant;
             solution = Access1D.wrap(solutionAndValue.getPoint());
 
         } catch (NoFeasibleSolutionException infeasible) {
