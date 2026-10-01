@@ -78,6 +78,11 @@ final class HiGHSBindings {
      */
     static final int STATUS_ERROR = -1;
     static final int STATUS_OK = 0;
+
+    /** Values of the {@code primal_solution_status} info: no solution, an infeasible one, a feasible one. */
+    static final int SOLUTION_STATUS_NONE = 0;
+    static final int SOLUTION_STATUS_INFEASIBLE = 1;
+    static final int SOLUTION_STATUS_FEASIBLE = 2;
     static final int STATUS_WARNING = 1;
 
     /**
@@ -141,6 +146,7 @@ final class HiGHSBindings {
     private static final MethodHandle HIGHS_GET_NUM_COL;
     private static final MethodHandle HIGHS_GET_NUM_ROW;
     private static final MethodHandle HIGHS_GET_OBJECTIVE_VALUE;
+    private static final MethodHandle HIGHS_GET_INT_INFO_VALUE;
 
     private static final MethodHandle HIGHS_SET_BOOL_OPTION_VALUE;
     private static final MethodHandle HIGHS_SET_INT_OPTION_VALUE;
@@ -234,6 +240,10 @@ final class HiGHSBindings {
 
         HIGHS_GET_OBJECTIVE_VALUE = HiGHSBindings.downcallHandle("Highs_getObjectiveValue",
                 FunctionDescriptor.of(ValueLayout.JAVA_DOUBLE, ValueLayout.ADDRESS));
+
+        HIGHS_GET_INT_INFO_VALUE = HiGHSBindings.downcallHandle("Highs_getIntInfoValue", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                ValueLayout.ADDRESS, // info (const char*)
+                ValueLayout.ADDRESS)); // value (HighsInt*)
 
         HIGHS_SET_BOOL_OPTION_VALUE = HiGHSBindings.downcallHandle("Highs_setBoolOptionValue", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
                 ValueLayout.ADDRESS, // option (const char*)
@@ -570,6 +580,29 @@ final class HiGHSBindings {
             return (int) HIGHS_GET_NUM_ROW.invokeExact(highs);
         } catch (Throwable t) {
             throw new RuntimeException("Failed to get number of rows from HiGHS", t);
+        }
+    }
+
+    /**
+     * HiGHS's own word on whether it holds a primal feasible solution: {@link #SOLUTION_STATUS_FEASIBLE} when it
+     * does. The model status alone does not say – a solve stopped by a time, iteration or solution limit, or
+     * by an interrupt, reports the limit whether or not an incumbent was found before it.
+     * <p>
+     * Returns {@link #SOLUTION_STATUS_NONE} if HiGHS cannot answer.
+     */
+    static int getPrimalSolutionStatus(final MemorySegment highs) {
+
+        try (Arena arena = Arena.ofConfined()) {
+
+            MemorySegment info = arena.allocateFrom("primal_solution_status");
+            MemorySegment value = arena.allocate(ValueLayout.JAVA_INT);
+
+            int status = (int) HIGHS_GET_INT_INFO_VALUE.invokeExact(highs, info, value);
+
+            return status == STATUS_OK ? value.get(ValueLayout.JAVA_INT, 0L) : SOLUTION_STATUS_NONE;
+
+        } catch (Throwable t) {
+            return SOLUTION_STATUS_NONE;
         }
     }
 

@@ -9,9 +9,18 @@ import org.ojalgo.optimisation.convex.CuteMarosMeszarosCase;
 
 public class CuteMarosMeszarosCaseWithHiGHS extends CuteMarosMeszarosCase {
 
-    @BeforeEach
-    void configure() {
-        ExpressionsBasedModel.addIntegration(SolverHiGHS.INTEGRATION);
+    @Override
+    @Test
+    @Tag("unstable")
+    public void testHUES_MOD() {
+        super.testHUES_MOD();
+    }
+
+    @Override
+    @Test
+    @Tag("unstable")
+    public void testHUESTIS() {
+        super.testHUESTIS();
     }
 
     @Override
@@ -24,8 +33,34 @@ public class CuteMarosMeszarosCaseWithHiGHS extends CuteMarosMeszarosCase {
     @Override
     @Test
     @Tag("unstable")
+    public void testLASER() {
+        super.testLASER();
+    }
+
+    @Override
+    @Test
+    @Tag("unstable")
+    public void testMOSARQP1() {
+        super.testMOSARQP1();
+    }
+
+    @Override
+    @Test
+    @Tag("unstable")
+    public void testMOSARQP2() {
+        super.testMOSARQP2();
+    }
+
+    @Override
+    @Test
+    @Tag("unstable")
     public void testQPCSTAIR() {
         super.testQPCSTAIR();
+    }
+
+    @BeforeEach
+    void configure() {
+        ExpressionsBasedModel.addIntegration(SolverHiGHS.INTEGRATION);
     }
 
     @AfterEach

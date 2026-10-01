@@ -474,6 +474,24 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * The SCIP status translated, upgraded to {@link Optimisation.State#FEASIBLE} when SCIP stopped on a limit
+     * or an interrupt holding a solution. Those statuses translate to {@link Optimisation.State#APPROXIMATE},
+     * which ojAlgo does not count as feasible – so without this a MIP stopped by its time limit returned no
+     * solution at all, however good its incumbent. SCIP only keeps feasible solutions, so having a best one
+     * is enough.
+     */
+    private Optimisation.State currentState() {
+
+        Optimisation.State state = SolverSCIP.translate(SCIPBindings.getStatus(myScip));
+
+        if (state == Optimisation.State.APPROXIMATE && !SCIPBindings.getBestSol(myScip).equals(MemorySegment.NULL)) {
+            return Optimisation.State.FEASIBLE;
+        }
+
+        return state;
+    }
+
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
@@ -487,8 +505,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
             }
         }
 
-        int status = SCIPBindings.getStatus(myScip);
-        Optimisation.State state = SolverSCIP.translate(status);
+        Optimisation.State state = this.currentState();
 
         if (!state.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis) {
             long elapsed = System.currentTimeMillis() - startMillis;
@@ -514,8 +531,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
                     }
                 }
 
-                status = SCIPBindings.getStatus(myScip);
-                state = SolverSCIP.translate(status);
+                state = this.currentState();
             }
         }
 

@@ -533,8 +533,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
             mySolving = null;
         }
 
-        int modelStatus = HiGHSBindings.getModelStatus(myHighs);
-        Optimisation.State state = SolverHiGHS.translate(modelStatus);
+        Optimisation.State state = this.currentState();
 
         if (!state.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis) {
             long elapsed = System.currentTimeMillis() - startMillis;
@@ -559,8 +558,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
                     mySolving = null;
                 }
 
-                modelStatus = HiGHSBindings.getModelStatus(myHighs);
-                state = SolverHiGHS.translate(modelStatus);
+                state = this.currentState();
             }
         }
 
@@ -764,6 +762,24 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         myColDual = null;
         myRowDual = null;
         return true;
+    }
+
+    /**
+     * The model status translated, upgraded to {@link Optimisation.State#FEASIBLE} when HiGHS stopped on a
+     * limit or an interrupt holding a feasible solution. Those statuses translate to
+     * {@link Optimisation.State#APPROXIMATE}, which ojAlgo does not count as feasible – so without this a MIP
+     * stopped by its time limit returned no solution at all, however good its incumbent, and the time-suffice
+     * phase never saw that it already had something to stop with.
+     */
+    private Optimisation.State currentState() {
+
+        Optimisation.State state = SolverHiGHS.translate(HiGHSBindings.getModelStatus(myHighs));
+
+        if (state == Optimisation.State.APPROXIMATE && HiGHSBindings.getPrimalSolutionStatus(myHighs) == HiGHSBindings.SOLUTION_STATUS_FEASIBLE) {
+            return Optimisation.State.FEASIBLE;
+        }
+
+        return state;
     }
 
     /**
