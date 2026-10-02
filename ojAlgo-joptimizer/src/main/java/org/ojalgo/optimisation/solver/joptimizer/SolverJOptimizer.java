@@ -34,6 +34,7 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.WriterAppender;
 import org.ojalgo.array.ArrayR064;
+import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
@@ -61,15 +62,45 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
     public static class Configurator {
 
+        /**
+         * JOptimizer logs through log4j, and all of its loggers are below this one.
+         */
+        private static final Logger LOGGER = Logger.getLogger("com.joptimizer");
+
+        private static BasicLogger ourAppender = null;
+        private static WriterAppender ourWriterAppender = null;
+
+        /**
+         * Log4j's loggers are global, so this can't be per solve. While the options supply an appender, it is
+         * attached to JOptimizer's logger - once, not on every solve - replacing whichever was attached before.
+         * Without one, the log4j configuration is left as it is.
+         */
+        private static synchronized void attach(final BasicLogger appender) {
+
+            if (appender == ourAppender) {
+                return;
+            }
+
+            if (ourWriterAppender != null) {
+                LOGGER.removeAppender(ourWriterAppender);
+                ourWriterAppender = null;
+                LOGGER.setLevel(null);
+            }
+
+            ourAppender = appender;
+
+            if (appender != null) {
+                appender.asWriter().ifPresent(writer -> {
+                    ourWriterAppender = new WriterAppender(new PatternLayout("%d{ISO8601} [%t] %-5p %c %x - %m%n"), writer);
+                    LOGGER.addAppender(ourWriterAppender);
+                    LOGGER.setLevel(Level.DEBUG);
+                });
+            }
+        }
+
         protected void configure(final OptimizationRequest request, final OptimizationRequestHandler handler, final Optimisation.Options options) {
 
-            PatternLayout layout = new PatternLayout("%d{ISO8601} [%t] %-5p %c %x - %m%n");
-
-            Logger rootLogger = Logger.getRootLogger();
-            rootLogger.setLevel(Level.DEBUG);
-            if (options.logger_appender != null) {
-                options.logger_appender.asWriter().ifPresent(a -> rootLogger.addAppender(new WriterAppender(layout, a)));
-            }
+            Configurator.attach(options.logger_appender);
 
             if (request instanceof LPOptimizationRequest) {
                 ((LPOptimizationRequest) request).setPresolvingDisabled(true);
