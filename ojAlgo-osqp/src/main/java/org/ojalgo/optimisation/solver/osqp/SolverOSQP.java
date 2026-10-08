@@ -262,8 +262,8 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
 
                 double objectiveConstant = ExpressionsBasedModel.Integration.getObjectiveConstant(model);
 
-                return new SolverOSQP(solver, n, numModelConstraints, m, l, u, max, configurator, entityMap, constraintsMetaData, mtrxP, q, mtrxA,
-                        boundRows, boundScales, objectiveScale, objectiveConstant);
+                return new SolverOSQP(solver, n, numModelConstraints, m, l, u, max, configurator, entityMap, constraintsMetaData, mtrxP, q, mtrxA, boundRows,
+                        boundScales, objectiveScale, objectiveConstant);
 
             } finally {
                 arena.close();
@@ -272,11 +272,11 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
 
         /**
          * OSQP is a convex QP solver - no integer variables, and (since {@code P} is only in the objective)
-         * no quadratic constraints either.
+         * no quadratic constraints either. Doesn't work very well for pure LP either.
          */
         @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
-            return !model.isAnyVariableInteger() && !model.isAnyConstraintQuadratic();
+            return !model.isAnyVariableInteger() && !model.isAnyConstraintQuadratic() && model.objective().isAnyQuadraticFactorNonZero();
         }
 
         @Override
@@ -412,8 +412,8 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
      */
     private final int[] myBoundRows;
     /**
-     * For each variable with a bound row, the coefficient of that row: the variable's adjustment factor if the
-     * bounds are adjusted, or else 1.
+     * For each variable with a bound row, the coefficient of that row: the variable's adjustment factor if
+     * the bounds are adjusted, or else 1.
      */
     private final double[] myBoundScales;
     private final Configurator myConfigurator;
@@ -423,8 +423,8 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
     private ConstraintsMetaData myConstraintsMetaData;
     /**
      * Cached full dual vector (length {@link #myNumRows}) from the most recent solve, in OSQP's convention -
-     * rows {@code [0, myNumModelConstraints)} are the model's own constraint duals, the rest the variable-bound
-     * duals.
+     * rows {@code [0, myNumModelConstraints)} are the model's own constraint duals, the rest the
+     * variable-bound duals.
      */
     private double[] myDualY = null;
     private final OSQPEntityMap myEntityMap;
@@ -595,10 +595,26 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
     }
 
     /**
+     * Re-applies {@code options} (via this instance's {@link Configurator}) to the already-built OSQP solver.
+     * Settings that only take effect at setup time - {@code scaling}, {@code rho_is_vec}, {@code sigma} and
+     * the adaptive-rho parameters - are ignored by OSQP for this call; {@code rho} itself needs
+     * {@code osqp_update_rho} rather than this, and is not touched by the {@link Configurator} anyway.
+     *
+     * @return {@code true} if successfully applied
+     */
+    public boolean updateSettings(final Optimisation.Options options) {
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment settings = OSQPBindings.newDefaultSettings(arena);
+            myConfigurator.configure(settings, options);
+            return OSQPBindings.updateSettings(mySolver, settings) == 0L;
+        }
+    }
+
+    /**
      * The reduced gradient, in the bounded-variable sense, in model units and the model's sense: the gradient
      * of the Lagrangian, {@code Px + q + A'y}, without the variable-bound rows, so that at an optimum it is
-     * non-zero only for variables at an active bound. (The bound multipliers are also reported as dual values,
-     * with the variables.)
+     * non-zero only for variables at an active bound. (The bound multipliers are also reported as dual
+     * values, with the variables.)
      */
     private double[] computeReducedGradient(final double[] x, final double[] y) {
 
@@ -620,22 +636,6 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
         }
 
         return gradient;
-    }
-
-    /**
-     * Re-applies {@code options} (via this instance's {@link Configurator}) to the already-built OSQP solver.
-     * Settings that only take effect at setup time - {@code scaling}, {@code rho_is_vec}, {@code sigma} and
-     * the adaptive-rho parameters - are ignored by OSQP for this call; {@code rho} itself needs
-     * {@code osqp_update_rho} rather than this, and is not touched by the {@link Configurator} anyway.
-     *
-     * @return {@code true} if successfully applied
-     */
-    public boolean updateSettings(final Optimisation.Options options) {
-        try (Arena arena = Arena.ofConfined()) {
-            MemorySegment settings = OSQPBindings.newDefaultSettings(arena);
-            myConfigurator.configure(settings, options);
-            return OSQPBindings.updateSettings(mySolver, settings) == 0L;
-        }
     }
 
 }
