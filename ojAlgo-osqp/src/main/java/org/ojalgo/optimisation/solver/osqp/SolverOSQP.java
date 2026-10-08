@@ -44,6 +44,7 @@ import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Access1D;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
+import org.ojalgo.type.context.NumberContext;
 import org.ojalgo.type.keyvalue.EntryPair;
 
 /**
@@ -78,22 +79,11 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
     public static class Configurator {
 
         /**
-         * The absolute termination tolerance, for the primal and the dual residuals alike. Far tighter than
-         * OSQP's own default (1e-3); polishing is what makes it reachable.
+         * The relative termination tolerance, for the primal and the dual residuals alike, unless a
+         * feasibility tolerance is configured. OSQP's own default is 1e-3. This is the loosest value (with
+         * polishing on) that the tests in this module pass with. All other tolerances are at OSQP's defaults.
          */
-        private static final double EPS_ABS = 5E-9;
-        /**
-         * The dual infeasibility (primal unboundedness) detection tolerance.
-         */
-        private static final double EPS_DUAL_INF = 5E-9;
-        /**
-         * The primal infeasibility detection tolerance.
-         */
-        private static final double EPS_PRIM_INF = 5E-9;
-        /**
-         * The relative termination tolerance, for the primal and the dual residuals alike.
-         */
-        private static final double EPS_REL = 1E-11;
+        private static final double EPS_REL = 2E-4;
 
         /**
          * Configure OSQP settings before solving.
@@ -106,9 +96,8 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
             boolean verbose = options.logger_appender != null && options.logger_detailed;
             OSQPBindings.setVerbose(settings, verbose);
 
-            // ADMM alone typically only reaches ~1e-3 accuracy; polishing performs a final direct solve
-            // over the active set once it has stabilised, and is what gets OSQP within reach of the
-            // tolerances the rest of ojAlgo (and its test suite) expects.
+            // Polishing - a final direct solve over the active set, once ADMM has terminated as solved. Off by
+            // default in OSQP.
             OSQPBindings.setPolishing(settings, true);
 
             int effectiveIterations = Math.min(options.iterations_suffice, options.iterations_abort);
@@ -121,12 +110,17 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
                 OSQPBindings.setTimeLimit(settings, effectiveTimeMillis / 1_000.0);
             }
 
-            // OSQP has no tolerance for primal feasibility alone - its termination tolerances apply to the dual
-            // residual as well - so options.feasibility is not used.
-            OSQPBindings.setEpsAbs(settings, EPS_ABS);
-            OSQPBindings.setEpsRel(settings, EPS_REL);
-            OSQPBindings.setEpsPrimInf(settings, EPS_PRIM_INF);
-            OSQPBindings.setEpsDualInf(settings, EPS_DUAL_INF);
+            // The feasibility tolerance, only if configured to be something other than the default - a
+            // requirement to achieve. OSQP has no tolerance for primal feasibility alone - its termination
+            // tolerances apply to the dual residual as well - but like NumberContext they have an absolute and
+            // a relative part.
+            Optional<NumberContext> feasibility = options.getConfiguredFeasibilityTolerance();
+            if (feasibility.isPresent()) {
+                OSQPBindings.setEpsAbs(settings, feasibility.get().getAbsoluteError());
+                OSQPBindings.setEpsRel(settings, feasibility.get().getRelativeError());
+            } else {
+                OSQPBindings.setEpsRel(settings, EPS_REL);
+            }
         }
 
     }
@@ -537,7 +531,15 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
         long statusVal = OSQPBindings.getStatusVal(info);
         Optimisation.State state = SolverOSQP.translate(statusVal);
 
-        if (exitflag != 0L || !state.isFeasible()) {
+        if (exitflag != 0L) {
+            // An error during the solve - such as a failed polish - leaves the status as it was but skips
+            // storing the solution, so there is no solution to return whatever the status says.
+            myDualY = null;
+            myReducedGradient = null;
+            return Optimisation.Result.of(Optimisation.State.FAILED, new double[myNumVars]);
+        }
+
+        if (!state.isFeasible()) {
             myDualY = null;
             myReducedGradient = null;
             return Optimisation.Result.of(state, new double[myNumVars]);

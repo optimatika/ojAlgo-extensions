@@ -86,8 +86,9 @@ public final class SolverClarabel implements Optimisation.Solver {
                 ClarabelBindings.setMaxIter(settings, Math.min(Integer.MAX_VALUE, options.iterations_abort));
             }
 
-            if (options.time_abort > 0L) {
-                ClarabelBindings.setTimeLimit(settings, options.time_abort / 1_000.0);
+            long effectiveTimeMillis = Math.min(options.time_suffice, options.time_abort);
+            if (effectiveTimeMillis > 0L && effectiveTimeMillis < Long.MAX_VALUE) {
+                ClarabelBindings.setTimeLimit(settings, effectiveTimeMillis / 1_000.0);
             }
 
             boolean verbose = options.logger_appender != null && options.logger_detailed;

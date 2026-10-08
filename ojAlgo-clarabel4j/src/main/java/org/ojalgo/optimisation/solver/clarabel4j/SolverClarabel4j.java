@@ -61,8 +61,9 @@ public final class SolverClarabel4j implements Optimisation.Solver {
             }
 
             // Time limit (ojAlgo stores ms; Clarabel expects seconds)
-            if (optimisationOptions.time_abort > 0L) {
-                double seconds = optimisationOptions.time_abort / 1_000.0;
+            long effectiveTimeMillis = Math.min(optimisationOptions.time_suffice, optimisationOptions.time_abort);
+            if (effectiveTimeMillis > 0L && effectiveTimeMillis < Long.MAX_VALUE) {
+                double seconds = effectiveTimeMillis / 1_000.0;
                 parametersBuilder.timeLimit(Double.valueOf(seconds));
             }
 
