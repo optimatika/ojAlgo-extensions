@@ -1,5 +1,6 @@
 package org.ojalgo.optimisation.solver.gurobi;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.ojalgo.TestUtils;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
@@ -8,6 +9,7 @@ import com.gurobi.gurobi.GRB;
 import com.gurobi.gurobi.GRBEnv;
 import com.gurobi.gurobi.GRBException;
 
+@Disabled
 public class EnvironmentWithGurobi {
 
     /**

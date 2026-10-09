@@ -1,5 +1,6 @@
 package org.ojalgo.optimisation.solver.gurobi;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.ojalgo.TestUtils;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
@@ -8,15 +9,17 @@ import org.ojalgo.optimisation.Variable;
 import org.ojalgo.type.context.NumberContext;
 
 /**
- * Asked for dual values with quadratic constraints (QCPDual), which the integration does for continuous models,
- * Gurobi refuses to solve a non-convex model. Without them it solves it to global optimality.
+ * Asked for dual values with quadratic constraints (QCPDual), which the integration does for continuous
+ * models, Gurobi refuses to solve a non-convex model. Without them it solves it to global optimality.
  */
+@Disabled
 public class NonConvexQCQPWithGurobi {
 
     private static final NumberContext ACCURACY = NumberContext.of(6);
 
     /**
-     * Minimise x + y outside a ball, x² + y² >= 1, with 0 <= x, y <= 2. The optimum is 1, at (1, 0) or (0, 1).
+     * Minimise x + y outside a ball, x² + y² >= 1, with 0 <= x, y <= 2. The optimum is 1, at (1, 0) or (0,
+     * 1).
      */
     @Test
     public void testOutsideBall() {

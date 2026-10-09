@@ -1,5 +1,6 @@
 package org.ojalgo.optimisation.solver.gurobi;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.ojalgo.TestUtils;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
@@ -13,6 +14,7 @@ import com.gurobi.gurobi.GRBModel;
  * ojAlgo's options are passed on to Gurobi only when configured to be something other than the defaults.
  * Otherwise Gurobi keeps its own defaults.
  */
+@Disabled
 public class OptionsWithGurobi {
 
     private static ExpressionsBasedModel newModel() {

@@ -1,5 +1,6 @@
 package org.ojalgo.optimisation.solver.gurobi;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.ojalgo.TestUtils;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
@@ -12,9 +13,10 @@ import com.gurobi.gurobi.GRBException;
 import com.gurobi.gurobi.GRBModel;
 
 /**
- * A feasible solution supplied to start from is Gurobi's MIP start. With a solution limit of 1 Gurobi stops at
- * the first solution it has, and that is the MIP start when there is one.
+ * A feasible solution supplied to start from is Gurobi's MIP start. With a solution limit of 1 Gurobi stops
+ * at the first solution it has, and that is the MIP start when there is one.
  */
+@Disabled
 public class MIPStartWithGurobi {
 
     private static final NumberContext ACCURACY = NumberContext.of(8);

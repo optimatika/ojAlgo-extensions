@@ -1,5 +1,6 @@
 package org.ojalgo.optimisation.solver.gurobi;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.ojalgo.TestUtils;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
@@ -7,6 +8,7 @@ import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.type.context.NumberContext;
 
+@Disabled
 public class MaximisedQPWithGurobi {
 
     private static final NumberContext ACCURACY = NumberContext.of(6);

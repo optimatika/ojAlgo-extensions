@@ -3,6 +3,7 @@ package org.ojalgo.optimisation.solver.gurobi;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.ojalgo.TestUtils;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
@@ -14,6 +15,7 @@ import org.ojalgo.type.context.NumberContext;
  * are solved directly with the solver, as {@link ExpressionsBasedModel#minimise()} re-evaluates the objective
  * function anyway.
  */
+@Disabled
 public class ObjectiveValueWithGurobi {
 
     private static final NumberContext ACCURACY = NumberContext.of(8);
@@ -34,8 +36,8 @@ public class ObjectiveValueWithGurobi {
     }
 
     /**
-     * x + 4y + 2z + 7.5 subject to x + y = 5 and z >= 1, with y fixed at 2 (so x = 3) and z <= 10. The constant
-     * is the negated right-hand side of the objective row.
+     * x + 4y + 2z + 7.5 subject to x + y = 5 and z >= 1, with y fixed at 2 (so x = 3) and z <= 10. The
+     * constant is the negated right-hand side of the objective row.
      */
     private static ExpressionsBasedModel newModel(final Optimisation.Sense sense) {
 

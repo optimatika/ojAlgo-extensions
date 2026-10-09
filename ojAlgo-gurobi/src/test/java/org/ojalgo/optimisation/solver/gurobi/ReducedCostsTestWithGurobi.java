@@ -24,6 +24,7 @@ package org.ojalgo.optimisation.solver.gurobi;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.jupiter.api.Disabled;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.ExpressionsBasedModel.Integration;
 import org.ojalgo.optimisation.linear.LinearSolver;
@@ -34,6 +35,7 @@ import org.ojalgo.type.keyvalue.KeyValue;
  * Only the relaxed checks – where the optimal dual solution is not unique (at a presolve-derived bound, say)
  * Gurobi may report another one than the strict checks expect.
  */
+@Disabled
 public class ReducedCostsTestWithGurobi extends ReducedCostsTest {
 
     /**

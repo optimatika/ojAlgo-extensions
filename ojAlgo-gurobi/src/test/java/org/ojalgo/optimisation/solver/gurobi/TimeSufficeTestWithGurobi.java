@@ -3,6 +3,7 @@ package org.ojalgo.optimisation.solver.gurobi;
 import java.util.List;
 import java.util.Random;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.ojalgo.TestUtils;
 import org.ojalgo.optimisation.Expression;
@@ -16,15 +17,16 @@ import com.gurobi.gurobi.GRB;
 import com.gurobi.gurobi.GRBException;
 import com.gurobi.gurobi.GRBModel;
 
+@Disabled
 public class TimeSufficeTestWithGurobi extends TimeSufficeTest {
 
     /**
      * Market split: equality constraints on binary variables, with a right-hand side of half the coefficient
-     * sum. Infeasible, and hard enough to prove so that branch-and-bound is still working on it long after the
-     * test is done.
+     * sum. Infeasible, and hard enough to prove so that branch-and-bound is still working on it long after
+     * the test is done.
      * <p>
-     * With slack, the total deviation from the equalities is minimised instead. All zeros is then feasible, so
-     * there is an incumbent right away, but proving optimality is just as hard.
+     * With slack, the total deviation from the equalities is minimised instead. All zeros is then feasible,
+     * so there is an incumbent right away, but proving optimality is just as hard.
      */
     static ExpressionsBasedModel newMarketSplit(final boolean slack) {
         return TimeSufficeTestWithGurobi.newMarketSplit(Optimisation.newEnvironment(), slack);

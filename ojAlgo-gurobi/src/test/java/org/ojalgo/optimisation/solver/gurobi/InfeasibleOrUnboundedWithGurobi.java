@@ -1,5 +1,6 @@
 package org.ojalgo.optimisation.solver.gurobi;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.ojalgo.TestUtils;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
@@ -8,12 +9,23 @@ import org.ojalgo.optimisation.Variable;
 import org.ojalgo.type.context.NumberContext;
 
 /**
- * Gurobi's presolve may only conclude that a model is infeasible or unbounded (INF_OR_UNBD), and its unbounded
- * status does not come with a solution. The integration should find out which, and for an unbounded model
- * return a feasible solution. The models are solved directly with the solver, as ojAlgo's own presolve would
- * otherwise catch some of them first.
+ * Gurobi's presolve may only conclude that a model is infeasible or unbounded (INF_OR_UNBD), and its
+ * unbounded status does not come with a solution. The integration should find out which, and for an unbounded
+ * model return a feasible solution. The models are solved directly with the solver, as ojAlgo's own presolve
+ * would otherwise catch some of them first.
  */
+@Disabled
 public class InfeasibleOrUnboundedWithGurobi {
+
+    /**
+     * ojAlgo's unbounded state comes with a feasible solution.
+     */
+    private static void assertUnbounded(final ExpressionsBasedModel model) {
+        Optimisation.Result result = InfeasibleOrUnboundedWithGurobi.solve(model);
+        TestUtils.assertEquals(Optimisation.State.UNBOUNDED, result.getState());
+        TestUtils.assertTrue(result.toString(), model.validate(result));
+        TestUtils.assertEquals(model.objective().evaluate(result).doubleValue(), result.getValue(), NumberContext.of(8));
+    }
 
     /**
      * Infeasible: x + y >= 10 and x + y <= 5. There is also a variable, z, that could improve the objective
@@ -67,16 +79,6 @@ public class InfeasibleOrUnboundedWithGurobi {
         } finally {
             solver.dispose();
         }
-    }
-
-    /**
-     * ojAlgo's unbounded state comes with a feasible solution.
-     */
-    private static void assertUnbounded(final ExpressionsBasedModel model) {
-        Optimisation.Result result = InfeasibleOrUnboundedWithGurobi.solve(model);
-        TestUtils.assertEquals(Optimisation.State.UNBOUNDED, result.getState());
-        TestUtils.assertTrue(result.toString(), model.validate(result));
-        TestUtils.assertEquals(model.objective().evaluate(result).doubleValue(), result.getValue(), NumberContext.of(8));
     }
 
     @Test

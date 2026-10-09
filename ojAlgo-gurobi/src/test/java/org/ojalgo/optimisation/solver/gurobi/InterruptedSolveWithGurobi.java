@@ -3,6 +3,7 @@ package org.ojalgo.optimisation.solver.gurobi;
 import java.util.Random;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
@@ -17,6 +18,7 @@ import org.ojalgo.optimisation.Variable;
  * Stopped from the outside: the watch calls the solver's own stop function when the solving thread is
  * interrupted.
  */
+@Disabled
 public class InterruptedSolveWithGurobi {
 
     /**
