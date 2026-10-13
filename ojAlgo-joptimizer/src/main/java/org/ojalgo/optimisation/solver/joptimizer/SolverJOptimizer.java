@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.log4j.Level;
@@ -34,12 +36,19 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.WriterAppender;
 import org.ojalgo.array.ArrayR064;
+import org.ojalgo.matrix.MatrixR064;
+import org.ojalgo.matrix.decomposition.Cholesky;
+import org.ojalgo.matrix.decomposition.Eigenvalue;
+import org.ojalgo.matrix.store.MatrixStore;
+import org.ojalgo.matrix.store.PhysicalStore;
+import org.ojalgo.matrix.store.R064Store;
 import org.ojalgo.netio.BasicLogger;
 import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 import org.ojalgo.structure.Access1D;
+import org.ojalgo.structure.Access2D;
 import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.structure.Structure2D.IntRowColumn;
 
@@ -48,6 +57,7 @@ import com.joptimizer.exception.JOptimizerException;
 import com.joptimizer.functions.ConvexMultivariateRealFunction;
 import com.joptimizer.functions.LinearMultivariateRealFunction;
 import com.joptimizer.functions.PSDQuadraticMultivariateRealFunction;
+import com.joptimizer.optimizers.JOptimizer;
 import com.joptimizer.optimizers.LPOptimizationRequest;
 import com.joptimizer.optimizers.LPPrimalDualMethod;
 import com.joptimizer.optimizers.NewtonUnconstrained;
@@ -71,9 +81,16 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         private static WriterAppender ourWriterAppender = null;
 
         /**
+         * JOptimizer's defaults (1E-5 and 1E-6) give solutions accurate to only about 5 digits. With these some
+         * (harder) LPs fail, and are then retried with the defaults - see {@link #configureFallback}.
+         */
+        private static final double TOLERANCE = 1E-9;
+        private static final double TOLERANCE_FEAS = 1E-8;
+
+        /**
          * Log4j's loggers are global, so this can't be per solve. While the options supply an appender, it is
-         * attached to JOptimizer's logger - once, not on every solve - replacing whichever was attached before.
-         * Without one, the log4j configuration is left as it is.
+         * attached to JOptimizer's logger - once, not on every solve - replacing whichever was attached
+         * before. Without one, the log4j configuration is left as it is.
          */
         private static synchronized void attach(final BasicLogger appender) {
 
@@ -102,10 +119,25 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
             Configurator.attach(options.logger_appender);
 
+            request.setTolerance(TOLERANCE);
+            request.setToleranceFeas(TOLERANCE_FEAS);
+
             if (request instanceof LPOptimizationRequest) {
                 ((LPOptimizationRequest) request).setPresolvingDisabled(true);
             }
 
+        }
+
+        /**
+         * Used for a second attempt, when an LP failed with what {@link #configure} set. Configures the same,
+         * but with JOptimizer's default (looser) tolerances.
+         */
+        protected void configureFallback(final OptimizationRequest request, final OptimizationRequestHandler handler, final Optimisation.Options options) {
+
+            this.configure(request, handler, options);
+
+            request.setTolerance(JOptimizer.DEFAULT_TOLERANCE);
+            request.setToleranceFeas(JOptimizer.DEFAULT_FEASIBILITY_TOLERANCE);
         }
 
         protected OptimizationRequestHandler newOptimizationRequestHandler(final OptimizationRequest request) {
@@ -117,8 +149,8 @@ public final class SolverJOptimizer implements Optimisation.Solver {
     static final class Integration extends ExpressionsBasedModel.Integration<SolverJOptimizer> {
 
         /**
-         * Variable bounds are native bounds for linear problems, so this must be false. (For quadratic problems
-         * they are inequality constraints, with coefficient 1 or the variable's adjustment factor.)
+         * Variable bounds are native bounds for linear problems, so this must be false. (For quadratic
+         * problems they are inequality constraints, with coefficient 1 or the variable's adjustment factor.)
          */
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = true;
@@ -155,8 +187,17 @@ public final class SolverJOptimizer implements Optimisation.Solver {
             double objectiveScale = ADJUSTED_OBJECTIVE ? objective.getAdjustmentFactor() : ONE;
             ConvexMultivariateRealFunction objectiveFunction;
 
-            List<Expression> equalities = model.constraints().filter(expr -> expr.isEqualityConstraint() && !expr.isAnyQuadraticFactorNonZero())
-                    .map(expr -> expr.compensate(fixed)).collect(Collectors.toList());
+            // Compensated first - with some of its variables fixed a quadratic constraint may be linear
+            List<Expression> constraints = model.constraints().map(expr -> expr.compensate(fixed)).collect(Collectors.toList());
+
+            for (Expression constraint : constraints) {
+                if (constraint.isAnyQuadraticFactorNonZero() && constraint.isLowerLimitSet() && constraint.isUpperLimitSet()) {
+                    throw new IllegalArgumentException("JOptimizer needs convex constraints, and '" + constraint.getName()
+                            + "' is two-sided (or an equality) - the region between two quadratic limits is not convex");
+                }
+            }
+
+            List<Expression> equalities = constraints.stream().filter(Expression::isEqualityConstraint).collect(Collectors.toList());
             int nbEquals = equalities.size();
 
             if (nbEquals > 0) {
@@ -181,6 +222,9 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                 request.setB(b);
             }
 
+            boolean[] boxedLower = null;
+            boolean[] boxedUpper = null;
+
             if (reqLP != null) {
                 // LP
 
@@ -188,15 +232,20 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                 DenseDoubleMatrix1D lb = new DenseDoubleMatrix1D(nbVars);
                 DenseDoubleMatrix1D ub = new DenseDoubleMatrix1D(nbVars);
 
+                boxedLower = new boolean[nbVars];
+                boxedUpper = new boolean[nbVars];
+
                 for (int j = 0; j < nbVars; j++) {
 
                     Variable var = variables.get(j);
 
                     double low = var.getLowerLimit(ADJUSTED_BOUNDS, Double.NEGATIVE_INFINITY);
                     lb.setQuick(j, Double.isFinite(low) ? low : LPPrimalDualMethod.DEFAULT_MIN_LOWER_BOUND);
+                    boxedLower[j] = low < LPPrimalDualMethod.DEFAULT_MIN_LOWER_BOUND;
 
                     double upp = var.getUpperLimit(ADJUSTED_BOUNDS, Double.POSITIVE_INFINITY);
                     ub.setQuick(j, Double.isFinite(upp) ? upp : LPPrimalDualMethod.DEFAULT_MAX_UPPER_BOUND);
+                    boxedUpper[j] = upp > LPPrimalDualMethod.DEFAULT_MAX_UPPER_BOUND;
                 }
 
                 for (IntIndex key : objective.getLinearKeySet()) {
@@ -211,12 +260,10 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
                 objectiveFunction = new LinearMultivariateRealFunction(c, ZERO);
 
-                List<Expression> lowIneq = model.constraints().filter(expr -> expr.isLowerConstraint() && !expr.isAnyQuadraticFactorNonZero())
-                        .map(expr -> expr.compensate(fixed)).collect(Collectors.toList());
+                List<Expression> lowIneq = constraints.stream().filter(Expression::isLowerConstraint).collect(Collectors.toList());
                 int nbLowIneq = lowIneq.size();
 
-                List<Expression> uppIneq = model.constraints().filter(expr -> expr.isUpperConstraint() && !expr.isAnyQuadraticFactorNonZero())
-                        .map(expr -> expr.compensate(fixed)).collect(Collectors.toList());
+                List<Expression> uppIneq = constraints.stream().filter(Expression::isUpperConstraint).collect(Collectors.toList());
                 int nbUppIneq = uppIneq.size();
 
                 DenseDoubleMatrix2D G = new DenseDoubleMatrix2D(nbLowIneq + nbUppIneq, nbVars);
@@ -266,35 +313,61 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
                 List<ConvexMultivariateRealFunction> constrs = new ArrayList<>();
 
-                model.constraints().filter(Expression::isLowerConstraint).map(expr -> expr.compensate(fixed))
+                constraints.stream().filter(Expression::isLowerConstraint)
                         .forEach(compC -> constrs.add(SolverJOptimizer.toLowerConstraint(compC, nbVars, model, ADJUSTED_CONSTRAINTS)));
 
-                model.constraints().filter(Expression::isUpperConstraint).map(expr -> expr.compensate(fixed))
+                constraints.stream().filter(Expression::isUpperConstraint)
                         .forEach(compC -> constrs.add(SolverJOptimizer.toUpperConstraint(compC, nbVars, model, ADJUSTED_CONSTRAINTS)));
+
+                /*
+                 * Without an initial point JOptimizer starts its phase I (finding a strictly feasible point)
+                 * at the origin, and that fails for some quite simple models. Starting strictly inside the
+                 * variable bounds works better - and if that point happens to be strictly feasible, phase I
+                 * is skipped.
+                 */
+                double[] initial = new double[nbVars];
 
                 for (int j = 0; j < nbVars; j++) {
 
                     Variable var = variables.get(j);
                     double coefficient = ADJUSTED_BOUNDS ? var.getAdjustmentFactor() : ONE;
 
+                    double low = var.getLowerLimit(ADJUSTED_BOUNDS, Double.NEGATIVE_INFINITY);
+                    double upp = var.getUpperLimit(ADJUSTED_BOUNDS, Double.POSITIVE_INFINITY);
+
                     if (var.isLowerLimitSet()) {
                         double[] q = new double[nbVars];
                         q[j] = -coefficient;
-                        constrs.add(new LinearMultivariateRealFunction(q, var.getLowerLimit(ADJUSTED_BOUNDS, Double.NEGATIVE_INFINITY)));
+                        constrs.add(new LinearMultivariateRealFunction(q, low));
                     }
                     if (var.isUpperLimitSet()) {
                         double[] q = new double[nbVars];
                         q[j] = coefficient;
-                        constrs.add(new LinearMultivariateRealFunction(q, -var.getUpperLimit(ADJUSTED_BOUNDS, Double.POSITIVE_INFINITY)));
+                        constrs.add(new LinearMultivariateRealFunction(q, -upp));
+                    }
+
+                    if (Double.isFinite(low) && Double.isFinite(upp)) {
+                        initial[j] = (low + upp) / TWO;
+                    } else if (Double.isFinite(low)) {
+                        initial[j] = low + ONE;
+                    } else if (Double.isFinite(upp)) {
+                        initial[j] = upp - ONE;
                     }
                 }
 
                 if (constrs.size() > 0) {
                     request.setFi(constrs.toArray(new ConvexMultivariateRealFunction[constrs.size()]));
                 }
+
+                if (nbEquals > 0) {
+                    // Phase I requires the initial point to satisfy the equality constraints - project it onto them
+                    initial = SolverJOptimizer.project(initial, request.getA().toArray(), request.getB().toArray());
+                }
+
+                request.setNotFeasibleInitialPoint(initial);
             }
 
-            return new SolverJOptimizer(configurator, request, model.options, objectiveFunction, objectiveScale);
+            return new SolverJOptimizer(configurator, request, model.options, objectiveFunction, objectiveScale, boxedLower, boxedUpper);
         }
 
         @Override
@@ -321,7 +394,67 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
     public static final ExpressionsBasedModel.Integration<SolverJOptimizer> INTEGRATION = new Integration();
 
+    /**
+     * A solution value within this fraction of a box limit is considered to be at it.
+     */
+    private static final double BOX_LIMIT_FACTOR = ONE - 1E-6;
+
     static final Configurator DEFAULT = new Configurator();
+
+    /**
+     * JOptimizer needs convex functions - the Hessian must be positive semidefinite. Otherwise it may well
+     * return a non-optimal point, reported as optimal. Only the rows/columns of the variables involved are
+     * checked.
+     * <p>
+     * Cholesky is the quick test, but it fails for a semidefinite (singular) Hessian as well as for an
+     * indefinite one. Telling those apart needs the eigenvalues.
+     */
+    private static void assertPositiveSemidefinite(final DenseDoubleMatrix2D hessian, final SortedSet<Integer> involved, final Expression expression) {
+
+        int[] indices = involved.stream().mapToInt(Integer::intValue).toArray();
+        int dim = indices.length;
+
+        PhysicalStore<Double> block = R064Store.FACTORY.make(dim, dim);
+        for (int j = 0; j < dim; j++) {
+            for (int i = 0; i < dim; i++) {
+                block.set(i, j, hessian.getQuick(indices[i], indices[j]));
+            }
+        }
+
+        Cholesky<Double> cholesky = Cholesky.R064.make(block);
+        if (cholesky.decompose(block) && cholesky.isSPD()) {
+            return;
+        }
+
+        Eigenvalue<Double> evd = Eigenvalue.R064.make(block, true);
+        if (!evd.decompose(block)) {
+            throw new IllegalArgumentException("Failed to decompose the quadratic form of '" + expression.getName() + "'");
+        }
+
+        MatrixStore<Double> mtrxD = evd.getD();
+
+        double largest = ZERO;
+        for (int i = 0; i < dim; i++) {
+            largest = Math.max(largest, Math.abs(mtrxD.doubleValue(i, i)));
+        }
+        double tolerance = dim * Math.max(largest, ONE) * MACHINE_EPSILON;
+
+        for (int i = 0; i < dim; i++) {
+            double eigenvalue = mtrxD.doubleValue(i, i);
+            if (eigenvalue < -tolerance) {
+                throw new IllegalArgumentException(
+                        "JOptimizer needs a convex problem, and '" + expression.getName() + "' is not convex (eigenvalue " + eigenvalue + ")");
+            }
+        }
+    }
+
+    private static MatrixR064 column(final double[] values) {
+        double[][] column = new double[values.length][1];
+        for (int i = 0; i < values.length; i++) {
+            column[i][0] = values[i];
+        }
+        return MatrixR064.FACTORY.copy(Access2D.wrap(column));
+    }
 
     private static ConvexMultivariateRealFunction toFunction(final Expression expression, final int dim, final boolean negate,
             final ExpressionsBasedModel model, final double constant, final boolean adjusted) {
@@ -333,6 +466,8 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         if (expression.isAnyQuadraticFactorNonZero()) {
             p = new DenseDoubleMatrix2D(dim, dim);
 
+            SortedSet<Integer> involved = new TreeSet<>();
+
             for (IntRowColumn key : expression.getQuadraticKeySet()) {
                 double val = expression.doubleValue(key, adjusted);
                 double d = negate ? -val : val;
@@ -340,8 +475,11 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                 int colIndex = model.indexOfFreeVariable(key.column);
                 p.set(rowIndex, colIndex, p.get(rowIndex, colIndex) + d);
                 p.set(colIndex, rowIndex, p.get(colIndex, rowIndex) + d);
+                involved.add(Integer.valueOf(rowIndex));
+                involved.add(Integer.valueOf(colIndex));
             }
 
+            SolverJOptimizer.assertPositiveSemidefinite(p, involved, expression);
         }
 
         if (expression.isAnyLinearFactorNonZero()) {
@@ -358,6 +496,21 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         } else {
             return new LinearMultivariateRealFunction(q, r);
         }
+    }
+
+    /**
+     * The point closest to x that satisfies [A][x]=[b]: x + A<sup>T</sup>(AA<sup>T</sup>)<sup>-1</sup>(b -
+     * Ax)
+     */
+    static double[] project(final double[] x, final double[][] A, final double[] b) {
+
+        MatrixR064 mtrxA = MatrixR064.FACTORY.copy(Access2D.wrap(A));
+        MatrixR064 vctrX = SolverJOptimizer.column(x);
+
+        MatrixR064 residual = SolverJOptimizer.column(b).subtract(mtrxA.multiply(vctrX));
+        MatrixR064 correction = mtrxA.transpose().multiply(mtrxA.multiply(mtrxA.transpose()).solve(residual));
+
+        return vctrX.add(correction).toRawCopy1D();
     }
 
     /**
@@ -381,6 +534,15 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         return SolverJOptimizer.toFunction(expression, dim, false, model, -expression.getUpperLimit(adjusted, Double.POSITIVE_INFINITY), adjusted);
     }
 
+    /**
+     * JOptimizer's LP solver confines all variables to [{@link LPPrimalDualMethod#DEFAULT_MIN_LOWER_BOUND},
+     * {@link LPPrimalDualMethod#DEFAULT_MAX_UPPER_BOUND}] – infinite bounds are replaced by these, and finite
+     * bounds beyond them are clamped. These mark the variables (of an LP) where that box is an extra,
+     * artificial, limit. A solution at such a limit is not proven optimal, and infeasibility within the box
+     * is not proven infeasibility.
+     */
+    private final boolean[] myBoxedLower;
+    private final boolean[] myBoxedUpper;
     private final Configurator myConfigurator;
     /**
      * The (minimisation form) objective function, of the free variables.
@@ -394,7 +556,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
     private final OptimizationRequest myRequest;
 
     SolverJOptimizer(final Configurator configurator, final OptimizationRequest request, final Optimisation.Options options,
-            final ConvexMultivariateRealFunction objective, final double objectiveScale) {
+            final ConvexMultivariateRealFunction objective, final double objectiveScale, final boolean[] boxedLower, final boolean[] boxedUpper) {
 
         super();
 
@@ -403,14 +565,37 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         myOptions = options;
         myObjective = objective;
         myObjectiveScale = objectiveScale;
+        myBoxedLower = boxedLower;
+        myBoxedUpper = boxedUpper;
     }
 
     @Override
     public Result solve(final Result kickStarter) {
 
+        Result retVal = this.solve(kickStarter, false);
+
+        if (retVal.getState() == Optimisation.State.FAILED && myRequest instanceof LPOptimizationRequest) {
+            // The tight tolerances make some LPs fail that JOptimizer solves with its defaults
+
+            if (myOptions.logger_appender != null) {
+                myOptions.logger_appender.println("Retrying with JOptimizer's default tolerances");
+            }
+
+            retVal = this.solve(kickStarter, true);
+        }
+
+        return retVal;
+    }
+
+    private Result solve(final Result kickStarter, final boolean fallback) {
+
         OptimizationRequestHandler handler = myConfigurator.newOptimizationRequestHandler(myRequest);
 
-        myConfigurator.configure(myRequest, handler, myOptions);
+        if (fallback) {
+            myConfigurator.configureFallback(myRequest, handler, myOptions);
+        } else {
+            myConfigurator.configure(myRequest, handler, myOptions);
+        }
 
         Optimisation.State retState = Optimisation.State.UNEXPLORED;
         double retValue = NaN;
@@ -429,8 +614,12 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
             OptimizationResponse response = handler.getOptimizationResponse();
 
-            retState = Optimisation.State.OPTIMAL;
             double[] solution = response.getSolution();
+            /*
+             * At an artificial box limit the problem is either unbounded, or its optimum is beyond the box.
+             * Either way the solution is feasible, but not optimal.
+             */
+            retState = this.isAnyAtBoxLimit(solution) ? Optimisation.State.FEASIBLE : Optimisation.State.OPTIMAL;
             retValue = myObjective.value(new DenseDoubleMatrix1D(solution)) / myObjectiveScale;
             retSolution = Access1D.wrap(solution);
 
@@ -440,9 +629,11 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                 myOptions.logger_appender.print(cause.toString());
             }
 
-            retState = Optimisation.State.INFEASIBLE;
+            // Infeasible within the artificial box doesn't mean infeasible
+            retState = this.isAnyBoxed() ? Optimisation.State.FAILED : Optimisation.State.INFEASIBLE;
 
-        } catch (JOptimizerException cause) {
+        } catch (JOptimizerException | RuntimeException cause) {
+            // For some models JOptimizer can't handle, e.g. with rank deficient equality constraints, it throws unchecked exceptions
 
             if (myOptions.logger_appender != null) {
                 myOptions.logger_appender.print(cause.toString());
@@ -458,6 +649,37 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         }
 
         return new Optimisation.Result(retState, retValue, retSolution);
+    }
+
+    private boolean isAnyAtBoxLimit(final double[] solution) {
+
+        if (myBoxedLower == null || myBoxedUpper == null) {
+            return false;
+        }
+
+        for (int j = 0; j < solution.length; j++) {
+            if ((myBoxedLower[j] && solution[j] <= LPPrimalDualMethod.DEFAULT_MIN_LOWER_BOUND * BOX_LIMIT_FACTOR)
+                    || (myBoxedUpper[j] && solution[j] >= LPPrimalDualMethod.DEFAULT_MAX_UPPER_BOUND * BOX_LIMIT_FACTOR)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isAnyBoxed() {
+
+        if (myBoxedLower == null || myBoxedUpper == null) {
+            return false;
+        }
+
+        for (int j = 0; j < myBoxedLower.length; j++) {
+            if (myBoxedLower[j] || myBoxedUpper[j]) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 }

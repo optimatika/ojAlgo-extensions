@@ -21,7 +21,9 @@
  */
 package org.ojalgo.commons.math3.optim.linear;
 
-import org.ojalgo.optimisation.ExpressionsBasedModel;
+import java.util.List;
+
+import org.ojalgo.optimisation.ExpressionsBasedModel.Integration;
 import org.ojalgo.optimisation.linear.BurkardtDatasetsMps;
 import org.ojalgo.optimisation.solver.acm.SolverACM;
 
@@ -30,8 +32,9 @@ import org.ojalgo.optimisation.solver.acm.SolverACM;
  */
 public class BurkardtDatasetsMpsWithACM extends BurkardtDatasetsMps {
 
-    static {
-        ExpressionsBasedModel.addIntegration(SolverACM.INTEGRATION);
+    @Override
+    protected List<Integration<?>> integrations() {
+        return List.of(SolverACM.INTEGRATION);
     }
 
 }

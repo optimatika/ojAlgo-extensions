@@ -9,7 +9,7 @@
     <artifactId>ojalgo-cplex</artifactId>
     <name>ojAlgo-cplex</name>
     <description>ojAlgo and CPLEX integration</description>
-    <version>3.2.0</version>
+    <version>3.3.0-SNAPSHOT</version>
     <properties>
         <!-- You have to change this! -->
         <path.native.cplex>/Applications/CPLEX_Studio_Community222/cplex/bin/arm64_osx</path.native.cplex>

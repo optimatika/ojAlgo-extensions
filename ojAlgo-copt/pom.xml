@@ -9,7 +9,7 @@
     <artifactId>ojalgo-copt</artifactId>
     <name>ojAlgo-copt</name>
     <description>ojAlgo and COPT integration</description>
-    <version>1.1.0</version>
+    <version>1.2.0-SNAPSHOT</version>
     <properties>
         <!-- You have to change this! -->
         <path.native.copt>/Applications/copt80/lib</path.native.copt>

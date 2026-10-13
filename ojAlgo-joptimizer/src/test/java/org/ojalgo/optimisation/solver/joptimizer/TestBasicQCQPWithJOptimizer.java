@@ -21,17 +21,16 @@
  */
 package org.ojalgo.optimisation.solver.joptimizer;
 
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
-import org.ojalgo.optimisation.ExpressionsBasedModel;
-import org.ojalgo.optimisation.integer.MIPLIBTheEasySet;
+import java.util.List;
 
-@Disabled
-public class MIPLIBTheEasySetWithJOptimizer extends MIPLIBTheEasySet {
+import org.ojalgo.optimisation.ExpressionsBasedModel.Integration;
+import org.ojalgo.optimisation.convex.TestBasicQCQP;
 
-    @BeforeAll
-    public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverJOptimizer.INTEGRATION);
+public class TestBasicQCQPWithJOptimizer extends TestBasicQCQP {
+
+    @Override
+    protected List<Integration<?>> integrations() {
+        return List.of(SolverJOptimizer.INTEGRATION);
     }
 
 }

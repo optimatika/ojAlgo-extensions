@@ -21,17 +21,46 @@
  */
 package org.ojalgo.optimisation.solver.joptimizer;
 
-import org.junit.jupiter.api.BeforeAll;
+import java.util.List;
+
 import org.junit.jupiter.api.Disabled;
-import org.ojalgo.optimisation.ExpressionsBasedModel;
+import org.junit.jupiter.api.Test;
+import org.ojalgo.optimisation.ExpressionsBasedModel.Integration;
 import org.ojalgo.optimisation.linear.LinearDesignTestCases;
 
-@Disabled
 public class LinearDesignTestCasesWithJOptimizer extends LinearDesignTestCases {
 
-    @BeforeAll
-    public static void configure() {
-        ExpressionsBasedModel.addIntegration(SolverJOptimizer.INTEGRATION);
+    @Override
+    @Test
+    @Disabled("JOptimizer can't detect unboundedness - with all variables confined to [-99999, 99999] it reports FEASIBLE - see LinearLimitationsWithJOptimizer")
+    public void test6LinearModelCase() {
+        super.test6LinearModelCase();
+    }
+
+    @Override
+    @Test
+    @Disabled("As many equality constraints as variables - JOptimizer requires fewer (rank(A) = p < n)")
+    public void test8LinearModelCase() {
+        super.test8LinearModelCase();
+    }
+
+    @Override
+    @Test
+    @Disabled("JOptimizer fails numerically on this badly scaled model (\"not positive definite matrix\")")
+    public void testP20130409b() {
+        super.testP20130409b();
+    }
+
+    @Override
+    @Test
+    @Disabled("JOptimizer can't detect unboundedness - with all variables confined to [-99999, 99999] it reports FEASIBLE - see LinearLimitationsWithJOptimizer")
+    public void testUnboundedCase() {
+        super.testUnboundedCase();
+    }
+
+    @Override
+    protected List<Integration<?>> integrations() {
+        return List.of(SolverJOptimizer.INTEGRATION);
     }
 
 }

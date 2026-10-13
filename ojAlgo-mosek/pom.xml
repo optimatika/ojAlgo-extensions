@@ -9,7 +9,7 @@
     <artifactId>ojalgo-mosek</artifactId>
     <name>ojAlgo-mosek</name>
     <description>ojAlgo and Mosek integration</description>
-    <version>3.3.0</version>
+    <version>3.4.0-SNAPSHOT</version>
     <properties>
         <java.version>17</java.version>
         <!-- You have to change this! -->
