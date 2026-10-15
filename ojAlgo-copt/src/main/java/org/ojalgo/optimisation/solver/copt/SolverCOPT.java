@@ -61,9 +61,15 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
 
     public static class Configurator {
 
+        /**
+         * Turns off logging, requests a Farkas ray – so that an infeasible LP has an infeasibility
+         * certificate – and passes on the time and iteration limits, the parallelism and a configured
+         * feasibility tolerance.
+         */
         protected void configure(final copt.Model delegateSolver, final Optimisation.Options options) {
             try {
                 delegateSolver.setIntParam(IntParam.Logging, 0);
+                delegateSolver.setIntParam(IntParam.ReqFarkasRay, 1);
 
                 long effectiveTimeMillis = Math.min(options.time_suffice, options.time_abort);
                 if (effectiveTimeMillis > 0L && effectiveTimeMillis < Long.MAX_VALUE) {
@@ -120,7 +126,6 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
             myNumVars = numVars;
             int nbConstraints = constraints.size();
             myConstraints = ConstraintsMetaData.newEntityMap(nbConstraints);
-            myConstraints.setSignedRows(true);
             myGroupIndices = new int[nbConstraints];
             myQuadratic = new boolean[nbConstraints];
             int eq = 0;
@@ -214,6 +219,11 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
      * objective function without any scaling (adjustment). COPT's own presolve and scaling does the rest.
      */
     static final class Integration extends ExpressionsBasedModel.Integration<SolverCOPT> {
+
+        /**
+         * A Farkas ray from the simplex is exact, up to rounding.
+         */
+        private static final double CERTIFICATE_NOISE = 1E-9;
 
         private final ForgetfulMap.ValueCache<Envr> myEnvironmentCache;
 
@@ -312,6 +322,18 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
         @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
             return true;
+        }
+
+        /**
+         * An INFEASIBLE result with a Farkas ray gets the reduced gradient of the infeasibility certificate, see
+         * {@link ExpressionsBasedModel.Integration#toInfeasibilityCertificate(Optimisation.Result, ExpressionsBasedModel, double)}.
+         */
+        @Override
+        public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
+            if (solverState.getState() == State.INFEASIBLE && solverState.getDualSolution().isPresent()) {
+                return ExpressionsBasedModel.Integration.toInfeasibilityCertificate(solverState, model, CERTIFICATE_NOISE);
+            }
+            return solverState;
         }
 
         private void dispose(final Envr env) {
@@ -429,6 +451,23 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
         return quadExpr;
     }
 
+    /**
+     * The Farkas ray of an infeasible LP, signed as the infeasibility certificate's dual values whatever the
+     * sense, or null if there is none.
+     */
+    static double[] getFarkasRay(final copt.Model model, final COPTEntityMap entityMap) throws CoptException {
+
+        if (model.getIntAttr(IntAttr.IsMIP) != 0 || model.getIntAttr(IntAttr.QConstrs) != 0 || model.getIntAttr(IntAttr.HasDualFarkas) == 0) {
+            return null;
+        }
+
+        double[] retVal = new double[entityMap.getConstraintsMetaData().size()];
+        for (int i = 0; i < retVal.length; i++) {
+            retVal[i] = model.getConstr(entityMap.getGroupIndex(i)).get(DblInfo.DualFarkas);
+        }
+        return retVal;
+    }
+
     static void setLinBounds(final Expr solExpr, final Expression modExpr, final copt.Model delegateSolver,
             final List<EntryPair<ModelEntity<?>, ConstraintType>> constrInfo) {
         if (modExpr.isEqualityConstraint()) {
@@ -483,7 +522,8 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
     static State translate(final int status) {
         if (status == Status.INFEASIBLE) {
             return State.INFEASIBLE;
-        } else if (status == Status.NODELIMIT || status == Status.NUMERICAL || status == Status.TIMEOUT || status == Status.ITERLIMIT) {
+        } else if (status == Status.NODELIMIT || status == Status.NUMERICAL || status == Status.TIMEOUT || status == Status.ITERLIMIT
+                || status == Status.IMPRECISE) {
             return State.APPROXIMATE;
         } else if (status == Status.INF_OR_UNB) {
             return State.INVALID;
@@ -560,6 +600,13 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
         }
     }
 
+    /**
+     * For a continuous model, without quadratic constraints, the dual values and the reduced gradient are
+     * COPT's own: the rates of change of the objective function value with the constraint limits and the
+     * variable bounds, as described at {@link Optimisation.Result#getDualSolution()}. If the state is
+     * INFEASIBLE the dual values are instead COPT's Farkas ray, signed as an infeasibility certificate
+     * whatever the sense, if there is one.
+     */
     @Override
     public Result solve(final Result kickStarter) {
 
@@ -603,21 +650,22 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
 
                 if (duals && retState.isOptimal()) {
 
-                    // COPT's dual values are the rates of change of the objective function value with the
-                    // constraint limits. For a minimisation that is minus the multipliers signed as for
-                    // two-sided rows (positive when the upper limit is active), for a maximisation it is
-                    // those multipliers.
-                    double sign = myMaximisation ? ONE : NEG;
                     retDuals = new double[myEntityMap.getConstraintsMetaData().size()];
                     for (int i = 0; i < retDuals.length; i++) {
-                        retDuals[i] = sign * myCOPTModel.getConstr(myEntityMap.getGroupIndex(i)).get(DblInfo.Dual);
+                        retDuals[i] = myCOPTModel.getConstr(myEntityMap.getGroupIndex(i)).get(DblInfo.Dual);
                     }
 
-                    // The reduced costs are in the model's sense
                     retReducedGradient = new double[myCOPTVariables.length];
                     for (int j = 0; j < retReducedGradient.length; j++) {
                         retReducedGradient[j] = myCOPTVariables[j].get(DblInfo.RedCost);
                     }
+                }
+            }
+
+            if (retState == State.INFEASIBLE) {
+                double[] farkas = SolverCOPT.getFarkasRay(myCOPTModel, myEntityMap);
+                if (farkas != null) {
+                    return new Result(retState, retValue, retSolution).withDualValues(myEntityMap.getConstraintsMetaData(), () -> ArrayR064.wrap(farkas));
                 }
             }
 
@@ -727,8 +775,15 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
                 double[] values = copy.get(DblInfo.Value, copy.getVars());
                 return new Result(State.UNBOUNDED, this.evaluateObjective(values), ArrayR064.wrap(values));
             }
-            State state = copy.getIntAttr(IntAttr.Status) == Status.INFEASIBLE ? State.INFEASIBLE : State.INVALID;
-            return new Result(state, NaN, ArrayR064.make(myCOPTVariables.length));
+            if (copy.getIntAttr(IntAttr.Status) == Status.INFEASIBLE) {
+                Result retVal = new Result(State.INFEASIBLE, NaN, ArrayR064.make(myCOPTVariables.length));
+                double[] farkas = SolverCOPT.getFarkasRay(copy, myEntityMap);
+                if (farkas != null) {
+                    retVal = retVal.withDualValues(myEntityMap.getConstraintsMetaData(), () -> ArrayR064.wrap(farkas));
+                }
+                return retVal;
+            }
+            return new Result(State.INVALID, NaN, ArrayR064.make(myCOPTVariables.length));
         } finally {
             copy.dispose();
         }

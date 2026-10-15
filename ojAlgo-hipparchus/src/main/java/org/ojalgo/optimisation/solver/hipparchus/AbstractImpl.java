@@ -188,6 +188,17 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
             return this.newSolver(model, translation);
         }
 
+        /**
+         * The solvers minimise (a maximisation's objective is negated), and their multipliers are converted to
+         * the signed rows convention, see {@link Translation#dualSigns}. Those are then converted to the model's
+         * dual values with
+         * {@link ExpressionsBasedModel.Integration#toModelDuals(Optimisation.Result, ExpressionsBasedModel, Optimisation.Sense)}.
+         */
+        @Override
+        public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
+            return ExpressionsBasedModel.Integration.toModelDuals(solverState, model, Optimisation.Sense.MIN);
+        }
+
         @Override
         protected final Optimisation.Sense getSolverSense() {
             return null;

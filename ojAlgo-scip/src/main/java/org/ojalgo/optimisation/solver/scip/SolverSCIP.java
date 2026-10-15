@@ -45,7 +45,7 @@ import org.ojalgo.type.context.NumberContext;
  * <p>
  * SCIP (Solving Constraint Integer Programs) is one of the fastest non-commercial solvers for mixed-integer
  * programming (MIP) and mixed-integer nonlinear programming (MINLP). This integration uses Java's Foreign
- * Function &amp; Memory API (FFM) to directly call the SCIP C library.
+ * Function & Memory API (FFM) to directly call the SCIP C library.
  *
  * @see <a href="https://www.scipopt.org">SCIP Optimization Suite</a>
  */

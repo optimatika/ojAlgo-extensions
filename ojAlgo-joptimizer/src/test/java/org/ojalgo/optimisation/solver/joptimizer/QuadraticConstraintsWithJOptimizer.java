@@ -30,7 +30,7 @@ import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 
 /**
- * JOptimizer takes quadratic constraints as convex functions, fi(x) &lt;= 0. These cases cover what is
+ * JOptimizer takes quadratic constraints as convex functions, fi(x) <= 0. These cases cover what is
  * specific to this integration, and so not in the shared {@link org.ojalgo.optimisation.convex.TestBasicQCQP}:
  * quadratic constraints that are linear once some variables are fixed, and the non-convex shapes that have to
  * be rejected rather than quietly dropped or (mis)solved.
@@ -103,7 +103,7 @@ public class QuadraticConstraintsWithJOptimizer {
     }
 
     /**
-     * Minimising a concave quadratic is not convex: min -x² - y², 0 &lt;= x, y &lt;= 1.
+     * Minimising a concave quadratic is not convex: min -x² - y², 0 <= x, y <= 1.
      */
     @Test
     public void testConcaveObjectiveIsRejected() {
@@ -117,7 +117,7 @@ public class QuadraticConstraintsWithJOptimizer {
     }
 
     /**
-     * Nor is maximising a convex quadratic: max x² + y², 0 &lt;= x, y &lt;= 1.
+     * Nor is maximising a convex quadratic: max x² + y², 0 <= x, y <= 1.
      */
     @Test
     public void testMaximisedConvexObjectiveIsRejected() {

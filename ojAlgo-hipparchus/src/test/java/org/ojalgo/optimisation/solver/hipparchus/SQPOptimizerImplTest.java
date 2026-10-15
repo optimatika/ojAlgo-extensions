@@ -17,8 +17,9 @@ import org.ojalgo.type.keyvalue.EntryPair.KeyedPrimitive;
  * gets), and they fail on some of the {@link org.ojalgo.optimisation.OptimalityCertificateTest} problems – so
  * only this one.
  * <p>
- * Minimising 3x + 6y + (x² + y²) / 4 subject to x + y &gt;= 1 and x, y in [-10, 10] gives x = 3.5 and y = -2.5,
- * with multiplier 4.75 for the constraint. (Without the constraint it would be x = -6 and y = -10.)
+ * Minimising 3x + 6y + (x² + y²) / 4 subject to x + y >= 1 and x, y in [-10, 10] gives x = 3.5 and y = -2.5,
+ * with dual value 4.75 for the constraint (-4.75 when maximising the negated objective). (Without the
+ * constraint it would be x = -6 and y = -10.)
  * <p>
  * By default the SQP optimisers use a quasi-Newton approximation of the Hessian, and solve their QP
  * sub-problems with the ADMM optimiser (tolerance 1e-5) – the results are accurate to about 1e-3.
@@ -50,7 +51,7 @@ public class SQPOptimizerImplTest {
             for (KeyedPrimitive<EntryPair<ModelEntity<?>, ConstraintType>> dual : result.getDualValues()) {
                 if (dual.getKey().left() == constraint) {
                     TestUtils.assertEquals(ConstraintType.LOWER, dual.getKey().right());
-                    TestUtils.assertEquals(4.75, dual.doubleValue(), ACCURACY);
+                    TestUtils.assertEquals(sign * 4.75, dual.doubleValue(), ACCURACY);
                 } else {
                     TestUtils.assertEquals(0.0, dual.doubleValue(), ACCURACY);
                 }

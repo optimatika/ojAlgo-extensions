@@ -315,7 +315,6 @@ public final class SolverORTools implements Optimisation.Solver, UpdatableSolver
 
             ConstraintsMetaData constraintsMetaData = ConstraintsMetaData.newEntityMap(mConstrs.size());
             constraintsMetaData.setMultiplierScale(objectiveScale);
-            constraintsMetaData.setSignedRows(true);
 
             for (Expression mConstr : mConstrs) {
 
@@ -349,8 +348,7 @@ public final class SolverORTools implements Optimisation.Solver, UpdatableSolver
             // Dual values and reduced costs only exist for continuous (LP) models
             ConstraintsMetaData duals = mip ? null : constraintsMetaData;
 
-            return new SolverORTools(builder, solver, nbVars, model.options, duals, model.getOptimisationSense() == Optimisation.Sense.MAX, objectiveScale,
-                    objectiveConstant);
+            return new SolverORTools(builder, solver, nbVars, model.options, duals, objectiveScale, objectiveConstant);
         }
 
         @Override
@@ -420,7 +418,6 @@ public final class SolverORTools implements Optimisation.Solver, UpdatableSolver
     private final ConstraintsMetaData myConstraintsMetaData;
     private final int myIterationsAbort;
     private final int myIterationsSuffice;
-    private final boolean myMaximisation;
     private final int myNumVars;
     /**
      * The objective constant, in model units.
@@ -444,7 +441,7 @@ public final class SolverORTools implements Optimisation.Solver, UpdatableSolver
     private final AtomicBoolean myInterruptRefused = new AtomicBoolean(false);
 
     SolverORTools(final ModelBuilderHelper builder, final ModelSolverHelper solver, final int numVars, final Optimisation.Options options,
-            final ConstraintsMetaData constraintsMetaData, final boolean maximisation, final double objectiveScale, final double objectiveConstant) {
+            final ConstraintsMetaData constraintsMetaData, final double objectiveScale, final double objectiveConstant) {
 
         super();
 
@@ -452,7 +449,6 @@ public final class SolverORTools implements Optimisation.Solver, UpdatableSolver
         mySolver = solver;
         myNumVars = numVars;
         myConstraintsMetaData = constraintsMetaData;
-        myMaximisation = maximisation;
         myObjectiveScale = objectiveScale;
         myObjectiveConstant = objectiveConstant;
         myIterationsAbort = options.iterations_abort;
@@ -501,6 +497,11 @@ public final class SolverORTools implements Optimisation.Solver, UpdatableSolver
         return mySolver.getReducedCost(index);
     }
 
+    /**
+     * For a continuous model the dual values and the reduced gradient are OR-Tools' own: the rates of change
+     * of the objective function value with the constraint limits and the variable bounds, as described at
+     * {@link Optimisation.Result#getDualSolution()}.
+     */
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
@@ -544,16 +545,11 @@ public final class SolverORTools implements Optimisation.Solver, UpdatableSolver
 
             if (myConstraintsMetaData != null) {
 
-                // OR-Tools' dual values are the rates of change of the objective function value with the
-                // constraint limits. For a minimisation that is minus the multipliers signed as for two-sided
-                // rows (positive when the upper limit is active), for a maximisation it is those multipliers.
-                double sign = myMaximisation ? ONE : NEG;
                 double[] duals = new double[myConstraintsMetaData.size()];
                 for (int i = 0; i < duals.length; i++) {
-                    duals[i] = sign * mySolver.getDualValue(i);
+                    duals[i] = mySolver.getDualValue(i);
                 }
 
-                // The reduced costs are in the model's sense
                 double[] reducedGradient = new double[myNumVars];
                 for (int j = 0; j < reducedGradient.length; j++) {
                     reducedGradient[j] = mySolver.getReducedCost(j) / myObjectiveScale;

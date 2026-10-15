@@ -51,7 +51,7 @@ import org.ojalgo.type.keyvalue.EntryPair;
  * HiGHS solver integration for ojAlgo.
  * <p>
  * HiGHS is a high-performance open-source solver for linear programming (LP), mixed-integer programming
- * (MIP), and quadratic programming (QP). This integration uses Java's Foreign Function &amp; Memory API (FFM)
+ * (MIP), and quadratic programming (QP). This integration uses Java's Foreign Function & Memory API (FFM)
  * to directly call the HiGHS C library.
  *
  * @see <a href="https://highs.dev">HiGHS</a>
@@ -217,6 +217,10 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
     static final class Integration extends ExpressionsBasedModel.Integration<SolverHiGHS> {
 
         /**
+         * A dual ray from the simplex is exact, up to rounding.
+         */
+        private static final double CERTIFICATE_NOISE = 1E-9;
+        /**
          * Must be false. HiGHS handles variable bounds natively (column bounds), not as constraint rows, so
          * adjusting them would mean rescaling the variables themselves.
          */
@@ -306,7 +310,6 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
             ConstraintsMetaData constraintsMetaData = ConstraintsMetaData.newEntityMap(m);
             constraintsMetaData.setMultiplierScale(objectiveScale);
-            constraintsMetaData.setSignedRows(true);
             for (int row = 0; row < m; row++) {
                 Expression constraint = constraints.get(row);
                 constraintsMetaData.setEntry(row, constraint, constraint.getConstraintType(), false, ADJUSTED_CONSTRAINTS);
@@ -370,10 +373,9 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
             HiGHSEntityMap entityMap = new HiGHSEntityMap(n, model, variables, constraints, constraintsMetaData);
 
-            boolean maximisation = model.getOptimisationSense() == Optimisation.Sense.MAX;
             double objectiveConstant = ExpressionsBasedModel.Integration.getObjectiveConstant(model);
 
-            return new SolverHiGHS(highs, n, m, entityMap, constraintsMetaData, objectiveScale, objectiveConstant, maximisation, model.options);
+            return new SolverHiGHS(highs, n, m, entityMap, constraintsMetaData, objectiveScale, objectiveConstant, hasMIP, model.options);
         }
 
         /**
@@ -394,6 +396,18 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
             }
 
             return true;
+        }
+
+        /**
+         * An INFEASIBLE result with a dual ray gets the reduced gradient of the infeasibility certificate, see
+         * {@link ExpressionsBasedModel.Integration#toInfeasibilityCertificate(Optimisation.Result, ExpressionsBasedModel, double)}.
+         */
+        @Override
+        public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
+            if (solverState.getState() == State.INFEASIBLE && solverState.getDualSolution().isPresent()) {
+                return ExpressionsBasedModel.Integration.toInfeasibilityCertificate(solverState, model, CERTIFICATE_NOISE);
+            }
+            return solverState;
         }
 
         @Override
@@ -446,7 +460,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
     private MemorySegment myInterruptCallback = null;
     private final int myIterationsAbort;
     private final int myIterationsSuffice;
-    private final boolean myMaximisation;
+    private final boolean myMIP;
     private final int myNumCol;
     private final int myNumRow;
     /**
@@ -467,7 +481,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
     private final long myTimeSufficeMillis;
 
     SolverHiGHS(final MemorySegment highs, final int numCol, final int numRow, final HiGHSEntityMap entityMap, final ConstraintsMetaData constraintsMetaData,
-            final double objectiveScale, final double objectiveConstant, final boolean maximisation, final Optimisation.Options options) {
+            final double objectiveScale, final double objectiveConstant, final boolean mip, final Optimisation.Options options) {
         super();
         myHighs = highs;
         myNumCol = numCol;
@@ -476,7 +490,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         myConstraintsMetaData = constraintsMetaData;
         myObjectiveScale = objectiveScale;
         myObjectiveConstant = objectiveConstant;
-        myMaximisation = maximisation;
+        myMIP = mip;
         myIterationsAbort = options.iterations_abort;
         myIterationsSuffice = options.iterations_suffice;
         myTimeAbortMillis = options.time_abort;
@@ -518,6 +532,12 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         return myColDual[index];
     }
 
+    /**
+     * HiGHS's row duals {@code y} are the dual values, as described at
+     * {@link Optimisation.Result#getDualSolution()}, and its column duals, {@code c - A'y} in the model's
+     * sense, the reduced gradient. If the state is INFEASIBLE, and the model is continuous, the dual values
+     * are instead HiGHS's dual ray, signed as an infeasibility certificate whatever the sense.
+     */
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
@@ -592,20 +612,23 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
             double[] colDualSnapshot = myColDual;
             Supplier<Access1D<?>> reducedGradient = () -> ArrayR064.wrap(colDualSnapshot);
 
-            // With colDual = c - A'y, in the model's sense, a HiGHS row dual y is positive at an active
-            // lower limit when minimising, and negative when maximising. In the minimisation form that is
-            // the signed rows convention (positive at an active upper limit) with the sign reversed.
-            double[] signedRowDual = new double[myNumRow];
-            for (int i = 0; i < myNumRow; i++) {
-                signedRowDual[i] = myMaximisation ? myRowDual[i] : -myRowDual[i];
-            }
+            double[] rowDualSnapshot = myRowDual;
 
             return Optimisation.Result.of(objectiveValue, state, solution).withReducedGradient(reducedGradient)
-                    .withDualValues(myConstraintsMetaData, () -> ArrayR064.wrap(signedRowDual));
+                    .withDualValues(myConstraintsMetaData, () -> ArrayR064.wrap(rowDualSnapshot));
 
         } else {
+
             myColDual = null;
             myRowDual = null;
+
+            if (state == Optimisation.State.INFEASIBLE && !myMIP && myNumRow > 0) {
+                double[] ray = HiGHSBindings.getDualRay(myHighs, myNumRow);
+                if (ray != null) {
+                    return Optimisation.Result.of(state, new double[myNumCol]).withDualValues(myConstraintsMetaData, () -> ArrayR064.wrap(ray));
+                }
+            }
+
             return Optimisation.Result.of(state, new double[myNumCol]);
         }
     }
@@ -709,7 +732,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
      * Sparse bulk-update: change the bounds of the columns listed in {@code indices} (HiGHS
      * {@code changeColsBoundsBySet}).
      * <p>
-     * <b>Use this when</b> only a small subset of variables change between solves — e.g. a B&amp;B node that
+     * <b>Use this when</b> only a small subset of variables change between solves — e.g. a B&B node that
      * tightens bounds on a handful of branching variables. Cost scales with {@code indices.length}, not
      * {@code numCol}, so it dominates the full-range form when {@code k << numCol}.
      * <p>

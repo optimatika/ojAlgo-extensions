@@ -115,6 +115,12 @@ public final class SolverMosek implements Optimisation.Solver {
      */
     public static final class Integration extends ExpressionsBasedModel.Integration<SolverMosek> {
 
+        /**
+         * A simplex certificate is exact, up to rounding, but one from the interior point optimiser is
+         * approximate.
+         */
+        private static final double CERTIFICATE_NOISE = 1E-7;
+
         private final ForgetfulMap.ValueCache<Env> myEnvironmentCache;
 
         Integration() {
@@ -150,7 +156,6 @@ public final class SolverMosek implements Optimisation.Solver {
             }
 
             ConstraintsMetaData constraintsMetaData = ConstraintsMetaData.newEntityMap(nbConstraints);
-            constraintsMetaData.setSignedRows(true);
 
             SolverMosek retVal = new SolverMosek(task, options, constraintsMetaData, model.getOptimisationSense() == Optimisation.Sense.MAX);
 
@@ -175,6 +180,18 @@ public final class SolverMosek implements Optimisation.Solver {
         @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
             return true; // Can handle any variation of an ExpressionsBasedModel
+        }
+
+        /**
+         * An INFEASIBLE result with MOSEK's certificate of primal infeasibility gets its reduced gradient, see
+         * {@link ExpressionsBasedModel.Integration#toInfeasibilityCertificate(Optimisation.Result, ExpressionsBasedModel, double)}.
+         */
+        @Override
+        public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
+            if (solverState.getState() == State.INFEASIBLE && solverState.getDualSolution().isPresent()) {
+                return ExpressionsBasedModel.Integration.toInfeasibilityCertificate(solverState, model, CERTIFICATE_NOISE);
+            }
+            return solverState;
         }
 
         private void dispose(final Env env) {
@@ -271,6 +288,12 @@ public final class SolverMosek implements Optimisation.Solver {
         }
     }
 
+    /**
+     * For a continuous model the dual values (MOSEK's y) and the reduced gradient are MOSEK's own: the rates
+     * of change of the objective function value with the constraint limits and the variable bounds, as
+     * described at {@link Optimisation.Result#getDualSolution()}. If the state is INFEASIBLE the dual values
+     * are instead MOSEK's certificate of primal infeasibility, if there is one.
+     */
     @Override
     public Result solve(final Result kickStarter) {
 
@@ -307,22 +330,22 @@ public final class SolverMosek implements Optimisation.Solver {
 
             if (tmpSate.isOptimal() && mySolutionType != soltype.itg) {
 
-                // MOSEK's dual values (y) are the rates of change of the objective function value with the
-                // constraint limits. For a minimisation that is minus the multipliers signed as for two-sided
-                // rows (positive when the upper limit is active), for a maximisation it is those multipliers.
-                double sign = myMaximisation ? 1.0 : -1.0;
                 double[] duals = new double[myTask.getnumcon()];
                 myTask.gety(mySolutionType, duals);
-                for (int i = 0; i < duals.length; i++) {
-                    duals[i] *= sign;
-                }
 
-                // The reduced costs are in the model's sense
                 double[] reducedGradient = new double[tmpNumberOfVariables];
                 myTask.getreducedcosts(mySolutionType, 0, tmpNumberOfVariables, reducedGradient);
 
                 return new Optimisation.Result(tmpSate, tmpValue, ArrayR064.wrap(tmpSolution))
                         .withDualValues(myConstraintsMetaData, () -> ArrayR064.wrap(duals)).withReducedGradient(() -> ArrayR064.wrap(reducedGradient));
+            }
+
+            if (tmpSate == Optimisation.State.INFEASIBLE) {
+                double[] certificate = this.getCertificate(myTask);
+                if (certificate != null) {
+                    return new Optimisation.Result(tmpSate, tmpValue, ArrayR064.wrap(tmpSolution)).withDualValues(myConstraintsMetaData,
+                            () -> ArrayR064.wrap(certificate));
+                }
             }
 
         } catch (Exception xcptn) {
@@ -481,7 +504,12 @@ public final class SolverMosek implements Optimisation.Solver {
                 prosta problem = copy.getprosta(mySolutionType);
 
                 if (status == solsta.prim_infeas_cer || problem == prosta.prim_infeas || problem == prosta.prim_and_dual_infeas) {
-                    return new Optimisation.Result(Optimisation.State.INFEASIBLE, Double.NaN, ArrayR064.make(nbVariables));
+                    Optimisation.Result retVal = new Optimisation.Result(Optimisation.State.INFEASIBLE, Double.NaN, ArrayR064.make(nbVariables));
+                    double[] certificate = this.getCertificate(copy);
+                    if (certificate != null) {
+                        retVal = retVal.withDualValues(myConstraintsMetaData, () -> ArrayR064.wrap(certificate));
+                    }
+                    return retVal;
                 }
             }
 
@@ -600,6 +628,27 @@ public final class SolverMosek implements Optimisation.Solver {
 
         myTask.putvarbound(index, boundType, lowerBound, upperBound);
         myTask.putvartype(index, variableType);
+    }
+
+    /**
+     * MOSEK's certificate of primal infeasibility, signed as the infeasibility certificate's dual values: MOSEK
+     * signs it as the dual values of the problem it solved, which for a maximisation is the reverse. Null if
+     * there is no certificate, or it is of a MIP.
+     */
+    double[] getCertificate(final Task task) {
+
+        if (mySolutionType == soltype.itg || !task.solutiondef(mySolutionType) || task.getsolsta(mySolutionType) != solsta.prim_infeas_cer) {
+            return null;
+        }
+
+        double[] retVal = new double[task.getnumcon()];
+        task.gety(mySolutionType, retVal);
+        if (myMaximisation) {
+            for (int i = 0; i < retVal.length; i++) {
+                retVal[i] = -retVal[i];
+            }
+        }
+        return retVal;
     }
 
     Task getTask() {

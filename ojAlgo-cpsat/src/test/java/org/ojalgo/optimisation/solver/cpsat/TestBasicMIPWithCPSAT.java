@@ -21,11 +21,11 @@ public class TestBasicMIPWithCPSAT extends TestBasicMIP {
      * out. None of the shared {@link TestBasicMIP} cases exercise that path (all their coefficients are
      * already integers), so this covers it directly.
      *
-     * <pre>
+     * <pre>{@code
      * max  0.5*x + 0.25*y
      * s.t. 1.5*x + 2.5*y <= 7.75
      *      x, y binary
-     * </pre>
+     * }</pre>
      *
      * Every candidate (x, y) in {0,1}^2 satisfies the constraint (the tightest case, x=y=1, gives 4.0 <=
      * 7.75), so the optimum is simply both variables at 1: objective = 0.75.
@@ -49,7 +49,7 @@ public class TestBasicMIPWithCPSAT extends TestBasicMIP {
     }
 
     /**
-     * A trivially infeasible model (x + y must be both &gt;= 1 and &lt;= 0 with x, y binary) - checks that
+     * A trivially infeasible model (x + y must be both >= 1 and <= 0 with x, y binary) - checks that
      * {@link CPSATBindings#STATUS_INFEASIBLE} is correctly translated to {@link State#INFEASIBLE} rather
      * than being mistaken for some other terminal state.
      */

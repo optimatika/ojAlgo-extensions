@@ -48,9 +48,9 @@ import org.ojalgo.structure.Primitive1D;
  * The Hipparchus constrained optimisers ignore {@link GoalType} – a maximisation problem is minimised with the
  * objective negated.
  * <p>
- * Their multipliers are those of the Lagrangian L = f - λ'c, where c(x) = 0 for equality and c(x) &gt;= 0 for
- * inequality constraints, except for the ADMM optimiser's two-sided (bounded) constraints, l &lt;= Ax &lt;= u,
- * whose multipliers are as with OSQP: positive when the upper limit is active and negative when the lower is.
+ * Their multipliers are those of the Lagrangian L = f - λ'c, where c(x) = 0 for equality and c(x) >= 0 for
+ * inequality constraints, except for the ADMM optimiser's two-sided (bounded) constraints, l <= Ax <= u,
+ * whose multipliers are positive when the upper limit is active and negative when the lower is.
  * They are all converted to that latter convention, and then matched to the model entities.
  */
 abstract class ConvexImpl<S extends ConstraintOptimizer> extends AbstractImpl<S, LagrangeSolution> {

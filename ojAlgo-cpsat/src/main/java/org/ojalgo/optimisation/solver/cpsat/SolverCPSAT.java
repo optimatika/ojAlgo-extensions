@@ -47,7 +47,7 @@ import org.ojalgo.type.context.NumberContext;
  * CP-SAT is Google OR-Tools' constraint programming / integer solver - one of the strongest solvers available
  * for pure integer and binary programs. This integration talks to it without the full OR-Tools Java jar
  * (which bundles JNI glue and native code for every OR-Tools component, not just CP-SAT): it uses Java's
- * Foreign Function &amp; Memory API to call the small, protobuf-based C API OR-Tools exports for exactly this
+ * Foreign Function & Memory API to call the small, protobuf-based C API OR-Tools exports for exactly this
  * purpose ({@code ortools/sat/c_api/cp_solver_c.h}), compiled straight into {@code libortools}.
  * <p>
  * A model is translated into a serialized {@code CpModelProto} (see {@link #buildModelProtoBytes}) and handed

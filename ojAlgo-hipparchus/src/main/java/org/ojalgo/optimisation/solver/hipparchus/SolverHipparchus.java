@@ -61,6 +61,15 @@ public final class SolverHipparchus implements Optimisation.Solver {
         }
 
         @Override
+        public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
+            if (ExpressionsBasedModel.Integration.isSwitch(model, ExpressionsBasedModel.IntegrationProperty.LP_OR_QP)) {
+                return ADMMQPOptimizerImpl.INTEGRATION.toModelState(solverState, model);
+            } else {
+                return SimplexSolverImpl.INTEGRATION.toModelState(solverState, model);
+            }
+        }
+
+        @Override
         protected Optimisation.Sense getSolverSense() {
             return null;
         }

@@ -52,13 +52,13 @@ import org.ojalgo.type.keyvalue.EntryPair;
  * <p>
  * OSQP (Operator Splitting Quadratic Program solver) is an ADMM-based solver for convex QPs of the form
  *
- * <pre>
+ * <pre>{@code
  * minimize    0.5 x'Px + q'x
- * subject to  l &lt;= Ax &lt;= u
- * </pre>
+ * subject to  l <= Ax <= u
+ * }</pre>
  *
  * There are no integer variables, and - since {@code P} only appears in the objective - no quadratic
- * constraints (QCQP) either. This integration uses Java's Foreign Function &amp; Memory API (FFM) to call the
+ * constraints (QCQP) either. This integration uses Java's Foreign Function & Memory API (FFM) to call the
  * OSQP (v1.0) C library directly.
  * <p>
  * OSQP has no notion of variable bounds; every row of {@code A} is either a translated model constraint or a
@@ -130,6 +130,10 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = true;
         private static final boolean ADJUSTED_OBJECTIVE = true;
+        /**
+         * OSQP's certificate is approximate, to its eps_prim_inf (1E-4 by default).
+         */
+        private static final double CERTIFICATE_NOISE = 1E-4;
 
         Integration() {
             super();
@@ -271,6 +275,22 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
         @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
             return !model.isAnyVariableInteger() && !model.isAnyConstraintQuadratic() && model.objective().isAnyQuadraticFactorNonZero();
+        }
+
+        /**
+         * OSQP's dual solution is that of a minimisation, signed as for two-sided rows, converted to the model's
+         * dual values with
+         * {@link ExpressionsBasedModel.Integration#toModelDuals(Optimisation.Result, ExpressionsBasedModel, Optimisation.Sense)}.
+         * A primal infeasible problem has a certificate, see
+         * {@link ExpressionsBasedModel.Integration#toInfeasibilityCertificate(Optimisation.Result, ExpressionsBasedModel, double)}.
+         */
+        @Override
+        public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
+            Result modelState = ExpressionsBasedModel.Integration.toModelDuals(solverState, model, this.getSolverSense());
+            if (modelState.getState() == State.INFEASIBLE && modelState.getDualSolution().isPresent()) {
+                return ExpressionsBasedModel.Integration.toInfeasibilityCertificate(modelState, model, CERTIFICATE_NOISE);
+            }
+            return modelState;
         }
 
         @Override
@@ -540,8 +560,17 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
         }
 
         if (!state.isFeasible()) {
+
             myDualY = null;
             myReducedGradient = null;
+
+            if (state == Optimisation.State.INFEASIBLE && myNumRows > 0) {
+                double[] certificate = new double[myNumRows];
+                MemorySegment certificatePtr = OSQPBindings.getSolutionPrimInfCert(OSQPBindings.getSolution(mySolver), myNumRows);
+                MemorySegment.copy(certificatePtr, ValueLayout.JAVA_DOUBLE, 0, certificate, 0, myNumRows);
+                return Optimisation.Result.of(state, new double[myNumVars]).withDualValues(myConstraintsMetaData, () -> ArrayR064.wrap(certificate));
+            }
+
             return Optimisation.Result.of(state, new double[myNumVars]);
         }
 

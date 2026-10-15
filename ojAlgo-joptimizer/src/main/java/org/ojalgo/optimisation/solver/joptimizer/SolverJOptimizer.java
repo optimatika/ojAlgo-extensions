@@ -81,8 +81,8 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         private static WriterAppender ourWriterAppender = null;
 
         /**
-         * JOptimizer's defaults (1E-5 and 1E-6) give solutions accurate to only about 5 digits. With these some
-         * (harder) LPs fail, and are then retried with the defaults - see {@link #configureFallback}.
+         * Tighter than JOptimizer's defaults (1E-5 and 1E-6), with which solutions are accurate to about 5
+         * digits. An LP that fails with these is retried with the defaults, see {@link #configureFallback}.
          */
         private static final double TOLERANCE = 1E-9;
         private static final double TOLERANCE_FEAS = 1E-8;
@@ -320,10 +320,9 @@ public final class SolverJOptimizer implements Optimisation.Solver {
                         .forEach(compC -> constrs.add(SolverJOptimizer.toUpperConstraint(compC, nbVars, model, ADJUSTED_CONSTRAINTS)));
 
                 /*
-                 * Without an initial point JOptimizer starts its phase I (finding a strictly feasible point)
-                 * at the origin, and that fails for some quite simple models. Starting strictly inside the
-                 * variable bounds works better - and if that point happens to be strictly feasible, phase I
-                 * is skipped.
+                 * The initial point is strictly inside the variable bounds. (Without one JOptimizer starts
+                 * its phase I, finding a strictly feasible point, at the origin.) If it is strictly
+                 * feasible, phase I is skipped.
                  */
                 double[] initial = new double[nbVars];
 
@@ -514,7 +513,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
     }
 
     /**
-     * lower - g(x) &lt;= 0
+     * lower - g(x) <= 0
      */
     static ConvexMultivariateRealFunction toLowerConstraint(final Expression expression, final int dim, final ExpressionsBasedModel model,
             final boolean adjusted) {
@@ -527,7 +526,7 @@ public final class SolverJOptimizer implements Optimisation.Solver {
     }
 
     /**
-     * g(x) - upper &lt;= 0
+     * g(x) - upper <= 0
      */
     static ConvexMultivariateRealFunction toUpperConstraint(final Expression expression, final int dim, final ExpressionsBasedModel model,
             final boolean adjusted) {
@@ -575,7 +574,6 @@ public final class SolverJOptimizer implements Optimisation.Solver {
         Result retVal = this.solve(kickStarter, false);
 
         if (retVal.getState() == Optimisation.State.FAILED && myRequest instanceof LPOptimizationRequest) {
-            // The tight tolerances make some LPs fail that JOptimizer solves with its defaults
 
             if (myOptions.logger_appender != null) {
                 myOptions.logger_appender.println("Retrying with JOptimizer's default tolerances");

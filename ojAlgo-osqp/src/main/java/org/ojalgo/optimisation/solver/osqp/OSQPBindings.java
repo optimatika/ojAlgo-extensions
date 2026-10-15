@@ -191,6 +191,7 @@ final class OSQPBindings {
     private static final VarHandle SETTINGS_TIME_LIMIT = SETTINGS_LAYOUT.varHandle(PathElement.groupElement("time_limit"));
     private static final VarHandle SETTINGS_VERBOSE = SETTINGS_LAYOUT.varHandle(PathElement.groupElement("verbose"));
 
+    private static final VarHandle SOLUTION_PRIM_INF_CERT = SOLUTION_LAYOUT.varHandle(PathElement.groupElement("prim_inf_cert"));
     private static final VarHandle SOLUTION_X = SOLUTION_LAYOUT.varHandle(PathElement.groupElement("x"));
     private static final VarHandle SOLUTION_Y = SOLUTION_LAYOUT.varHandle(PathElement.groupElement("y"));
 
@@ -283,6 +284,14 @@ final class OSQPBindings {
 
     static MemorySegment getSolution(final MemorySegment solver) {
         return ((MemorySegment) SOLVER_SOLUTION.get(solver, 0L)).reinterpret(SOLUTION_LAYOUT.byteSize());
+    }
+
+    /**
+     * The certificate of primal infeasibility, signed as the dual solution y: positive where an upper limit is
+     * used.
+     */
+    static MemorySegment getSolutionPrimInfCert(final MemorySegment solution, final long m) {
+        return ((MemorySegment) SOLUTION_PRIM_INF_CERT.get(solution, 0L)).reinterpret(m * ValueLayout.JAVA_DOUBLE.byteSize());
     }
 
     static MemorySegment getSolutionX(final MemorySegment solution, final long n) {

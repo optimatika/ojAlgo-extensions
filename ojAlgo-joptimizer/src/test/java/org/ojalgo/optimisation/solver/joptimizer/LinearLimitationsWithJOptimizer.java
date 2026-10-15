@@ -39,7 +39,7 @@ public class LinearLimitationsWithJOptimizer {
     private static final double ACCURACY = 1E-6;
 
     /**
-     * Unbounded: min -x, x &gt;= 0. JOptimizer stops at the box limit.
+     * Unbounded: min -x, x >= 0. JOptimizer stops at the box limit.
      */
     @Test
     public void testUnboundedIsNotOptimal() {
@@ -53,7 +53,7 @@ public class LinearLimitationsWithJOptimizer {
     }
 
     /**
-     * A finite optimum beyond the box: min y + z, y = z, z &gt;= -200000. The optimum is y = z = -200000, but
+     * A finite optimum beyond the box: min y + z, y = z, z >= -200000. The optimum is y = z = -200000, but
      * JOptimizer stops at -99999.
      */
     @Test
@@ -70,7 +70,7 @@ public class LinearLimitationsWithJOptimizer {
     }
 
     /**
-     * Feasible, but only beyond the box: min x, x &gt;= 200000 (as a constraint). Within the box it's
+     * Feasible, but only beyond the box: min x, x >= 200000 (as a constraint). Within the box it's
      * infeasible - that must not be reported as INFEASIBLE.
      */
     @Test
@@ -101,8 +101,8 @@ public class LinearLimitationsWithJOptimizer {
     }
 
     /**
-     * Without any artificial box limits, infeasible is still reported as such: x + y &gt;= 10 and x + y &lt;=
-     * 5 with 0 &lt;= x, y &lt;= 100.
+     * Without any artificial box limits, infeasible is still reported as such: x + y >= 10 and
+     * x + y <= 5 with 0 <= x, y <= 100.
      */
     @Test
     public void testInfeasible() {
@@ -120,7 +120,7 @@ public class LinearLimitationsWithJOptimizer {
 
     /**
      * Redundant (linearly dependent) equality constraints. JOptimizer throws an unchecked exception for that
-     * ("Equalities matrix A must be pxn with rank(A) = p &lt; n") - it must be reported as FAILED, not passed
+     * ("Equalities matrix A must be pxn with rank(A) = p < n") - it must be reported as FAILED, not passed
      * on.
      */
     @Test

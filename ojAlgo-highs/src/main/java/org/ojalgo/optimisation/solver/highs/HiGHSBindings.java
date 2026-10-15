@@ -37,7 +37,7 @@ import org.ojalgo.netio.BasicLogger;
 /**
  * FFM bindings for HiGHS C API.
  * <p>
- * This class provides Java bindings to the HiGHS native library using the Foreign Function &amp; Memory API
+ * This class provides Java bindings to the HiGHS native library using the Foreign Function & Memory API
  * (FFM). All native function calls are accessed via {@link MethodHandle} instances obtained from the native
  * linker.
  *
@@ -141,6 +141,7 @@ final class HiGHSBindings {
     private static final MethodHandle HIGHS_PASS_MIP;
     private static final MethodHandle HIGHS_PASS_HESSIAN;
 
+    private static final MethodHandle HIGHS_GET_DUAL_RAY;
     private static final MethodHandle HIGHS_GET_MODEL_STATUS;
     private static final MethodHandle HIGHS_GET_SOLUTION;
     private static final MethodHandle HIGHS_GET_NUM_COL;
@@ -225,6 +226,10 @@ final class HiGHSBindings {
                 ValueLayout.ADDRESS, // q_start (int*)
                 ValueLayout.ADDRESS, // q_index (int*)
                 ValueLayout.ADDRESS)); // q_value (double*)
+
+        HIGHS_GET_DUAL_RAY = HiGHSBindings.downcallHandle("Highs_getDualRay", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                ValueLayout.ADDRESS, // has_dual_ray (HighsInt*)
+                ValueLayout.ADDRESS)); // dual_ray_value (double*)
 
         HIGHS_GET_MODEL_STATUS = HiGHSBindings.downcallHandle("Highs_getModelStatus", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
 
@@ -546,6 +551,37 @@ final class HiGHSBindings {
     }
 
     /**
+     * The dual ray, a certificate of primal infeasibility, if HiGHS has one. HiGHS would solve an LP to get
+     * one it does not have; this does not ask it to.
+     *
+     * @return the ray (double[numRow]), or null if there is none
+     */
+    static double[] getDualRay(final MemorySegment highs, final int numRow) {
+
+        try (Arena arena = Arena.ofConfined()) {
+
+            MemorySegment has = arena.allocate(ValueLayout.JAVA_INT);
+
+            int status = (int) HIGHS_GET_DUAL_RAY.invokeExact(highs, has, MemorySegment.NULL);
+            if (status == STATUS_ERROR || has.get(ValueLayout.JAVA_INT, 0L) == 0) {
+                return null;
+            }
+
+            MemorySegment ray = arena.allocate(ValueLayout.JAVA_DOUBLE, numRow);
+
+            status = (int) HIGHS_GET_DUAL_RAY.invokeExact(highs, has, ray);
+            if (status == STATUS_ERROR || has.get(ValueLayout.JAVA_INT, 0L) == 0) {
+                return null;
+            }
+
+            return ray.toArray(ValueLayout.JAVA_DOUBLE);
+
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /**
      * Get the model status after solving.
      *
      * @return model status code (see MODEL_STATUS_* constants)
@@ -642,9 +678,9 @@ final class HiGHSBindings {
      * <p>
      * The Hessian should be in lower-triangular (half) sparse format. HiGHS solves:
      *
-     * <pre>
+     * <pre>{@code
      * min  0.5 * x' * Q * x + c' * x
-     * </pre>
+     * }</pre>
      *
      * @param highs  HiGHS instance pointer
      * @param dim    dimension of Hessian (number of columns)

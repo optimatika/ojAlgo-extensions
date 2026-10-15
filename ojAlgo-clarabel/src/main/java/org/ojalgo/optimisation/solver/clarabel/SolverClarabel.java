@@ -26,10 +26,13 @@ import static org.ojalgo.function.constant.PrimitiveMath.*;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.lang.ref.Reference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
+import java.util.function.Supplier;
+import java.util.function.ToDoubleFunction;
 
 import org.ojalgo.array.ArrayR064;
 import org.ojalgo.array.SparseArray;
@@ -55,7 +58,7 @@ import org.ojalgo.type.keyvalue.EntryPair;
  * Clarabel solver integration for ojAlgo using Panama FFI.
  * <p>
  * Clarabel is an interior-point solver for convex conic programs. This integration calls the Clarabel C
- * library directly via the Foreign Function &amp; Memory API, and covers LP, QP and (convex) QCQP - the
+ * library directly via the Foreign Function & Memory API, and covers LP, QP and (convex) QCQP - the
  * latter by translating quadratic constraints into second-order cones. Clarabel's semidefinite cones are not
  * used.
  *
@@ -116,6 +119,10 @@ public final class SolverClarabel implements Optimisation.Solver {
          * Variable bounds are rows of A, with coefficient 1 (or the variable's adjustment factor if adjusted).
          */
         private static final boolean ADJUSTED_BOUNDS = false;
+        /**
+         * An interior point method's certificate is approximate.
+         */
+        private static final double CERTIFICATE_NOISE = 1E-6;
         /**
          * Applies to the quadratic constraints too.
          */
@@ -345,8 +352,18 @@ public final class SolverClarabel implements Optimisation.Solver {
                 // Create solver
                 MemorySegment solver = ClarabelBindings.solverNew(pSeg, qSeg, aSeg, bSeg, nCones, conesSeg, settings);
 
+                // The same constraints with a zero objective
+                Supplier<MemorySegment> feasibilitySolver = () -> {
+                    MemorySegment zeroP = ClarabelBindings.allocateCscMatrix(arena);
+                    SolverClarabel.initCscMatrix(arena, zeroP, nbProbVars, nbProbVars, R064Store.FACTORY.makeColumnsSupplier(nbProbVars));
+                    MemorySegment zeroQ = ClarabelBindings.allocateDoubleArray(arena, new double[nbProbVars]);
+                    return ClarabelBindings.solverNew(zeroP, zeroQ, aSeg, bSeg, nCones, conesSeg, settings);
+                };
+
+                ToDoubleFunction<double[]> objective = x -> SolverClarabel.evaluate(pColumns, q, x);
+
                 return new SolverClarabel(solver, max, nbProbVars, arena, constraintsMetaData, dualRows.toArray(new int[dualRows.size()][]), upperRows,
-                        lowerRows, boundScales, objectiveScale, objectiveConstant);
+                        lowerRows, boundScales, objectiveScale, objectiveConstant, feasibilitySolver, objective);
 
             } catch (RuntimeException e) {
                 arena.close();
@@ -364,6 +381,22 @@ public final class SolverClarabel implements Optimisation.Solver {
         @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
             return !model.isAnyVariableInteger();
+        }
+
+        /**
+         * Clarabel's dual variables are the multipliers of a minimisation, non-negative for inequality rows,
+         * converted to the model's dual values with
+         * {@link ExpressionsBasedModel.Integration#toModelDuals(Optimisation.Result, ExpressionsBasedModel, Optimisation.Sense)}.
+         * Those of a primal infeasible problem are a certificate, see
+         * {@link ExpressionsBasedModel.Integration#toInfeasibilityCertificate(Optimisation.Result, ExpressionsBasedModel, double)}.
+         */
+        @Override
+        public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
+            Result modelState = ExpressionsBasedModel.Integration.toModelDuals(solverState, model, this.getSolverSense());
+            if (modelState.getState() == State.INFEASIBLE && modelState.getDualSolution().isPresent()) {
+                return ExpressionsBasedModel.Integration.toInfeasibilityCertificate(modelState, model, CERTIFICATE_NOISE);
+            }
+            return modelState;
         }
 
         @Override
@@ -384,17 +417,17 @@ public final class SolverClarabel implements Optimisation.Solver {
     }
 
     /**
-     * Model a quadratic constraint x'Qx + c'x &lt;= bound as a second-order cone.
+     * Model a quadratic constraint x'Qx + c'x <= bound as a second-order cone.
      * <p>
-     * With Q factorised as M'M (so x'Qx = ||Mx||²) and t = bound - c'x, the constraint ||Mx||² &lt;= t is
-     * equivalent to ||(2Mx, t-1)||₂ &lt;= t+1. Clarabel expects s = b - Ax in the cone, with s₁ &gt;=
+     * With Q factorised as M'M (so x'Qx = ||Mx||²) and t = bound - c'x, the constraint ||Mx||² <= t is
+     * equivalent to ||(2Mx, t-1)||₂ <= t+1. Clarabel expects s = b - Ax in the cone, with s₁ >=
      * ||s₂..||, which gives these rows:
      * <ol>
      * <li>s₁ = (bound + 1) - c'x
      * <li>s₂ = (bound - 1) - c'x
      * <li>s₃.. = -2Mx
      * </ol>
-     * Note that this also enforces t &gt;= 0, as it must, since x'Qx is non-negative for convex Q.
+     * Note that this also enforces t >= 0, as it must, since x'Qx is non-negative for convex Q.
      *
      * @return the number of rows added (the cone dimension)
      */
@@ -494,6 +527,23 @@ public final class SolverClarabel implements Optimisation.Solver {
      *
      * @return a matrix M with M'M = Q
      */
+    /**
+     * The objective function value 0.5 x'Px + q'x, with P given by its upper triangle.
+     */
+    private static double evaluate(final ColumnsSupplier<Double> upperP, final double[] q, final double[] x) {
+        double retVal = ZERO;
+        for (int j = 0; j < q.length; j++) {
+            retVal += q[j] * x[j];
+        }
+        for (int c = 0, limit = upperP.getColDim(); c < limit; c++) {
+            for (NonzeroView<Double> nz : upperP.getColumn(c).nonzeros()) {
+                double term = nz.doubleValue() * x[(int) nz.index()] * x[c];
+                retVal += nz.index() == c ? HALF * term : term;
+            }
+        }
+        return retVal;
+    }
+
     private static MatrixStore<Double> factorise(final PhysicalStore<Double> qStore, final Expression constraint) {
 
         Cholesky<Double> cholesky = Cholesky.R064.make(qStore);
@@ -593,16 +643,49 @@ public final class SolverClarabel implements Optimisation.Solver {
         ClarabelBindings.cscMatrixInit(cscSeg, rows, cols, colPtrSeg, rowIdxSeg, valuesSeg);
     }
 
+    /**
+     * Clarabel's primal variables, the first {@code length} of them.
+     */
+    static double[] getX(final MemorySegment solution, final int length) {
+
+        MemorySegment xPtr = ClarabelBindings.solutionX(solution);
+        long xLen = ClarabelBindings.solutionXLength(solution);
+
+        double[] x = xPtr.reinterpret(xLen * ValueLayout.JAVA_DOUBLE.byteSize()).toArray(ValueLayout.JAVA_DOUBLE);
+
+        return x.length > length ? Arrays.copyOf(x, length) : x;
+    }
+
+    static double[] getZ(final MemorySegment solution) {
+
+        MemorySegment zPtr = ClarabelBindings.solutionZ(solution);
+        long zLen = ClarabelBindings.solutionZLength(solution);
+
+        return zPtr.reinterpret(zLen * ValueLayout.JAVA_DOUBLE.byteSize()).toArray(ValueLayout.JAVA_DOUBLE);
+    }
+
+    /**
+     * Whether Clarabel's solution is its final iterate, a (possibly approximate) solution. Not with the
+     * (almost) infeasible statuses, nor after a numerical failure.
+     */
+    static boolean isIterate(final int status) {
+        return switch (status) {
+            case ClarabelBindings.STATUS_SOLVED, ClarabelBindings.STATUS_ALMOST_SOLVED, ClarabelBindings.STATUS_MAX_ITERATIONS,
+                    ClarabelBindings.STATUS_MAX_TIME, ClarabelBindings.STATUS_CALLBACK_TERMINATED -> true;
+            default -> false;
+        };
+    }
+
     static Optimisation.State translate(final int status) {
         return switch (status) {
             case ClarabelBindings.STATUS_SOLVED                                                                                                                                                       ->
                 Optimisation.State.OPTIMAL;
-            case ClarabelBindings.STATUS_ALMOST_SOLVED, ClarabelBindings.STATUS_ALMOST_PRIMAL_INFEASIBLE, ClarabelBindings.STATUS_ALMOST_DUAL_INFEASIBLE,
+            case ClarabelBindings.STATUS_ALMOST_SOLVED, ClarabelBindings.STATUS_MAX_ITERATIONS, ClarabelBindings.STATUS_MAX_TIME,
                     ClarabelBindings.STATUS_CALLBACK_TERMINATED                                                                                                                                       ->
                 Optimisation.State.APPROXIMATE;
-            case ClarabelBindings.STATUS_PRIMAL_INFEASIBLE                                                                                                                                            ->
+            case ClarabelBindings.STATUS_PRIMAL_INFEASIBLE, ClarabelBindings.STATUS_ALMOST_PRIMAL_INFEASIBLE                                                                                          ->
                 Optimisation.State.INFEASIBLE;
-            case ClarabelBindings.STATUS_DUAL_INFEASIBLE                                                                                                                                              ->
+            case ClarabelBindings.STATUS_DUAL_INFEASIBLE, ClarabelBindings.STATUS_ALMOST_DUAL_INFEASIBLE                                                                                              ->
                 Optimisation.State.UNBOUNDED;
             case ClarabelBindings.STATUS_UNSOLVED                                                                                                                                                     ->
                 Optimisation.State.UNEXPLORED;
@@ -624,6 +707,11 @@ public final class SolverClarabel implements Optimisation.Solver {
      */
     private final int[][] myDualRows;
     /**
+     * Creates a solver for the same constraints with a zero objective, see
+     * {@link #solveForFeasibleSolution()}.
+     */
+    private final Supplier<MemorySegment> myFeasibilitySolver;
+    /**
      * The upcall stub Clarabel calls to ask whether it should stop. Kept in a field because the automatic
      * arena it lives in frees it once nothing refers to it any more.
      */
@@ -634,6 +722,10 @@ public final class SolverClarabel implements Optimisation.Solver {
     private final int[] myLowerRows;
     private final boolean myMaximisation;
     private final int myNumberOfVariables;
+    /**
+     * The objective function value at a solution, as Clarabel has it (scaled, and negated when maximising).
+     */
+    private final ToDoubleFunction<double[]> myObjective;
     /**
      * The objective constant, in model units and the model's sense.
      */
@@ -654,7 +746,8 @@ public final class SolverClarabel implements Optimisation.Solver {
 
     SolverClarabel(final MemorySegment solver, final boolean maximisation, final int numberOfVariables, final Arena arena,
             final ConstraintsMetaData constraintsMetaData, final int[][] dualRows, final int[] upperRows, final int[] lowerRows, final double[] boundScales,
-            final double objectiveScale, final double objectiveConstant) {
+            final double objectiveScale, final double objectiveConstant, final Supplier<MemorySegment> feasibilitySolver,
+            final ToDoubleFunction<double[]> objective) {
         super();
         mySolver = solver;
         myMaximisation = maximisation;
@@ -667,6 +760,8 @@ public final class SolverClarabel implements Optimisation.Solver {
         myBoundScales = boundScales;
         myObjectiveScale = objectiveScale;
         myObjectiveConstant = objectiveConstant;
+        myFeasibilitySolver = feasibilitySolver;
+        myObjective = objective;
     }
 
     @Override
@@ -677,6 +772,12 @@ public final class SolverClarabel implements Optimisation.Solver {
         myArena.close();
     }
 
+    /**
+     * If the state is INFEASIBLE the dual values are Clarabel's dual variables, then a certificate of primal
+     * infeasibility. With an APPROXIMATE state the solution is Clarabel's final iterate, see
+     * {@link #isIterate(int)}. An UNBOUNDED result comes with a feasible solution, see
+     * {@link #solveForFeasibleSolution()}.
+     */
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
@@ -694,47 +795,55 @@ public final class SolverClarabel implements Optimisation.Solver {
         int status = ClarabelBindings.solutionStatus(solution);
         Optimisation.State state = SolverClarabel.translate(status);
 
-        if (state.isFeasible() && state != Optimisation.State.UNBOUNDED) {
+        if (state == Optimisation.State.INFEASIBLE) {
 
-            double obj = ClarabelBindings.solutionObjVal(solution) / myObjectiveScale;
-            if (myMaximisation) {
-                obj = -obj;
-            }
-            obj += myObjectiveConstant;
+            double[] certificate = this.computeDuals(SolverClarabel.getZ(solution));
 
-            MemorySegment xPtr = ClarabelBindings.solutionX(solution);
-            long xLen = ClarabelBindings.solutionXLength(solution);
+            return Optimisation.Result.of(state, new double[myNumberOfVariables]).withDualValues(myConstraintsMetaData,
+                    () -> ArrayR064.wrap(certificate));
+        }
 
-            double[] x = xPtr.reinterpret(xLen * ValueLayout.JAVA_DOUBLE.byteSize()).toArray(ValueLayout.JAVA_DOUBLE);
+        if (state == Optimisation.State.UNBOUNDED) {
+            return this.solveForFeasibleSolution();
+        }
 
-            if (x.length > myNumberOfVariables) {
-                double[] trimmed = new double[myNumberOfVariables];
-                System.arraycopy(x, 0, trimmed, 0, myNumberOfVariables);
-                x = trimmed;
-            }
+        if (!SolverClarabel.isIterate(status)) {
+            return Optimisation.Result.of(state, new double[myNumberOfVariables]);
+        }
 
-            MemorySegment zPtr = ClarabelBindings.solutionZ(solution);
-            long zLen = ClarabelBindings.solutionZLength(solution);
+        double obj = this.toModelValue(ClarabelBindings.solutionObjVal(solution));
 
-            double[] z = zPtr.reinterpret(zLen * ValueLayout.JAVA_DOUBLE.byteSize()).toArray(ValueLayout.JAVA_DOUBLE);
+        double[] x = SolverClarabel.getX(solution, myNumberOfVariables);
 
-            double[] duals = new double[myDualRows.length];
-            for (int i = 0; i < duals.length; i++) {
-                int[] rows = myDualRows[i];
-                for (int r = rows[0], limit = rows[0] + rows[1]; r < limit; r++) {
-                    duals[i] += z[r];
-                }
-            }
+        Optimisation.Result result = Optimisation.Result.of(obj, state, x);
+
+        if (state.isFeasible()) {
+
+            double[] z = SolverClarabel.getZ(solution);
+
+            double[] duals = this.computeDuals(z);
 
             double[] reducedGradient = this.computeReducedGradient(z);
 
-            return Optimisation.Result.of(obj, state, x).withDualValues(myConstraintsMetaData, () -> ArrayR064.wrap(duals))
-                    .withReducedGradient(() -> ArrayR064.wrap(reducedGradient));
-
-        } else {
-
-            return Optimisation.Result.of(state, new double[myNumberOfVariables]);
+            result = result.withDualValues(myConstraintsMetaData, () -> ArrayR064.wrap(duals)).withReducedGradient(() -> ArrayR064.wrap(reducedGradient));
         }
+
+        return result;
+    }
+
+    /**
+     * For each dual value (entry in {@link #myConstraintsMetaData}): the sum of Clarabel's dual variables.
+     */
+    private double[] computeDuals(final double[] z) {
+
+        double[] retVal = new double[myDualRows.length];
+        for (int i = 0; i < retVal.length; i++) {
+            int[] rows = myDualRows[i];
+            for (int r = rows[0], limit = rows[0] + rows[1]; r < limit; r++) {
+                retVal[i] += z[r];
+            }
+        }
+        return retVal;
     }
 
     /**
@@ -778,6 +887,65 @@ public final class SolverClarabel implements Optimisation.Solver {
     private boolean isStopWanted() {
         Thread solving = mySolving;
         return solving != null && solving.isInterrupted();
+    }
+
+    /**
+     * Clarabel's (almost) dual infeasible status says that the objective can improve without limit, not that
+     * there is a feasible solution, which ojAlgo's UNBOUNDED does. Solving the same constraints with a zero
+     * objective finds a feasible solution, and then the problem is unbounded, or proves that there is none
+     * (with a certificate). Otherwise the result is INVALID.
+     */
+    private Optimisation.Result solveForFeasibleSolution() {
+
+        MemorySegment solver = myFeasibilitySolver.get();
+
+        if (solver.equals(MemorySegment.NULL)) {
+            return Optimisation.Result.of(Optimisation.State.INVALID, new double[myNumberOfVariables]);
+        }
+
+        try {
+
+            MemorySegment callback = ClarabelBindings.hasTerminationCallback() ? ClarabelBindings.setTerminationCallback(solver, this::isStopWanted) : null;
+
+            mySolving = Thread.currentThread();
+            try {
+                ClarabelBindings.solverSolve(solver);
+            } finally {
+                mySolving = null;
+                Reference.reachabilityFence(callback);
+            }
+
+            MemorySegment solution = ClarabelBindings.solverSolution(myArena, solver);
+            int status = ClarabelBindings.solutionStatus(solution);
+
+            if (status == ClarabelBindings.STATUS_SOLVED || status == ClarabelBindings.STATUS_ALMOST_SOLVED) {
+                double[] x = SolverClarabel.getX(solution, myNumberOfVariables);
+                return Optimisation.Result.of(this.toModelValue(myObjective.applyAsDouble(x)), Optimisation.State.UNBOUNDED, x);
+            }
+
+            if (SolverClarabel.translate(status) == Optimisation.State.INFEASIBLE) {
+                double[] certificate = this.computeDuals(SolverClarabel.getZ(solution));
+                return Optimisation.Result.of(Optimisation.State.INFEASIBLE, new double[myNumberOfVariables]).withDualValues(myConstraintsMetaData,
+                        () -> ArrayR064.wrap(certificate));
+            }
+
+            return Optimisation.Result.of(Optimisation.State.INVALID, new double[myNumberOfVariables]);
+
+        } finally {
+            ClarabelBindings.solverFree(solver);
+        }
+    }
+
+    /**
+     * An objective function value as Clarabel has it, in model units and the model's sense, including the
+     * objective constant.
+     */
+    private double toModelValue(final double value) {
+        double retVal = value / myObjectiveScale;
+        if (myMaximisation) {
+            retVal = -retVal;
+        }
+        return retVal + myObjectiveConstant;
     }
 
 }

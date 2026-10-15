@@ -14,6 +14,14 @@ public class OptimalityCertificateTestWithOSQP extends OptimalityCertificateTest
         return NumberContext.of(6);
     }
 
+    /**
+     * OSQP's certificate is approximate, to its eps_prim_inf (1E-4 by default).
+     */
+    @Override
+    protected NumberContext getCertificateAccuracy() {
+        return NumberContext.of(5);
+    }
+
     @Override
     protected List<KeyValue<String, ExpressionsBasedModel.Integration<?>>> getIntegerIntegrations() {
         return List.of();

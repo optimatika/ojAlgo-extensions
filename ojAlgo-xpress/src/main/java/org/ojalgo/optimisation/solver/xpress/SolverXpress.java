@@ -107,6 +107,10 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverXpress> {
 
         /**
+         * A dual ray from the simplex is exact, up to rounding.
+         */
+        private static final double CERTIFICATE_NOISE = 1E-9;
+        /**
          * Must be false. Xpress handles variable bounds natively, not as constraint rows, so adjusting them would
          * mean rescaling the variables themselves.
          */
@@ -289,8 +293,7 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
 
                 XpressEntityMap entityMap = new XpressEntityMap(nbVars, constrInfo, objectiveScale, ADJUSTED_CONSTRAINTS);
 
-                return new SolverXpress(problem, nbVars, mip, entityMap, model.options, model.getOptimisationSense() == Optimisation.Sense.MAX, objectiveScale,
-                        objectiveConstant);
+                return new SolverXpress(problem, nbVars, mip, entityMap, model.options, objectiveScale, objectiveConstant);
 
             } catch (RuntimeException cause) {
                 throw cause;
@@ -302,6 +305,18 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
         @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
             return !model.isAnyConstraintQuadratic();
+        }
+
+        /**
+         * An INFEASIBLE result with a dual ray gets the reduced gradient of the infeasibility certificate, see
+         * {@link ExpressionsBasedModel.Integration#toInfeasibilityCertificate(Optimisation.Result, ExpressionsBasedModel, double)}.
+         */
+        @Override
+        public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
+            if (solverState.getState() == State.INFEASIBLE && solverState.getDualSolution().isPresent()) {
+                return ExpressionsBasedModel.Integration.toInfeasibilityCertificate(solverState, model, CERTIFICATE_NOISE);
+            }
+            return solverState;
         }
 
         @Override
@@ -323,7 +338,6 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
             myNumVars = numVars;
             myConstraints = ConstraintsMetaData.newEntityMap(constraints.size());
             myConstraints.setMultiplierScale(objectiveScale);
-            myConstraints.setSignedRows(true);
             int eq = 0;
             int ineq = 0;
             for (int i = 0; i < constraints.size(); i++) {
@@ -434,25 +448,25 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
         }
     }
 
+    /**
+     * MIP_UNBOUNDED means that the LP relaxation is unbounded, and then the MIP is either unbounded or
+     * infeasible – {@link State#INVALID}.
+     */
     static Optimisation.State translateMIP(final int status) {
         switch (status) {
-            case 1:
-                // Not loaded
+            case XPRSconstants.MIP_NOT_LOADED:
+            case XPRSconstants.MIP_LP_NOT_OPTIMAL:
+            case XPRSconstants.MIP_LP_OPTIMAL:
+            case XPRSconstants.MIP_NO_SOL_FOUND:
                 return State.UNEXPLORED;
-            case 2:
-                // LP not optimal
-                return State.UNEXPLORED;
-            case 3:
-                // LP optimal, but no integer solution found (yet)
-                return State.UNEXPLORED;
-            case 4:
-                // Search complete, no integer solution found
-                return State.INFEASIBLE;
-            case 5:
-                // Integer solution found, but not proven optimal
+            case XPRSconstants.MIP_SOLUTION:
                 return State.FEASIBLE;
-            case 6:
+            case XPRSconstants.MIP_INFEAS:
+                return State.INFEASIBLE;
+            case XPRSconstants.MIP_OPTIMAL:
                 return State.OPTIMAL;
+            case XPRSconstants.MIP_UNBOUNDED:
+                return State.INVALID;
             default:
                 return State.FAILED;
         }
@@ -461,7 +475,6 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
     private final XpressEntityMap myEntityMap;
     private final int myIterationsAbort;
     private final int myIterationsSuffice;
-    private final boolean myMaximisation;
     private final boolean myMIP;
     private final int myNumberOfVariables;
     /**
@@ -477,11 +490,10 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
     private final long myTimeSufficeMillis;
 
     SolverXpress(final XPRSprob problem, final int numberOfVariables, final boolean mip, final XpressEntityMap entityMap, final Optimisation.Options options,
-            final boolean maximisation, final double objectiveScale, final double objectiveConstant) {
+            final double objectiveScale, final double objectiveConstant) {
 
         super();
 
-        myMaximisation = maximisation;
         myObjectiveScale = objectiveScale;
         myObjectiveConstant = objectiveConstant;
 
@@ -523,6 +535,13 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
         return myProblem.getRedCost(index);
     }
 
+    /**
+     * For a continuous model the dual values and the reduced gradient are Xpress' own: the rates of change of
+     * the objective function value with the constraint limits and the variable bounds, as described at
+     * {@link Optimisation.Result#getDualSolution()}. If the state is INFEASIBLE the dual values are instead
+     * Xpress' dual ray, signed as an infeasibility certificate whatever the sense. There is one only if the
+     * dual simplex, not presolve, proved the infeasibility.
+     */
     @Override
     public Result solve(final Result kickStarter) {
 
@@ -583,17 +602,8 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
 
                 if (!myMIP && retState.isOptimal()) {
 
-                    // Xpress' dual values are the rates of change of the objective function value with the
-                    // constraint limits. For a minimisation that is minus the multipliers signed as for
-                    // two-sided rows (positive when the upper limit is active), for a maximisation it is those
-                    // multipliers.
-                    double sign = myMaximisation ? ONE : NEG;
                     double[] duals = myProblem.getDuals();
-                    for (int i = 0; i < duals.length; i++) {
-                        duals[i] *= sign;
-                    }
 
-                    // The reduced costs are in the model's sense
                     double[] reducedGradient = myProblem.getRedCosts();
                     for (int j = 0; j < reducedGradient.length; j++) {
                         reducedGradient[j] /= myObjectiveScale;
@@ -601,6 +611,21 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
 
                     return new Result(retState, retValue, ArrayR064.wrap(retSolution)).withDualValues(myEntityMap.getConstraintsMetaData(),
                             () -> ArrayR064.wrap(duals)).withReducedGradient(() -> ArrayR064.wrap(reducedGradient));
+                }
+            }
+
+            if (!myMIP && retState == State.INFEASIBLE && myEntityMap.getConstraintsMetaData().size() > 0) {
+
+                double[] ray = new double[myEntityMap.getConstraintsMetaData().size()];
+                boolean available;
+                try {
+                    available = myProblem.getDualRay(ray);
+                } catch (Exception cause) {
+                    available = false;
+                }
+                if (available) {
+                    return new Result(retState, retValue, ArrayR064.wrap(retSolution)).withDualValues(myEntityMap.getConstraintsMetaData(),
+                            () -> ArrayR064.wrap(ray));
                 }
             }
 

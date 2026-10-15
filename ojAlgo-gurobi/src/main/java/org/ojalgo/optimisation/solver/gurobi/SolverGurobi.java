@@ -141,7 +141,6 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
             myNumVars = numVars;
             int nbConstraints = constraints.size();
             myConstraints = ConstraintsMetaData.newEntityMap(nbConstraints);
-            myConstraints.setSignedRows(true);
             myGroupIndices = new int[nbConstraints];
             myQuadratic = new boolean[nbConstraints];
             int eq = 0;
@@ -337,7 +336,7 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
 
                 GurobiEntityMap entityMap = new GurobiEntityMap(numberOfVariables, constrInfo);
 
-                return new SolverGurobi(delegateSolver, entityMap, model.options, model.getOptimisationSense() == Optimisation.Sense.MAX);
+                return new SolverGurobi(delegateSolver, entityMap, model.options);
 
             } catch (GRBException exception) {
                 exception.printStackTrace();
@@ -486,7 +485,6 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
     private final GRBModel myGRBModel;
     private final int myIterationsAbort;
     private final int myIterationsSuffice;
-    private final boolean myMaximisation;
     private final int myNumVars;
     /**
      * A MIP start was set, and has to be cleared should the next solve not have one.
@@ -495,7 +493,7 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
     private final long myTimeAbortMillis;
     private final long myTimeSufficeMillis;
 
-    SolverGurobi(final GRBModel model, final GurobiEntityMap entityMap, final Optimisation.Options options, final boolean maximisation) {
+    SolverGurobi(final GRBModel model, final GurobiEntityMap entityMap, final Optimisation.Options options) {
         super();
         myEntityMap = entityMap;
         myGRBModel = model;
@@ -504,7 +502,6 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
         myNumVars = model.getVars().length;
         myTimeAbortMillis = options.time_abort;
         myTimeSufficeMillis = options.time_suffice;
-        myMaximisation = maximisation;
     }
 
     @Override
@@ -548,6 +545,12 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
         }
     }
 
+    /**
+     * For a continuous model the dual values and the reduced gradient are Gurobi's own (Pi or QCPi, for
+     * linear or quadratic constraints, and RC): the rates of change of the objective function value with the
+     * constraint limits and the variable bounds, as described at
+     * {@link Optimisation.Result#getDualSolution()}.
+     */
     @Override
     public Result solve(final Result kickStarter) {
 
@@ -592,21 +595,15 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
                 if (retState.isOptimal() && myGRBModel.get(GRB.IntAttr.IsMIP) == 0) {
                     try {
 
-                        // Gurobi's dual values are the rates of change of the objective function value with the
-                        // constraint limits. For a minimisation that is minus the multipliers signed as for
-                        // two-sided rows (positive when the upper limit is active), for a maximisation it is
-                        // those multipliers. The same for linear (Pi) and quadratic (QCPi) constraints.
-                        double sign = myMaximisation ? ONE : NEG;
                         double[] pi = myGRBModel.get(GRB.DoubleAttr.Pi, myGRBModel.getConstrs());
                         GRBQConstr[] quadraticConstraints = myGRBModel.getQConstrs();
                         double[] qcpi = quadraticConstraints.length > 0 ? myGRBModel.get(GRB.DoubleAttr.QCPi, quadraticConstraints) : new double[0];
                         retDuals = new double[myEntityMap.getConstraintsMetaData().size()];
                         for (int i = 0; i < retDuals.length; i++) {
                             int groupIndex = myEntityMap.getGroupIndex(i);
-                            retDuals[i] = sign * (myEntityMap.isQuadratic(i) ? qcpi[groupIndex] : pi[groupIndex]);
+                            retDuals[i] = myEntityMap.isQuadratic(i) ? qcpi[groupIndex] : pi[groupIndex];
                         }
 
-                        // The reduced costs are in the model's sense
                         retReducedGradient = myGRBModel.get(GRB.DoubleAttr.RC, tmpVars);
 
                     } catch (GRBException cause) {

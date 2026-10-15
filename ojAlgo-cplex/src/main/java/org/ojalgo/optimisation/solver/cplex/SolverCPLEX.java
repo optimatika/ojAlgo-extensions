@@ -143,7 +143,6 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
             myNumVars = numVars;
             myConstraints = ConstraintsMetaData.newEntityMap(constraints.size());
             myConstraints.setMultiplierScale(objectiveScale);
-            myConstraints.setSignedRows(true);
             int eq = 0;
             int ineq = 0;
             for (int i = 0; i < constraints.size(); i++) {
@@ -217,6 +216,10 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
 
     static final class Integration extends ExpressionsBasedModel.Integration<SolverCPLEX> {
 
+        /**
+         * A Farkas proof is exact, up to rounding.
+         */
+        private static final double CERTIFICATE_NOISE = 1E-9;
         /**
          * Must be false. CPLEX handles variable bounds natively, not as constraint rows, so adjusting them would
          * mean rescaling the variables themselves.
@@ -313,8 +316,8 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
 
                 CPLEXEntityMap entityMap = new CPLEXEntityMap(nbVars, constrInfo, objectiveScale, ADJUSTED_CONSTRAINTS);
 
-                return new SolverCPLEX(solver, sVars, ranges.toArray(new ilog.concert.IloRange[0]), entityMap, model.options,
-                        model.getOptimisationSense() == Optimisation.Sense.MAX, objectiveScale, objectiveConstant);
+                return new SolverCPLEX(solver, sVars, ranges.toArray(new ilog.concert.IloRange[0]), entityMap, model.options, objectiveScale,
+                        objectiveConstant);
 
             } catch (IloException cause) {
                 throw new RuntimeException(cause);
@@ -343,6 +346,18 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
             for (IntRowColumn key : source.getQuadraticKeySet()) {
                 destination.addTerm(source.doubleValue(key, adjusted), variables[key.row], variables[key.column]);
             }
+        }
+
+        /**
+         * An INFEASIBLE result with a Farkas proof gets the reduced gradient of the infeasibility certificate,
+         * see {@link ExpressionsBasedModel.Integration#toInfeasibilityCertificate(Optimisation.Result, ExpressionsBasedModel, double)}.
+         */
+        @Override
+        public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
+            if (solverState.getState() == State.INFEASIBLE && solverState.getDualSolution().isPresent()) {
+                return ExpressionsBasedModel.Integration.toInfeasibilityCertificate(solverState, model, CERTIFICATE_NOISE);
+            }
+            return solverState;
         }
 
         @Override
@@ -416,7 +431,6 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
     private final CPLEXEntityMap myEntityMap;
     private final int myIterationsAbort;
     private final int myIterationsSuffice;
-    private final boolean myMaximisation;
     /**
      * The objective constant, in model units.
      */
@@ -431,7 +445,7 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
     private final IloNumVar[] myVariables;
 
     SolverCPLEX(final IloCplex solver, final IloNumVar[] variables, final ilog.concert.IloRange[] constraints, final CPLEXEntityMap entityMap,
-            final Optimisation.Options options, final boolean maximisation, final double objectiveScale, final double objectiveConstant) {
+            final Optimisation.Options options, final double objectiveScale, final double objectiveConstant) {
         super();
         myConstraints = constraints;
         myEntityMap = entityMap;
@@ -441,7 +455,6 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
         myTimeAbortMillis = options.time_abort;
         myTimeSufficeMillis = options.time_suffice;
         myVariables = variables;
-        myMaximisation = maximisation;
         myObjectiveScale = objectiveScale;
         myObjectiveConstant = objectiveConstant;
     }
@@ -484,6 +497,13 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
         }
     }
 
+    /**
+     * For a continuous model, without quadratic constraints, the dual values and the reduced gradient are
+     * CPLEX's own: the rates of change of the objective function value with the constraint limits and the
+     * variable bounds, as described at {@link Optimisation.Result#getDualSolution()}. If the state is
+     * INFEASIBLE the dual values are instead CPLEX's Farkas proof, signed as an infeasibility certificate
+     * whatever the sense. There is one only if a simplex optimiser, not presolve, proved the infeasibility.
+     */
     @Override
     public Optimisation.Result solve(final Result kickStarter) {
 
@@ -545,16 +565,8 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
 
             if (retState.isOptimal() && !mySolver.isMIP() && !mySolver.isQC()) {
 
-                // CPLEX's dual values are the rates of change of the objective function value with the
-                // constraint limits. For a minimisation that is minus the multipliers signed as for two-sided
-                // rows (positive when the upper limit is active), for a maximisation it is those multipliers.
-                double sign = myMaximisation ? ONE : NEG;
                 double[] duals = myConstraints.length > 0 ? mySolver.getDuals(myConstraints) : new double[0];
-                for (int i = 0; i < duals.length; i++) {
-                    duals[i] *= sign;
-                }
 
-                // The reduced costs are in the model's sense
                 double[] reducedGradient = mySolver.getReducedCosts(myVariables);
                 for (int j = 0; j < reducedGradient.length; j++) {
                     reducedGradient[j] /= myObjectiveScale;
@@ -563,6 +575,17 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
                 return Optimisation.Result.of(retValue, retState, retSolution)
                         .withDualValues(myEntityMap.getConstraintsMetaData(), () -> ArrayR064.wrap(duals))
                         .withReducedGradient(() -> ArrayR064.wrap(reducedGradient));
+            }
+
+            if (retState == State.INFEASIBLE && !mySolver.isMIP() && !mySolver.isQC() && myConstraints.length > 0) {
+
+                double[] farkas = new double[myConstraints.length];
+                try {
+                    mySolver.dualFarkas(myConstraints, farkas);
+                    return Optimisation.Result.of(retValue, retState, retSolution).withDualValues(myEntityMap.getConstraintsMetaData(),
+                            () -> ArrayR064.wrap(farkas));
+                } catch (IloException ignore) {
+                }
             }
 
         } catch (IloException cause) {
