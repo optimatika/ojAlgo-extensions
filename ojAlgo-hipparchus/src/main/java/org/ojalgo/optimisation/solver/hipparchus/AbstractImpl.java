@@ -32,6 +32,7 @@ import java.util.Set;
 import org.hipparchus.exception.Localizable;
 import org.hipparchus.exception.MathIllegalStateException;
 import org.hipparchus.optim.BaseMultivariateOptimizer;
+import org.hipparchus.optim.MaxIter;
 import org.hipparchus.optim.OptimizationData;
 import org.ojalgo.optimisation.ConstraintsMetaData;
 import org.ojalgo.optimisation.Expression;
@@ -276,7 +277,11 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
 
             S solver = myConfigurator.newDelegateSolver(myOptions);
 
-            Set<OptimizationData> data = myTranslation.data;
+            List<OptimizationData> data = new ArrayList<>(myTranslation.data);
+            int iterationLimit = this.getIterationLimit(myOptions);
+            if (iterationLimit < Integer.MAX_VALUE) {
+                data.add(new MaxIter(iterationLimit));
+            }
             R solutionAndValue = solver.optimize(data.toArray(new OptimizationData[data.size()]));
 
             double value = this.extractValue(solutionAndValue) / myTranslation.objectiveScale;
@@ -307,6 +312,14 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
     abstract Optimisation.Result complete(Optimisation.Result result, R solutionAndValue, Translation translation);
 
     abstract Access1D<?> extractSolution(R solutionAndValue);
+
+    /**
+     * The iteration limit passed to the Hipparchus optimiser, or {@link Integer#MAX_VALUE} to pass none and
+     * leave it to the optimiser.
+     */
+    int getIterationLimit(final Optimisation.Options options) {
+        return Integer.MAX_VALUE;
+    }
 
     abstract Optimisation.State extractState(Localizable exceptionSpecifier);
 

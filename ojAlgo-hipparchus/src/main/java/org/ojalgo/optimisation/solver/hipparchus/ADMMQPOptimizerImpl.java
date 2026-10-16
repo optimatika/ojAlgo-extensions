@@ -53,9 +53,24 @@ public final class ADMMQPOptimizerImpl extends ConvexImpl<ADMMQPOptimizer> {
 
     static final Configurator DEFAULT = new Configurator();
 
+    /**
+     * The iteration limit used when {@link Options#iterations_abort} is not set.
+     */
+    static final int DEFAULT_ITERATION_LIMIT = 10_000;
+
     ADMMQPOptimizerImpl(final Translation translation, final Options options,
             final org.ojalgo.optimisation.solver.hipparchus.AbstractImpl.Configurator<ADMMQPOptimizer> configurator) {
         super(translation, options, configurator);
+    }
+
+    /**
+     * Hipparchus' ADMM iterates until it converges, and has no infeasibility detection – with an infeasible
+     * problem it would never stop. The iterations are limited to {@link Options#iterations_abort}, or to
+     * {@value #DEFAULT_ITERATION_LIMIT} if that is not set. Reaching the limit gives a FAILED result.
+     */
+    @Override
+    int getIterationLimit(final Options options) {
+        return options.iterations_abort < Integer.MAX_VALUE ? options.iterations_abort : DEFAULT_ITERATION_LIMIT;
     }
 
 }
