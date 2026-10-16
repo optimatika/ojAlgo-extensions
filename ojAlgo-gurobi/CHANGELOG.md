@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 > Corresponds to changes in the `develop` branch since the last release
 
+## [3.3.0] – 2026-10-16
+
+Built with ojAlgo 57.5.0 and Gurobi 13.0.3.
+
 ### Changed
 
 - Dual values are Gurobi's own (`Pi` and `QCPi`) and follow ojAlgo 57.5.0's convention: shadow prices in the model's optimisation sense.

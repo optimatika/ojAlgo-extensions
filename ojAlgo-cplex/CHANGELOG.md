@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 > Corresponds to changes in the `develop` branch since the last release
 
+## [3.3.0] – 2026-10-16
+
+Built with ojAlgo 57.5.0 and CPLEX 22.2.0.0.
+
 ### Added
 
 - An `INFEASIBLE` result of a continuous model without quadratic constraints carries CPLEX's Farkas proof as an infeasibility certificate – dual values together with their reduced gradient (see ojAlgo 57.5.0). There is one only when a simplex optimiser, not presolve, proved the infeasibility.

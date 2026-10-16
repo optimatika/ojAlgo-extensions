@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 > Corresponds to changes in the `develop` branch since the last release
 
+## [1.1.0] – 2026-10-16
+
+Built with ojAlgo 57.5.0 and Clarabel 0.11.1 (built from source and installed separately).
+
 ### Added
 
 - Results include dual values and the reduced gradient, following the dual value convention introduced in ojAlgo 57.5.0.
