@@ -10,7 +10,6 @@
     <modules>
         <module>ojAlgo-choco</module>
         <module>ojAlgo-clarabel</module>
-        <module>ojAlgo-clarabel4j</module>
         <module>ojAlgo-commons-math3</module>
         <module>ojAlgo-copt</module>
         <module>ojAlgo-cplex</module>
