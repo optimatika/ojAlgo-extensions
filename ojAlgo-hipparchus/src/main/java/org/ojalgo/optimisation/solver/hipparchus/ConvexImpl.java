@@ -45,13 +45,13 @@ import org.ojalgo.structure.Access1D;
 import org.ojalgo.structure.Primitive1D;
 
 /**
- * The Hipparchus constrained optimisers ignore {@link GoalType} – a maximisation problem is minimised with the
- * objective negated.
+ * The Hipparchus constrained optimisers ignore {@link GoalType} – a maximisation problem is minimised with
+ * the objective negated.
  * <p>
  * Their multipliers are those of the Lagrangian L = f - λ'c, where c(x) = 0 for equality and c(x) >= 0 for
  * inequality constraints, except for the ADMM optimiser's two-sided (bounded) constraints, l <= Ax <= u,
- * whose multipliers are positive when the upper limit is active and negative when the lower is.
- * They are all converted to that latter convention, and then matched to the model entities.
+ * whose multipliers are positive when the upper limit is active and negative when the lower is. They are all
+ * converted to that latter convention, and then matched to the model entities.
  */
 abstract class ConvexImpl<S extends ConstraintOptimizer> extends AbstractImpl<S, LagrangeSolution> {
 
@@ -158,7 +158,8 @@ abstract class ConvexImpl<S extends ConstraintOptimizer> extends AbstractImpl<S,
                     }
                 }
                 if (a.size() > 0) {
-                    translation.data.add(new LinearInequalityConstraint(a.toArray(new double[a.size()][]), b.stream().mapToDouble(Double::doubleValue).toArray()));
+                    translation.data
+                            .add(new LinearInequalityConstraint(a.toArray(new double[a.size()][]), b.stream().mapToDouble(Double::doubleValue).toArray()));
                 }
             }
 
@@ -187,9 +188,9 @@ abstract class ConvexImpl<S extends ConstraintOptimizer> extends AbstractImpl<S,
     }
 
     /**
-     * The dual values and the reduced gradient – in the bounded-variable sense, in model units and the model's
-     * sense. With the multipliers y signed as for OSQP, the solution satisfies ∇f + A'y = 0, so the objective's
-     * gradient plus the constraint rows' terms equals minus the variable-bound rows' terms.
+     * The dual values and the reduced gradient – in the bounded-variable sense, in model units and the
+     * model's sense. With the multipliers y signed as for OSQP, the solution satisfies ∇f + A'y = 0, so the
+     * objective's gradient plus the constraint rows' terms equals minus the variable-bound rows' terms.
      */
     @Override
     Optimisation.Result complete(final Optimisation.Result result, final LagrangeSolution solutionAndValue, final Translation translation) {

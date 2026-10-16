@@ -42,12 +42,13 @@ import org.ojalgo.structure.Structure2D.IntRowColumn;
 import org.ojalgo.type.ForgetfulMap;
 import org.ojalgo.type.context.NumberContext;
 
-import mosek.*;
-import mosek.Exception;
+import com.mosek.mosek.*;
+import com.mosek.mosek.Exception;
 
 /**
- * TODO: Clean up / refactor, look at SolverORTools and SolverCPLEX.
+ * Integration with MOSEK. Handles LP, QP, QCQP and their mixed-integer variants.
  *
+ * @see "https://www.mosek.com"
  * @author apete
  */
 public final class SolverMosek implements Optimisation.Solver {
@@ -183,7 +184,8 @@ public final class SolverMosek implements Optimisation.Solver {
         }
 
         /**
-         * An INFEASIBLE result with MOSEK's certificate of primal infeasibility gets its reduced gradient, see
+         * An INFEASIBLE result with MOSEK's certificate of primal infeasibility gets its reduced gradient,
+         * see
          * {@link ExpressionsBasedModel.Integration#toInfeasibilityCertificate(Optimisation.Result, ExpressionsBasedModel, double)}.
          */
         @Override
@@ -228,8 +230,8 @@ public final class SolverMosek implements Optimisation.Solver {
     static final Configurator DEFAULT = new Configurator();
 
     /**
-     * The lower triangular part of Q, where the quadratic part of the expression is x'Qx/2 (as MOSEK wants it).
-     * The keys (i,j) and (j,i) are the same element, and are added.
+     * The lower triangular part of Q, where the quadratic part of the expression is x'Qx/2 (as MOSEK wants
+     * it). The keys (i,j) and (j,i) are the same element, and are added.
      */
     private static Map<IntRowColumn, Double> getLowerTriangle(final Expression expression) {
 
@@ -250,7 +252,6 @@ public final class SolverMosek implements Optimisation.Solver {
     private final int myIterationsAbort;
     private final int myIterationsSuffice;
     private final boolean myMaximisation;
-    private final Optimisation.Options myOptions;
     private soltype mySolutionType = soltype.bas;
     /**
      * The thread inside {@link #solve(Result)}. Read from the progress callback, which MOSEK may make from a
@@ -267,7 +268,6 @@ public final class SolverMosek implements Optimisation.Solver {
         super();
 
         myTask = task;
-        myOptions = options;
         myConstraintsMetaData = constraintsMetaData;
         myMaximisation = maximisation;
         myIterationsAbort = options.iterations_abort;
@@ -358,22 +358,6 @@ public final class SolverMosek implements Optimisation.Solver {
     }
 
     /**
-     * Wraps {@link Task#optimize()} to keep the interrupt out of the returned {@link rescode}: a solve
-     * stopped from the progress callback comes back as {@code trm_user_callback}, which is a termination code
-     * rather than something having gone wrong, but there is no solution to read either way.
-     */
-    private rescode optimise() {
-
-        rescode retVal = myTask.optimize();
-
-        if (retVal == rescode.trm_user_callback) {
-            BasicLogger.debug("MOSEK stopped on request");
-        }
-
-        return retVal;
-    }
-
-    /**
      * The objective function value, including the constant, of a solution to this task.
      */
     private double evaluateObjective(final double[] solution) {
@@ -403,8 +387,8 @@ public final class SolverMosek implements Optimisation.Solver {
 
     /**
      * MOSEK's solution status, and the problem status when that does not settle it. Stopping at a limit is
-     * not an error, but there may or may not be a solution. Should the problem be unbounded, or possibly so, that
-     * is for {@link #solveForFeasibleSolution()} to settle.
+     * not an error, but there may or may not be a solution. Should the problem be unbounded, or possibly so,
+     * that is for {@link #solveForFeasibleSolution()} to settle.
      */
     private Optimisation.State getState(final rescode code) {
 
@@ -419,15 +403,16 @@ public final class SolverMosek implements Optimisation.Solver {
         }
 
         return switch (myTask.getsolsta(mySolutionType)) {
-            case optimal, integer_optimal -> Optimisation.State.OPTIMAL;
+            case optimal, integer_optimal      -> Optimisation.State.OPTIMAL;
             case prim_feas, prim_and_dual_feas -> Optimisation.State.FEASIBLE;
-            case prim_infeas_cer -> Optimisation.State.INFEASIBLE;
-            case dual_infeas_cer -> Optimisation.State.UNBOUNDED;
-            default -> switch (myTask.getprosta(mySolutionType)) {
-                case prim_infeas, prim_and_dual_infeas -> Optimisation.State.INFEASIBLE;
-                case dual_infeas, prim_infeas_or_unbounded -> Optimisation.State.UNBOUNDED;
-                default -> terminated ? Optimisation.State.APPROXIMATE : Optimisation.State.FAILED;
-            };
+            case prim_infeas_cer               -> Optimisation.State.INFEASIBLE;
+            case dual_infeas_cer               -> Optimisation.State.UNBOUNDED;
+            default                            -> switch (myTask.getprosta(mySolutionType)) {
+                                               case prim_infeas, prim_and_dual_infeas         -> Optimisation.State.INFEASIBLE;
+                                               case dual_infeas, prim_infeas_or_unbounded     -> Optimisation.State.UNBOUNDED;
+                                               default                                        ->
+                                                   terminated ? Optimisation.State.APPROXIMATE : Optimisation.State.FAILED;
+                                           };
         };
     }
 
@@ -445,6 +430,22 @@ public final class SolverMosek implements Optimisation.Solver {
             }
 
         };
+    }
+
+    /**
+     * Wraps {@link Task#optimize()} to keep the interrupt out of the returned {@link rescode}: a solve
+     * stopped from the progress callback comes back as {@code trm_user_callback}, which is a termination code
+     * rather than something having gone wrong, but there is no solution to read either way.
+     */
+    private rescode optimise() {
+
+        rescode retVal = myTask.optimize();
+
+        if (retVal == rescode.trm_user_callback) {
+            BasicLogger.debug("MOSEK stopped on request");
+        }
+
+        return retVal;
     }
 
     /**
@@ -535,6 +536,31 @@ public final class SolverMosek implements Optimisation.Solver {
             return boundkey.up;
         }
         return boundkey.fr;
+    }
+
+    /**
+     * MOSEK's certificate of primal infeasibility, signed as the infeasibility certificate's dual values:
+     * MOSEK signs it as the dual values of the problem it solved, which for a maximisation is the reverse.
+     * Null if there is no certificate, or it is of a MIP.
+     */
+    double[] getCertificate(final Task task) {
+
+        if (mySolutionType == soltype.itg || !task.solutiondef(mySolutionType) || task.getsolsta(mySolutionType) != solsta.prim_infeas_cer) {
+            return null;
+        }
+
+        double[] retVal = new double[task.getnumcon()];
+        task.gety(mySolutionType, retVal);
+        if (myMaximisation) {
+            for (int i = 0; i < retVal.length; i++) {
+                retVal[i] = -retVal[i];
+            }
+        }
+        return retVal;
+    }
+
+    Task getTask() {
+        return myTask;
     }
 
     void putConstraint(final int index, final Expression constraint) {
@@ -628,31 +654,6 @@ public final class SolverMosek implements Optimisation.Solver {
 
         myTask.putvarbound(index, boundType, lowerBound, upperBound);
         myTask.putvartype(index, variableType);
-    }
-
-    /**
-     * MOSEK's certificate of primal infeasibility, signed as the infeasibility certificate's dual values: MOSEK
-     * signs it as the dual values of the problem it solved, which for a maximisation is the reverse. Null if
-     * there is no certificate, or it is of a MIP.
-     */
-    double[] getCertificate(final Task task) {
-
-        if (mySolutionType == soltype.itg || !task.solutiondef(mySolutionType) || task.getsolsta(mySolutionType) != solsta.prim_infeas_cer) {
-            return null;
-        }
-
-        double[] retVal = new double[task.getnumcon()];
-        task.gety(mySolutionType, retVal);
-        if (myMaximisation) {
-            for (int i = 0; i < retVal.length; i++) {
-                retVal[i] = -retVal[i];
-            }
-        }
-        return retVal;
-    }
-
-    Task getTask() {
-        return myTask;
     }
 
     void setSolutionType(final ExpressionsBasedModel model) {

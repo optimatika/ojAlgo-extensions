@@ -48,13 +48,10 @@ import org.ojalgo.type.keyvalue.EntryPair;
 import copt.*;
 
 /**
- * COPT's Java API is very similar to Gurobi's – this integration mirrors {@code SolverGurobi} closely,
- * substituting COPT's classes and method calls.
- * <p>
- * {@code copt.Model} is always referred to by its fully qualified name here because
- * {@link Optimisation.Solver} inherits the nested type {@link Optimisation.Model}, and that inherited member
- * type would otherwise shadow a plain {@code import copt.Model;} throughout this class.
+ * Integration with the COPT (Cardinal Optimizer) solver. Handles LP, QP, QCQP and their mixed-integer
+ * variants.
  *
+ * @see "https://www.copt.de"
  * @author apete
  */
 public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
@@ -114,7 +111,8 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
 
         private final ConstraintsMetaData myConstraints;
         /**
-         * For each constraint, its index among COPT's linear or quadratic constraints (see {@link #myQuadratic}).
+         * For each constraint, its index among COPT's linear or quadratic constraints (see
+         * {@link #myQuadratic}).
          */
         private final int[] myGroupIndices;
         private final int myNumEqualityConstraints;
@@ -325,7 +323,8 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
         }
 
         /**
-         * An INFEASIBLE result with a Farkas ray gets the reduced gradient of the infeasibility certificate, see
+         * An INFEASIBLE result with a Farkas ray gets the reduced gradient of the infeasibility certificate,
+         * see
          * {@link ExpressionsBasedModel.Integration#toInfeasibilityCertificate(Optimisation.Result, ExpressionsBasedModel, double)}.
          */
         @Override
@@ -494,8 +493,7 @@ public final class SolverCOPT implements Optimisation.Solver, UpdatableSolver {
             constrInfo.add(EntryPair.of(modExpr, ConstraintType.EQUALITY));
         } else {
             if (modExpr.isLowerConstraint()) {
-                SolverCOPT.addQuadConstraint(delegateSolver, solExpr, Consts.GREATER_EQUAL, modExpr.getLowerLimit(false, NEGATIVE_INFINITY),
-                        modExpr.getName());
+                SolverCOPT.addQuadConstraint(delegateSolver, solExpr, Consts.GREATER_EQUAL, modExpr.getLowerLimit(false, NEGATIVE_INFINITY), modExpr.getName());
                 constrInfo.add(EntryPair.of(modExpr, ConstraintType.LOWER));
             }
             if (modExpr.isUpperConstraint()) {

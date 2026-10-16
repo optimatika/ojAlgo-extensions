@@ -15,8 +15,8 @@ public class OptimalityCertificateTestWithXpress extends OptimalityCertificateTe
     }
 
     /**
-     * Xpress solves QPs with its barrier (interior point) method: at a degenerate optimum the multiplier and the
-     * slack are both about the square root of the duality gap.
+     * Xpress solves QPs with its barrier (interior point) method: at a degenerate optimum the multiplier and
+     * the slack are both about the square root of the duality gap.
      */
     @Override
     protected NumberContext getComplementarityAccuracy() {

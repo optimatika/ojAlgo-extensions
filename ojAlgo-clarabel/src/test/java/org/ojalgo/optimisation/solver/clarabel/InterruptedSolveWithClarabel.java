@@ -13,11 +13,11 @@ import org.ojalgo.optimisation.Variable;
  * Interrupting the thread that started a solve has to stop the solver. Clarabel stops itself: it asks a
  * callback once per iteration, and the callback reports the interrupt.
  * <p>
- * Tested by interrupting up front rather than mid-solve. Clarabel is an interior-point solver that converges in
- * a few dozen iterations, so there is no reliable window in which to interrupt it - but a thread that is
+ * Tested by interrupting up front rather than mid-solve. Clarabel is an interior-point solver that converges
+ * in a few dozen iterations, so there is no reliable window in which to interrupt it - but a thread that is
  * already interrupted when the solve starts makes the very first iteration the one that stops, which pins the
- * outcome down exactly. That the flag survives until someone clears it is the same property the mid-solve case
- * relies on.
+ * outcome down exactly. That the flag survives until someone clears it is the same property the mid-solve
+ * case relies on.
  */
 public class InterruptedSolveWithClarabel {
 

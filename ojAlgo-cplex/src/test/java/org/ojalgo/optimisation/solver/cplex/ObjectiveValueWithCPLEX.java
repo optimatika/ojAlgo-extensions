@@ -34,8 +34,8 @@ public class ObjectiveValueWithCPLEX {
     }
 
     /**
-     * x + 4y + 2z + 7.5 subject to x + y = 5 and z >= 1, with y fixed at 2 (so x = 3) and z <= 10. The constant
-     * is the negated right-hand side of the objective row.
+     * x + 4y + 2z + 7.5 subject to x + y = 5 and z >= 1, with y fixed at 2 (so x = 3) and z <= 10. The
+     * constant is the negated right-hand side of the objective row.
      */
     private static ExpressionsBasedModel newModel(final Optimisation.Sense sense) {
 

@@ -15,9 +15,9 @@ public class OptimalityCertificateTestWithClarabel4j extends OptimalityCertifica
     }
 
     /**
-     * A quadratic constraint is a second-order cone to Clarabel, and its multiplier is recovered from the cone's
-     * dual variables. That is exact only at exact complementarity, which the interior point algorithm gets close
-     * to, but not all the way - errors of about 1e-6.
+     * A quadratic constraint is a second-order cone to Clarabel, and its multiplier is recovered from the
+     * cone's dual variables. That is exact only at exact complementarity, which the interior point algorithm
+     * gets close to, but not all the way - errors of about 1e-6.
      */
     @Override
     protected NumberContext getQuadraticConstraintAccuracy() {

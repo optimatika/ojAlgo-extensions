@@ -8,8 +8,8 @@ import org.ojalgo.type.context.NumberContext;
 import org.ojalgo.type.keyvalue.KeyValue;
 
 /**
- * The ADMM optimiser, for quadratic problems. See also {@link OptimalityCertificateTestWithHipparchusSimplex} and
- * {@link SQPOptimizerImplTest}.
+ * The ADMM optimiser, for quadratic problems. See also {@link OptimalityCertificateTestWithHipparchusSimplex}
+ * and {@link SQPOptimizerImplTest}.
  */
 public class OptimalityCertificateTestWithHipparchus extends OptimalityCertificateTest {
 

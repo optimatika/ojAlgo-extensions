@@ -42,30 +42,11 @@ import org.ojalgo.structure.Structure1D.IntIndex;
 import org.ojalgo.type.context.NumberContext;
 
 /**
- * Google CP-SAT solver integration for ojAlgo.
- * <p>
- * CP-SAT is Google OR-Tools' constraint programming / integer solver - one of the strongest solvers available
- * for pure integer and binary programs. This integration talks to it without the full OR-Tools Java jar
- * (which bundles JNI glue and native code for every OR-Tools component, not just CP-SAT): it uses Java's
- * Foreign Function & Memory API to call the small, protobuf-based C API OR-Tools exports for exactly this
- * purpose ({@code ortools/sat/c_api/cp_solver_c.h}), compiled straight into {@code libortools}.
- * <p>
- * A model is translated into a serialized {@code CpModelProto} (see {@link #buildModelProtoBytes}) and handed
- * to the native solver together with a serialized {@code SatParameters}; the response comes back as a
- * serialized {@code CpSolverResponse} (see {@link #parseResponse}). Both are built/parsed by hand with a
- * minimal protobuf wire-format reader/writer - {@link ProtoWriter}/{@link ProtoReader} - rather than by
- * pulling in the protobuf-java runtime, since only a handful of scalar and length-delimited fields are ever
- * needed.
- * <p>
- * CP-SAT variables and coefficients are all 64-bit integers, whereas an {@link ExpressionsBasedModel} works
- * in {@code double}s. Variable bounds are simply rounded inwards ({@link Math#ceil} the lower bound,
- * {@link Math#floor} the upper bound) since CP-SAT has no notion of a continuous variable anyway.
- * Coefficients (in both constraints and the objective) are scaled up to the smallest power of ten that makes
- * them representable as integers. For the objective this scaling is undone automatically by the solver itself
- * via {@code CpObjectiveProto.scaling_factor}, so the objective value reported back is already in the model's
- * own units.
+ * Integration with Google's CP-SAT solver, calling the OR-Tools C API via Java's FFM API. Handles linear
+ * models with integer variables. CP-SAT is integer-only, so bounds are rounded and coefficients scaled to
+ * integers.
  *
- * @see <a href="https://developers.google.com/optimization/cp/cp_solver">CP-SAT</a>
+ * @see "https://developers.google.com/optimization/cp/cp_solver"
  */
 public final class SolverCPSAT implements Optimisation.Solver {
 
@@ -465,8 +446,7 @@ public final class SolverCPSAT implements Optimisation.Solver {
                 parameters.setAbsoluteGapLimit(gap.get().getAbsoluteError() * objectiveScale);
             }
 
-            return new SolverCPSAT(modelProtoBytes, parameters.toByteArray(), variables.size(), model.options, varScales, objectiveScale,
-                    objectiveConstant);
+            return new SolverCPSAT(modelProtoBytes, parameters.toByteArray(), variables.size(), model.options, varScales, objectiveScale, objectiveConstant);
         }
 
         /**
@@ -994,8 +974,8 @@ public final class SolverCPSAT implements Optimisation.Solver {
     private final long myTimeSufficeMillis;
     private final int[] myVariableScales;
 
-    SolverCPSAT(final byte[] modelProtoBytes, final byte[] paramsProtoBytes, final int numVars, final Optimisation.Options options,
-            final int[] variableScales, final double objectiveScale, final double objectiveConstant) {
+    SolverCPSAT(final byte[] modelProtoBytes, final byte[] paramsProtoBytes, final int numVars, final Optimisation.Options options, final int[] variableScales,
+            final double objectiveScale, final double objectiveConstant) {
         super();
         myModelProtoBytes = modelProtoBytes;
         myParamsProtoBytes = paramsProtoBytes;

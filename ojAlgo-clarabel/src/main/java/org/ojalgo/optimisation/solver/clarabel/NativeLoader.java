@@ -31,8 +31,8 @@ import java.nio.file.Path;
  * Handles loading of the Clarabel native library from the system.
  * <p>
  * The Clarabel C library (libclarabel_c) must be installed on the system. Build it from source using
- * {@code cargo build --release} in the Clarabel.rs repository, then install the resulting shared library to
- * a standard system library path.
+ * {@code cargo build --release} in the Clarabel.rs repository, then install the resulting shared library to a
+ * standard system library path.
  * <p>
  * If Clarabel is already loaded in the process, the existing symbols are reused to avoid loading a second
  * copy of the library.
@@ -69,25 +69,16 @@ final class NativeLoader {
 
             String brewPrefix = "aarch64".equals(osArch) || "arm64".equals(osArch) ? "/opt/homebrew" : "/usr/local";
 
-            searchPaths = new String[]{
-                    brewPrefix + "/lib/libclarabel_c.dylib",
-                    "/usr/local/lib/libclarabel_c.dylib"
-            };
+            searchPaths = new String[] { brewPrefix + "/lib/libclarabel_c.dylib", "/usr/local/lib/libclarabel_c.dylib" };
 
         } else if (osName.contains("linux")) {
 
-            searchPaths = new String[]{
-                    "/usr/lib/libclarabel_c.so",
-                    "/usr/local/lib/libclarabel_c.so",
-                    "/usr/lib/x86_64-linux-gnu/libclarabel_c.so",
-                    "/usr/lib/aarch64-linux-gnu/libclarabel_c.so"
-            };
+            searchPaths = new String[] { "/usr/lib/libclarabel_c.so", "/usr/local/lib/libclarabel_c.so", "/usr/lib/x86_64-linux-gnu/libclarabel_c.so",
+                    "/usr/lib/aarch64-linux-gnu/libclarabel_c.so" };
 
         } else if (osName.contains("windows")) {
 
-            searchPaths = new String[]{
-                    "C:\\Program Files\\Clarabel\\bin\\clarabel_c.dll"
-            };
+            searchPaths = new String[] { "C:\\Program Files\\Clarabel\\bin\\clarabel_c.dll" };
 
         } else {
             throw new UnsatisfiedLinkError("Unsupported operating system: " + osName);

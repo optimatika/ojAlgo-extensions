@@ -66,25 +66,16 @@ final class NativeLoader {
 
             String brewPrefix = "aarch64".equals(osArch) || "arm64".equals(osArch) ? "/opt/homebrew" : "/usr/local";
 
-            searchPaths = new String[]{
-                    brewPrefix + "/lib/libortools.dylib",
-                    "/usr/local/lib/libortools.dylib"
-            };
+            searchPaths = new String[] { brewPrefix + "/lib/libortools.dylib", "/usr/local/lib/libortools.dylib" };
 
         } else if (osName.contains("linux")) {
 
-            searchPaths = new String[]{
-                    "/usr/lib/libortools.so",
-                    "/usr/local/lib/libortools.so",
-                    "/usr/lib/x86_64-linux-gnu/libortools.so",
-                    "/usr/lib/aarch64-linux-gnu/libortools.so"
-            };
+            searchPaths = new String[] { "/usr/lib/libortools.so", "/usr/local/lib/libortools.so", "/usr/lib/x86_64-linux-gnu/libortools.so",
+                    "/usr/lib/aarch64-linux-gnu/libortools.so" };
 
         } else if (osName.contains("windows")) {
 
-            searchPaths = new String[]{
-                    "C:\\Program Files\\or-tools\\bin\\ortools.dll"
-            };
+            searchPaths = new String[] { "C:\\Program Files\\or-tools\\bin\\ortools.dll" };
 
         } else {
             throw new UnsatisfiedLinkError("Unsupported operating system: " + osName);

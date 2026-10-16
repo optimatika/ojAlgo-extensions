@@ -41,13 +41,10 @@ import org.ojalgo.structure.Structure2D.IntRowColumn;
 import org.ojalgo.type.context.NumberContext;
 
 /**
- * SCIP solver integration for ojAlgo.
- * <p>
- * SCIP (Solving Constraint Integer Programs) is one of the fastest non-commercial solvers for mixed-integer
- * programming (MIP) and mixed-integer nonlinear programming (MINLP). This integration uses Java's Foreign
- * Function & Memory API (FFM) to directly call the SCIP C library.
+ * Integration with the SCIP solver, calling its C library via Java's FFM API. Handles LP, QP, QCQP and their
+ * mixed-integer variants.
  *
- * @see <a href="https://www.scipopt.org">SCIP Optimization Suite</a>
+ * @see "https://www.scipopt.org"
  */
 public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
@@ -124,8 +121,8 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
     static final class Integration extends ExpressionsBasedModel.Integration<SolverSCIP> {
 
         /**
-         * Must be false. SCIP handles variable bounds natively, not as constraint rows, so adjusting them would
-         * mean rescaling the variables themselves.
+         * Must be false. SCIP handles variable bounds natively, not as constraint rows, so adjusting them
+         * would mean rescaling the variables themselves.
          */
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = true;
@@ -475,11 +472,11 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
     }
 
     /**
-     * The SCIP status translated, upgraded to {@link Optimisation.State#FEASIBLE} when SCIP stopped on a limit
-     * or an interrupt holding a solution. Those statuses translate to {@link Optimisation.State#APPROXIMATE},
-     * which ojAlgo does not count as feasible – so without this a MIP stopped by its time limit returned no
-     * solution at all, however good its incumbent. SCIP only keeps feasible solutions, so having a best one
-     * is enough.
+     * The SCIP status translated, upgraded to {@link Optimisation.State#FEASIBLE} when SCIP stopped on a
+     * limit or an interrupt holding a solution. Those statuses translate to
+     * {@link Optimisation.State#APPROXIMATE}, which ojAlgo does not count as feasible – so without this a MIP
+     * stopped by its time limit returned no solution at all, however good its incumbent. SCIP only keeps
+     * feasible solutions, so having a best one is enough.
      */
     private Optimisation.State currentState() {
 

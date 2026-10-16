@@ -68,26 +68,16 @@ final class NativeLoader {
 
             String brewPrefix = "aarch64".equals(osArch) || "arm64".equals(osArch) ? "/opt/homebrew" : "/usr/local";
 
-            searchPaths = new String[]{
-                    brewPrefix + "/opt/highs/lib/libhighs.dylib",
-                    brewPrefix + "/lib/libhighs.dylib",
-                    "/usr/local/lib/libhighs.dylib"
-            };
+            searchPaths = new String[] { brewPrefix + "/opt/highs/lib/libhighs.dylib", brewPrefix + "/lib/libhighs.dylib", "/usr/local/lib/libhighs.dylib" };
 
         } else if (osName.contains("linux")) {
 
-            searchPaths = new String[]{
-                    "/usr/lib/libhighs.so",
-                    "/usr/local/lib/libhighs.so",
-                    "/usr/lib/x86_64-linux-gnu/libhighs.so",
-                    "/usr/lib/aarch64-linux-gnu/libhighs.so"
-            };
+            searchPaths = new String[] { "/usr/lib/libhighs.so", "/usr/local/lib/libhighs.so", "/usr/lib/x86_64-linux-gnu/libhighs.so",
+                    "/usr/lib/aarch64-linux-gnu/libhighs.so" };
 
         } else if (osName.contains("windows")) {
 
-            searchPaths = new String[]{
-                    "C:\\Program Files\\HiGHS\\bin\\highs.dll"
-            };
+            searchPaths = new String[] { "C:\\Program Files\\HiGHS\\bin\\highs.dll" };
 
         } else {
             throw new UnsatisfiedLinkError("Unsupported operating system: " + osName);

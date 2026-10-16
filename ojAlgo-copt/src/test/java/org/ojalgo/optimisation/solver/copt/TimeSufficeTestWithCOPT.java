@@ -20,11 +20,11 @@ public class TimeSufficeTestWithCOPT extends TimeSufficeTest {
 
     /**
      * Market split: equality constraints on binary variables, with a right-hand side of half the coefficient
-     * sum. Infeasible, and hard enough to prove so that branch-and-bound is still working on it long after the
-     * test is done.
+     * sum. Infeasible, and hard enough to prove so that branch-and-bound is still working on it long after
+     * the test is done.
      * <p>
-     * With slack, the total deviation from the equalities is minimised instead. All zeros is then feasible, so
-     * there is an incumbent right away, but proving optimality is just as hard.
+     * With slack, the total deviation from the equalities is minimised instead. All zeros is then feasible,
+     * so there is an incumbent right away, but proving optimality is just as hard.
      */
     private static ExpressionsBasedModel newMarketSplit(final boolean slack) {
 

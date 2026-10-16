@@ -59,8 +59,9 @@ import ilog.cplex.IloCplex.IntParam;
 import ilog.cplex.IloCplex.Status;
 
 /**
- * SolverCPLEX
+ * Integration with IBM ILOG CPLEX. Handles LP, QP, QCQP and their mixed-integer variants.
  *
+ * @see "https://www.ibm.com/products/ilog-cplex-optimization-studio"
  * @author apete
  */
 public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
@@ -221,8 +222,8 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
          */
         private static final double CERTIFICATE_NOISE = 1E-9;
         /**
-         * Must be false. CPLEX handles variable bounds natively, not as constraint rows, so adjusting them would
-         * mean rescaling the variables themselves.
+         * Must be false. CPLEX handles variable bounds natively, not as constraint rows, so adjusting them
+         * would mean rescaling the variables themselves.
          */
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = false;
@@ -349,8 +350,9 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
         }
 
         /**
-         * An INFEASIBLE result with a Farkas proof gets the reduced gradient of the infeasibility certificate,
-         * see {@link ExpressionsBasedModel.Integration#toInfeasibilityCertificate(Optimisation.Result, ExpressionsBasedModel, double)}.
+         * An INFEASIBLE result with a Farkas proof gets the reduced gradient of the infeasibility
+         * certificate, see
+         * {@link ExpressionsBasedModel.Integration#toInfeasibilityCertificate(Optimisation.Result, ExpressionsBasedModel, double)}.
          */
         @Override
         public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
@@ -572,8 +574,7 @@ public final class SolverCPLEX implements Optimisation.Solver, UpdatableSolver {
                     reducedGradient[j] /= myObjectiveScale;
                 }
 
-                return Optimisation.Result.of(retValue, retState, retSolution)
-                        .withDualValues(myEntityMap.getConstraintsMetaData(), () -> ArrayR064.wrap(duals))
+                return Optimisation.Result.of(retValue, retState, retSolution).withDualValues(myEntityMap.getConstraintsMetaData(), () -> ArrayR064.wrap(duals))
                         .withReducedGradient(() -> ArrayR064.wrap(reducedGradient));
             }
 

@@ -33,15 +33,15 @@ import java.lang.invoke.MethodHandle;
  * FFM bindings for Google CP-SAT via OR-Tools' C API.
  * <p>
  * OR-Tools exports a small, protobuf-based C API for the CP-SAT solver from
- * {@code ortools/sat/c_api/cp_solver_c.h}. That translation unit is compiled straight into
- * {@code libortools} (see its {@code CMakeLists.txt}: "Will be merge in libortools.so") - there is no
- * SWIG/JNI layer and no full OR-Tools Java jar involved. A model is handed over as a serialized
- * {@code CpModelProto}, solved with a serialized {@code SatParameters}, and the solver hands back a
- * serialized {@code CpSolverResponse}: three flat byte buffers cross the native boundary, nothing else.
+ * {@code ortools/sat/c_api/cp_solver_c.h}. That translation unit is compiled straight into {@code libortools}
+ * (see its {@code CMakeLists.txt}: "Will be merge in libortools.so") - there is no SWIG/JNI layer and no full
+ * OR-Tools Java jar involved. A model is handed over as a serialized {@code CpModelProto}, solved with a
+ * serialized {@code SatParameters}, and the solver hands back a serialized {@code CpSolverResponse}: three
+ * flat byte buffers cross the native boundary, nothing else.
  * <p>
- * This class only deals with those bytes and the raw native entry points. Building the request messages
- * and parsing the response is {@link SolverCPSAT}'s job - it needs to know what the bytes mean, this class
- * does not.
+ * This class only deals with those bytes and the raw native entry points. Building the request messages and
+ * parsing the response is {@link SolverCPSAT}'s job - it needs to know what the bytes mean, this class does
+ * not.
  *
  * @see <a href="https://developers.google.com/optimization/cp/cp_solver">CP-SAT</a>
  * @see <a href=
@@ -97,15 +97,12 @@ final class CPSATBindings {
 
         // void SolveCpInterruptible(void* cenv, const void* creq, int creq_len, const void* cparams,
         //                           int cparams_len, void** cres, int* cres_len)
-        SOLVE_CP_INTERRUPTIBLE = CPSATBindings.downcallHandle("SolveCpInterruptible",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, // cenv
-                        ValueLayout.ADDRESS, ValueLayout.JAVA_INT, // creq, creq_len
-                        ValueLayout.ADDRESS, ValueLayout.JAVA_INT, // cparams, cparams_len
-                        ValueLayout.ADDRESS, ValueLayout.ADDRESS)); // cres, cres_len
+        SOLVE_CP_INTERRUPTIBLE = CPSATBindings.downcallHandle("SolveCpInterruptible", FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, // cenv
+                ValueLayout.ADDRESS, ValueLayout.JAVA_INT, // creq, creq_len
+                ValueLayout.ADDRESS, ValueLayout.JAVA_INT, // cparams, cparams_len
+                ValueLayout.ADDRESS, ValueLayout.ADDRESS)); // cres, cres_len
 
-        FREE = LINKER.defaultLookup().find("free")
-                .map(symbol -> LINKER.downcallHandle(symbol, FunctionDescriptor.ofVoid(ValueLayout.ADDRESS)))
-                .orElse(null);
+        FREE = LINKER.defaultLookup().find("free").map(symbol -> LINKER.downcallHandle(symbol, FunctionDescriptor.ofVoid(ValueLayout.ADDRESS))).orElse(null);
     }
 
     /**

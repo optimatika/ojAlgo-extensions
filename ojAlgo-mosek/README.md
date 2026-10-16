@@ -14,40 +14,17 @@ ojAlgo integration with [Mosek](https://www.mosek.com). Use Mosek as a solver fr
 
 ## Prerequisites
 
-1. **Mosek installed and licensed.** Download from [mosek.com](https://www.mosek.com/downloads/) and place a valid license file (`mosek.lic`) in `~/mosek/`.
+1. **The Mosek Java API JAR.** Mosek publishes `com.mosek:mosek` to Maven Central, so this is pulled automatically when you depend on `ojalgo-mosek`. The JAR bundles the native libraries for Linux (x86-64 and ARM64), Windows (x86-64) and macOS (ARM64), and loads them itself. No manual JAR or library path setup is needed.
 
-2. **The Mosek Java API JAR in your local Maven repository.** Mosek does not publish `mosek.jar` to Maven Central. Install it from your Mosek installation:
+2. **A Mosek license.** See [mosek.com](https://www.mosek.com/license/request/). Mosek looks for `mosek.lic` in `~/mosek/`, or wherever the `MOSEKLM_LICENSE_FILE` environment variable points.
 
-```bash
-mvn install:install-file \
-  -Dfile=/path/to/mosek/<ver>/tools/platform/<platform>/bin/mosek.jar \
-  -DgroupId=mosek -DartifactId=mosek \
-  -Dversion=11.0 -Dpackaging=jar
-```
+### Native access warning
 
-Adjust the file path and version to match your installation.
-
-3. **Native library on the library path.** When you run your program, the JVM must be able to find the Mosek native library. Pass the path to the platform-specific binary directory:
+On recent JDKs, loading the native library prints a warning about restricted methods. To silence it, add this JVM argument:
 
 ```
--Djava.library.path=/path/to/mosek/<ver>/tools/platform/<platform>/bin
+--enable-native-access=ALL-UNNAMED
 ```
-
-### Typical installation paths
-
-The Mosek installation contains a `<ver>/tools/platform/<platform>/bin/` directory with both the JAR and native libraries.
-
-| Platform | `<platform>` value |
-| --- | --- |
-| macOS (ARM) | `osxaarch64` |
-| macOS (x86) | `osx64x86` |
-| Linux (x86_64) | `linux64x86` |
-| Windows (x86_64) | `win64x86` |
-
-For example, on macOS ARM with Mosek 11.0 installed in `/opt/mosek`:
-
-- JAR: `/opt/mosek/11.0/tools/platform/osxaarch64/bin/mosek.jar`
-- Native library directory: `/opt/mosek/11.0/tools/platform/osxaarch64/bin/`
 
 ## Usage
 

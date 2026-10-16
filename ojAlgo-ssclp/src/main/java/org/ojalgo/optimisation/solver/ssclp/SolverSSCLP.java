@@ -44,13 +44,9 @@ import org.ssclab.pl.milp.Solution;
 import org.ssclab.pl.milp.SolutionType;
 
 /**
- * SSC-LP solver integration for ojAlgo.
- * <p>
- * SSC-LP is a pure-Java library for solving Linear Programming (LP) and Mixed-Integer Linear Programming
- * (MILP) problems. The implementation is based on the simplex method (LP) combined with branch-and-bound
- * (MILP).
+ * Integration with SSC-LP, a pure Java simplex and branch-and-bound solver. Handles LP and MIP.
  *
- * @see <a href="https://www.ssclab.org/en/esempi.html">SSC Software www.sscLab.org</a>
+ * @see "https://www.ssclab.org/en/index.html"
  */
 public final class SolverSSCLP implements Optimisation.Solver {
 
@@ -105,8 +101,8 @@ public final class SolverSSCLP implements Optimisation.Solver {
     static final class Integration extends ExpressionsBasedModel.Integration<SolverSSCLP> {
 
         /**
-         * Must be false. SSC-LP handles variable bounds natively, not as constraint rows, so adjusting them would
-         * mean rescaling the variables themselves.
+         * Must be false. SSC-LP handles variable bounds natively, not as constraint rows, so adjusting them
+         * would mean rescaling the variables themselves.
          */
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = true;

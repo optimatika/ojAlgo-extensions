@@ -9,32 +9,16 @@
     <artifactId>ojalgo-mosek</artifactId>
     <name>ojAlgo-mosek</name>
     <description>ojAlgo and Mosek integration</description>
-    <version>3.4.0-SNAPSHOT</version>
+    <version>4.0.0-SNAPSHOT</version>
     <properties>
         <java.version>17</java.version>
-        <!-- You have to change this! -->
-        <path.native.mosek>/Applications/mosek/11.2/tools/platform/osxaarch64/bin</path.native.mosek>
     </properties>
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/com.mosek/mosek -->
         <dependency>
-            <groupId>mosek</groupId>
+            <groupId>com.mosek</groupId>
             <artifactId>mosek</artifactId>
-            <version>11.2.4</version>
-            <scope>provided</scope>
+            <version>11.2.6</version>
         </dependency>
     </dependencies>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <argLine>-Djava.library.path=${path.native.mosek}</argLine>
-                    <environmentVariables>
-                        <LD_LIBRARY_PATH>${path.native.mosek}</LD_LIBRARY_PATH>
-                    </environmentVariables>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>

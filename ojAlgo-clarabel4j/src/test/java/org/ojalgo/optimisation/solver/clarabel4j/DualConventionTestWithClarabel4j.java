@@ -8,8 +8,8 @@ import org.ojalgo.type.context.NumberContext;
 import org.ojalgo.type.keyvalue.KeyValue;
 
 /**
- * An interior point method: the solution and its certificates are approximate, and a certificate need not
- * be the minimal one.
+ * An interior point method: the solution and its certificates are approximate, and a certificate need not be
+ * the minimal one.
  */
 public class DualConventionTestWithClarabel4j extends DualConventionTest {
 

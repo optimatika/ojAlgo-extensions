@@ -30,8 +30,8 @@ import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 
 /**
- * JOptimizer takes quadratic constraints as convex functions, fi(x) <= 0. These cases cover what is
- * specific to this integration, and so not in the shared {@link org.ojalgo.optimisation.convex.TestBasicQCQP}:
+ * JOptimizer takes quadratic constraints as convex functions, fi(x) <= 0. These cases cover what is specific
+ * to this integration, and so not in the shared {@link org.ojalgo.optimisation.convex.TestBasicQCQP}:
  * quadratic constraints that are linear once some variables are fixed, and the non-convex shapes that have to
  * be rejected rather than quietly dropped or (mis)solved.
  */

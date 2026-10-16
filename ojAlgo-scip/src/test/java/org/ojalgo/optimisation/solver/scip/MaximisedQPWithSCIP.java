@@ -8,15 +8,15 @@ import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 
 /**
- * SCIP has no direct entry point for a quadratic objective, so it is passed via an auxiliary variable
- * pinned to x'Qx by a quadratic constraint. Getting the sign of that reformulation wrong is only visible
- * when maximising - the shared {@link org.ojalgo.optimisation.convex.TestBasicQP} cases all minimise - so
- * the maximisation cases are covered here.
+ * SCIP has no direct entry point for a quadratic objective, so it is passed via an auxiliary variable pinned
+ * to x'Qx by a quadratic constraint. Getting the sign of that reformulation wrong is only visible when
+ * maximising - the shared {@link org.ojalgo.optimisation.convex.TestBasicQP} cases all minimise - so the
+ * maximisation cases are covered here.
  * <p>
  * Note the two accuracy levels. The objective value is accurate, but the solution vector is not: at a
- * quadratic optimum the objective is flat, so SCIP's default feasibility tolerance (numerics/feastol,
- * 1E-6) admits roughly 1E-3 of error in x. That is inherent to the reformulation, not a tolerance that
- * could simply be tightened, and it is why the shared TestBasicQP suite is not run against SCIP.
+ * quadratic optimum the objective is flat, so SCIP's default feasibility tolerance (numerics/feastol, 1E-6)
+ * admits roughly 1E-3 of error in x. That is inherent to the reformulation, not a tolerance that could simply
+ * be tightened, and it is why the shared TestBasicQP suite is not run against SCIP.
  */
 public class MaximisedQPWithSCIP {
 
@@ -77,8 +77,8 @@ public class MaximisedQPWithSCIP {
     }
 
     /**
-     * A maximised quadratic with an integer variable - the sign error was reachable through MIQP too.
-     * max -x² + 5x with x integer in [0,10] => x = 2 or 3, objective = 6
+     * A maximised quadratic with an integer variable - the sign error was reachable through MIQP too. max -x²
+     * + 5x with x integer in [0,10] => x = 2 or 3, objective = 6
      */
     @Test
     public void testMaximiseIntegerQuadratic() {

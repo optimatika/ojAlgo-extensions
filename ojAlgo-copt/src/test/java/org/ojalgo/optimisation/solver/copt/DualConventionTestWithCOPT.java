@@ -7,8 +7,8 @@ import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.type.keyvalue.KeyValue;
 
 /**
- * COPT's Farkas ray need not be an extreme ray: called directly, without presolve, it returned a combination of
- * the infeasible problem's three extreme rays.
+ * COPT's Farkas ray need not be an extreme ray: called directly, without presolve, it returned a combination
+ * of the infeasible problem's three extreme rays.
  */
 public class DualConventionTestWithCOPT extends DualConventionTest {
 

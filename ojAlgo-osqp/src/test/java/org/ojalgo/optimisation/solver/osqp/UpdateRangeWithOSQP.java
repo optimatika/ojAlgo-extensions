@@ -28,8 +28,8 @@ public class UpdateRangeWithOSQP {
      * reported dual values must follow – without changing those of a result already returned. A variable
      * without bounds has no bound row, and then the update is refused.
      * <p>
-     * Minimising (x^2 + y^2 + z^2) / 2 - 800x - 800y subject to x + y <= 1500, x, y >= 0 and z free gives x = y
-     * = 750. Adding the upper bound x <= 200 gives x = 200 with bound multiplier 600, and y = 800.
+     * Minimising (x^2 + y^2 + z^2) / 2 - 800x - 800y subject to x + y <= 1500, x, y >= 0 and z free gives x =
+     * y = 750. Adding the upper bound x <= 200 gives x = 200 with bound multiplier 600, and y = 800.
      */
     @Test
     public void testUpdateRangeChangesBoundType() {

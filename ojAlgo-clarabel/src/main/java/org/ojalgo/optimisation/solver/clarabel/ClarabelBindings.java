@@ -58,37 +58,19 @@ final class ClarabelBindings {
     static final int CONE_GEN_POWER = 5;
 
     // Struct: ClarabelCscMatrix_f64 { uintptr_t m, n; uintptr_t* colptr; uintptr_t* rowval; double* nzval }
-    static final GroupLayout CSC_MATRIX_LAYOUT = MemoryLayout.structLayout(
-            ValueLayout.JAVA_LONG.withName("m"),
-            ValueLayout.JAVA_LONG.withName("n"),
-            ValueLayout.ADDRESS.withName("colptr"),
-            ValueLayout.ADDRESS.withName("rowval"),
-            ValueLayout.ADDRESS.withName("nzval"));
+    static final GroupLayout CSC_MATRIX_LAYOUT = MemoryLayout.structLayout(ValueLayout.JAVA_LONG.withName("m"), ValueLayout.JAVA_LONG.withName("n"),
+            ValueLayout.ADDRESS.withName("colptr"), ValueLayout.ADDRESS.withName("rowval"), ValueLayout.ADDRESS.withName("nzval"));
 
     // Struct: ClarabelSupportedConeT_f64 { int tag; padding(4); union { long dim; double power; struct{ptr,long,long} } }
-    static final GroupLayout CONE_LAYOUT = MemoryLayout.structLayout(
-            ValueLayout.JAVA_INT.withName("tag"),
-            MemoryLayout.paddingLayout(4),
-            ValueLayout.JAVA_LONG.withName("dim_or_data_0"),
-            ValueLayout.JAVA_LONG.withName("data_1"),
-            ValueLayout.JAVA_LONG.withName("data_2"));
+    static final GroupLayout CONE_LAYOUT = MemoryLayout.structLayout(ValueLayout.JAVA_INT.withName("tag"), MemoryLayout.paddingLayout(4),
+            ValueLayout.JAVA_LONG.withName("dim_or_data_0"), ValueLayout.JAVA_LONG.withName("data_1"), ValueLayout.JAVA_LONG.withName("data_2"));
 
     // Struct: ClarabelDefaultSolution_f64
-    static final GroupLayout SOLUTION_LAYOUT = MemoryLayout.structLayout(
-            ValueLayout.ADDRESS.withName("x"),
-            ValueLayout.JAVA_LONG.withName("x_length"),
-            ValueLayout.ADDRESS.withName("z"),
-            ValueLayout.JAVA_LONG.withName("z_length"),
-            ValueLayout.ADDRESS.withName("s"),
-            ValueLayout.JAVA_LONG.withName("s_length"),
-            ValueLayout.JAVA_INT.withName("status"),
-            MemoryLayout.paddingLayout(4),
-            ValueLayout.JAVA_DOUBLE.withName("obj_val"),
-            ValueLayout.JAVA_DOUBLE.withName("obj_val_dual"),
-            ValueLayout.JAVA_DOUBLE.withName("solve_time"),
-            ValueLayout.JAVA_INT.withName("iterations"),
-            MemoryLayout.paddingLayout(4),
-            ValueLayout.JAVA_DOUBLE.withName("r_prim"),
+    static final GroupLayout SOLUTION_LAYOUT = MemoryLayout.structLayout(ValueLayout.ADDRESS.withName("x"), ValueLayout.JAVA_LONG.withName("x_length"),
+            ValueLayout.ADDRESS.withName("z"), ValueLayout.JAVA_LONG.withName("z_length"), ValueLayout.ADDRESS.withName("s"),
+            ValueLayout.JAVA_LONG.withName("s_length"), ValueLayout.JAVA_INT.withName("status"), MemoryLayout.paddingLayout(4),
+            ValueLayout.JAVA_DOUBLE.withName("obj_val"), ValueLayout.JAVA_DOUBLE.withName("obj_val_dual"), ValueLayout.JAVA_DOUBLE.withName("solve_time"),
+            ValueLayout.JAVA_INT.withName("iterations"), MemoryLayout.paddingLayout(4), ValueLayout.JAVA_DOUBLE.withName("r_prim"),
             ValueLayout.JAVA_DOUBLE.withName("r_dual"));
 
     private static final VarHandle SOL_X = SOLUTION_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("x"));
@@ -100,57 +82,29 @@ final class ClarabelBindings {
 
     // Settings struct layout - we only need it to pass to the default constructor and tweak a few fields
     // The full layout matches ClarabelDefaultSettings_f64 from the C header
-    static final GroupLayout SETTINGS_LAYOUT = MemoryLayout.structLayout(
-            ValueLayout.JAVA_INT.withName("max_iter"),
-            MemoryLayout.paddingLayout(4),
-            ValueLayout.JAVA_DOUBLE.withName("time_limit"),
-            ValueLayout.JAVA_BOOLEAN.withName("verbose"),
-            MemoryLayout.paddingLayout(7),
-            ValueLayout.JAVA_DOUBLE.withName("max_step_fraction"),
-            ValueLayout.JAVA_DOUBLE.withName("tol_gap_abs"),
-            ValueLayout.JAVA_DOUBLE.withName("tol_gap_rel"),
-            ValueLayout.JAVA_DOUBLE.withName("tol_feas"),
-            ValueLayout.JAVA_DOUBLE.withName("tol_infeas_abs"),
-            ValueLayout.JAVA_DOUBLE.withName("tol_infeas_rel"),
-            ValueLayout.JAVA_DOUBLE.withName("tol_ktratio"),
-            ValueLayout.JAVA_DOUBLE.withName("reduced_tol_gap_abs"),
-            ValueLayout.JAVA_DOUBLE.withName("reduced_tol_gap_rel"),
-            ValueLayout.JAVA_DOUBLE.withName("reduced_tol_feas"),
-            ValueLayout.JAVA_DOUBLE.withName("reduced_tol_infeas_abs"),
-            ValueLayout.JAVA_DOUBLE.withName("reduced_tol_infeas_rel"),
-            ValueLayout.JAVA_DOUBLE.withName("reduced_tol_ktratio"),
-            ValueLayout.JAVA_BOOLEAN.withName("equilibrate_enable"),
-            MemoryLayout.paddingLayout(3),
-            ValueLayout.JAVA_INT.withName("equilibrate_max_iter"),
-            ValueLayout.JAVA_DOUBLE.withName("equilibrate_min_scaling"),
-            ValueLayout.JAVA_DOUBLE.withName("equilibrate_max_scaling"),
-            ValueLayout.JAVA_DOUBLE.withName("linesearch_backtrack_step"),
-            ValueLayout.JAVA_DOUBLE.withName("min_switch_step_length"),
-            ValueLayout.JAVA_DOUBLE.withName("min_terminate_step_length"),
-            ValueLayout.JAVA_INT.withName("max_threads"),
-            ValueLayout.JAVA_BOOLEAN.withName("direct_kkt_solver"),
-            MemoryLayout.paddingLayout(3),
-            ValueLayout.JAVA_INT.withName("direct_solve_method"),
-            ValueLayout.JAVA_BOOLEAN.withName("static_regularization_enable"),
-            MemoryLayout.paddingLayout(3),
-            ValueLayout.JAVA_DOUBLE.withName("static_regularization_constant"),
-            ValueLayout.JAVA_DOUBLE.withName("static_regularization_proportional"),
-            ValueLayout.JAVA_BOOLEAN.withName("dynamic_regularization_enable"),
-            MemoryLayout.paddingLayout(7),
-            ValueLayout.JAVA_DOUBLE.withName("dynamic_regularization_eps"),
-            ValueLayout.JAVA_DOUBLE.withName("dynamic_regularization_delta"),
-            ValueLayout.JAVA_BOOLEAN.withName("iterative_refinement_enable"),
-            MemoryLayout.paddingLayout(7),
-            ValueLayout.JAVA_DOUBLE.withName("iterative_refinement_reltol"),
-            ValueLayout.JAVA_DOUBLE.withName("iterative_refinement_abstol"),
-            ValueLayout.JAVA_INT.withName("iterative_refinement_max_iter"),
-            MemoryLayout.paddingLayout(4),
-            ValueLayout.JAVA_DOUBLE.withName("iterative_refinement_stop_ratio"),
-            ValueLayout.JAVA_BOOLEAN.withName("presolve_enable"),
-            MemoryLayout.paddingLayout(3),
-            MemoryLayout.sequenceLayout(64, ValueLayout.JAVA_INT).withName("pardiso_iparm"),
-            ValueLayout.JAVA_BOOLEAN.withName("pardiso_verbose"),
-            MemoryLayout.paddingLayout(3));
+    static final GroupLayout SETTINGS_LAYOUT = MemoryLayout.structLayout(ValueLayout.JAVA_INT.withName("max_iter"), MemoryLayout.paddingLayout(4),
+            ValueLayout.JAVA_DOUBLE.withName("time_limit"), ValueLayout.JAVA_BOOLEAN.withName("verbose"), MemoryLayout.paddingLayout(7),
+            ValueLayout.JAVA_DOUBLE.withName("max_step_fraction"), ValueLayout.JAVA_DOUBLE.withName("tol_gap_abs"),
+            ValueLayout.JAVA_DOUBLE.withName("tol_gap_rel"), ValueLayout.JAVA_DOUBLE.withName("tol_feas"), ValueLayout.JAVA_DOUBLE.withName("tol_infeas_abs"),
+            ValueLayout.JAVA_DOUBLE.withName("tol_infeas_rel"), ValueLayout.JAVA_DOUBLE.withName("tol_ktratio"),
+            ValueLayout.JAVA_DOUBLE.withName("reduced_tol_gap_abs"), ValueLayout.JAVA_DOUBLE.withName("reduced_tol_gap_rel"),
+            ValueLayout.JAVA_DOUBLE.withName("reduced_tol_feas"), ValueLayout.JAVA_DOUBLE.withName("reduced_tol_infeas_abs"),
+            ValueLayout.JAVA_DOUBLE.withName("reduced_tol_infeas_rel"), ValueLayout.JAVA_DOUBLE.withName("reduced_tol_ktratio"),
+            ValueLayout.JAVA_BOOLEAN.withName("equilibrate_enable"), MemoryLayout.paddingLayout(3), ValueLayout.JAVA_INT.withName("equilibrate_max_iter"),
+            ValueLayout.JAVA_DOUBLE.withName("equilibrate_min_scaling"), ValueLayout.JAVA_DOUBLE.withName("equilibrate_max_scaling"),
+            ValueLayout.JAVA_DOUBLE.withName("linesearch_backtrack_step"), ValueLayout.JAVA_DOUBLE.withName("min_switch_step_length"),
+            ValueLayout.JAVA_DOUBLE.withName("min_terminate_step_length"), ValueLayout.JAVA_INT.withName("max_threads"),
+            ValueLayout.JAVA_BOOLEAN.withName("direct_kkt_solver"), MemoryLayout.paddingLayout(3), ValueLayout.JAVA_INT.withName("direct_solve_method"),
+            ValueLayout.JAVA_BOOLEAN.withName("static_regularization_enable"), MemoryLayout.paddingLayout(3),
+            ValueLayout.JAVA_DOUBLE.withName("static_regularization_constant"), ValueLayout.JAVA_DOUBLE.withName("static_regularization_proportional"),
+            ValueLayout.JAVA_BOOLEAN.withName("dynamic_regularization_enable"), MemoryLayout.paddingLayout(7),
+            ValueLayout.JAVA_DOUBLE.withName("dynamic_regularization_eps"), ValueLayout.JAVA_DOUBLE.withName("dynamic_regularization_delta"),
+            ValueLayout.JAVA_BOOLEAN.withName("iterative_refinement_enable"), MemoryLayout.paddingLayout(7),
+            ValueLayout.JAVA_DOUBLE.withName("iterative_refinement_reltol"), ValueLayout.JAVA_DOUBLE.withName("iterative_refinement_abstol"),
+            ValueLayout.JAVA_INT.withName("iterative_refinement_max_iter"), MemoryLayout.paddingLayout(4),
+            ValueLayout.JAVA_DOUBLE.withName("iterative_refinement_stop_ratio"), ValueLayout.JAVA_BOOLEAN.withName("presolve_enable"),
+            MemoryLayout.paddingLayout(3), MemoryLayout.sequenceLayout(64, ValueLayout.JAVA_INT).withName("pardiso_iparm"),
+            ValueLayout.JAVA_BOOLEAN.withName("pardiso_verbose"), MemoryLayout.paddingLayout(3));
 
     private static final VarHandle SETTINGS_MAX_ITER = SETTINGS_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("max_iter"));
     private static final VarHandle SETTINGS_TIME_LIMIT = SETTINGS_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("time_limit"));
@@ -173,8 +127,8 @@ final class ClarabelBindings {
     private static final MethodHandle SOLVER_FREE;
     private static final MethodHandle SOLVER_SET_TERMINATION_CALLBACK;
     /**
-     * {@code int (*ClarabelCallbackFcn_f64)(ClarabelDefaultInfo_f64* info, void* userdata)} – anything but zero
-     * stops the solve.
+     * {@code int (*ClarabelCallbackFcn_f64)(ClarabelDefaultInfo_f64* info, void* userdata)} – anything but
+     * zero stops the solve.
      */
     private static final FunctionDescriptor CALLBACK_DESCRIPTOR = FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS);
     private static final MethodHandle CALLBACK_TARGET;
@@ -190,25 +144,19 @@ final class ClarabelBindings {
             throw new ExceptionInInitializerError(cause);
         }
 
-        CSC_MATRIX_INIT = ClarabelBindings.downcallHandle("clarabel_CscMatrix_f64_init", FunctionDescriptor.ofVoid(
-                ValueLayout.ADDRESS, ValueLayout.JAVA_LONG, ValueLayout.JAVA_LONG,
-                ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+        CSC_MATRIX_INIT = ClarabelBindings.downcallHandle("clarabel_CscMatrix_f64_init", FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.JAVA_LONG,
+                ValueLayout.JAVA_LONG, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
 
-        DEFAULT_SETTINGS = ClarabelBindings.downcallHandle("clarabel_DefaultSettings_f64_default",
-                FunctionDescriptor.of(SETTINGS_LAYOUT));
+        DEFAULT_SETTINGS = ClarabelBindings.downcallHandle("clarabel_DefaultSettings_f64_default", FunctionDescriptor.of(SETTINGS_LAYOUT));
 
-        SOLVER_NEW = ClarabelBindings.downcallHandle("clarabel_DefaultSolver_f64_new", FunctionDescriptor.of(ValueLayout.ADDRESS,
-                ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
-                ValueLayout.JAVA_LONG, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+        SOLVER_NEW = ClarabelBindings.downcallHandle("clarabel_DefaultSolver_f64_new", FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS,
+                ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_LONG, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
 
-        SOLVER_SOLVE = ClarabelBindings.downcallHandle("clarabel_DefaultSolver_f64_solve",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
+        SOLVER_SOLVE = ClarabelBindings.downcallHandle("clarabel_DefaultSolver_f64_solve", FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
 
-        SOLVER_SOLUTION = ClarabelBindings.downcallHandle("clarabel_DefaultSolver_f64_solution",
-                FunctionDescriptor.of(SOLUTION_LAYOUT, ValueLayout.ADDRESS));
+        SOLVER_SOLUTION = ClarabelBindings.downcallHandle("clarabel_DefaultSolver_f64_solution", FunctionDescriptor.of(SOLUTION_LAYOUT, ValueLayout.ADDRESS));
 
-        SOLVER_FREE = ClarabelBindings.downcallHandle("clarabel_DefaultSolver_f64_free",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
+        SOLVER_FREE = ClarabelBindings.downcallHandle("clarabel_DefaultSolver_f64_free", FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
 
         // void clarabel_DefaultSolver_f64_set_termination_callback(ClarabelDefaultSolver_f64* solver,
         //     ClarabelCallbackFcn_f64 callback, void* userdata)
@@ -222,16 +170,16 @@ final class ClarabelBindings {
     }
 
     /**
-     * As {@link #downcallHandle(String, FunctionDescriptor)}, but null rather than an error when the symbol is
-     * missing – for functions that older Clarabel builds do not have.
+     * As {@link #downcallHandle(String, FunctionDescriptor)}, but null rather than an error when the symbol
+     * is missing – for functions that older Clarabel builds do not have.
      */
     private static MethodHandle downcallHandleOptional(final String name, final FunctionDescriptor descriptor) {
         return LOOKUP.find(name).map(symbol -> LINKER.downcallHandle(symbol, descriptor)).orElse(null);
     }
 
     /**
-     * What Clarabel calls once per iteration. Must not throw: an exception crossing back into native code takes
-     * the process down, so anything unexpected is logged and treated as "carry on".
+     * What Clarabel calls once per iteration. Must not throw: an exception crossing back into native code
+     * takes the process down, so anything unexpected is logged and treated as "carry on".
      */
     private static int onIteration(final BooleanSupplier stopWanted, final MemorySegment info, final MemorySegment userdata) {
 
@@ -251,8 +199,8 @@ final class ClarabelBindings {
     }
 
     /**
-     * Hands Clarabel a function to call once per iteration, which stops the solve whenever
-     * {@code stopWanted} says so.
+     * Hands Clarabel a function to call once per iteration, which stops the solve whenever {@code stopWanted}
+     * says so.
      * <p>
      * The returned stub is allocated in an automatic arena and must stay reachable for as long as the solver
      * may call it – so the caller has to keep it.
@@ -270,8 +218,8 @@ final class ClarabelBindings {
         return callback;
     }
 
-    static void cscMatrixInit(final MemorySegment ptr, final long m, final long n,
-            final MemorySegment colptr, final MemorySegment rowval, final MemorySegment nzval) {
+    static void cscMatrixInit(final MemorySegment ptr, final long m, final long n, final MemorySegment colptr, final MemorySegment rowval,
+            final MemorySegment nzval) {
         try {
             CSC_MATRIX_INIT.invokeExact(ptr, m, n, colptr, rowval, nzval);
         } catch (Throwable t) {
@@ -287,9 +235,8 @@ final class ClarabelBindings {
         }
     }
 
-    static MemorySegment solverNew(final MemorySegment P, final MemorySegment q,
-            final MemorySegment A, final MemorySegment b,
-            final long nCones, final MemorySegment cones, final MemorySegment settings) {
+    static MemorySegment solverNew(final MemorySegment P, final MemorySegment q, final MemorySegment A, final MemorySegment b, final long nCones,
+            final MemorySegment cones, final MemorySegment settings) {
         try {
             return (MemorySegment) SOLVER_NEW.invokeExact(P, q, A, b, nCones, cones, settings);
         } catch (Throwable t) {

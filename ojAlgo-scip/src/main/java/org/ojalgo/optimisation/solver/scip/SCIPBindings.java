@@ -34,9 +34,8 @@ import org.ojalgo.optimisation.Optimisation;
 /**
  * FFM bindings for the SCIP C API.
  * <p>
- * This class provides Java bindings to the SCIP native library using the Foreign Function & Memory API
- * (FFM). All native function calls are accessed via {@link MethodHandle} instances obtained from the native
- * linker.
+ * This class provides Java bindings to the SCIP native library using the Foreign Function & Memory API (FFM).
+ * All native function calls are accessed via {@link MethodHandle} instances obtained from the native linker.
  *
  * @see <a href="https://www.scipopt.org/doc/html/">SCIP documentation</a>
  */

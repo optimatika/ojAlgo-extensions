@@ -10,8 +10,8 @@ import org.ojalgo.type.keyvalue.KeyValue;
 public class OptimalityCertificateTestWithMosek extends OptimalityCertificateTest {
 
     /**
-     * MOSEK solves QPs with its interior point optimiser. At a degenerate optimum that gets within about 1e-4 of
-     * the solution, and the dual values are then accurate to about 1e-6.
+     * MOSEK solves QPs with its interior point optimiser. At a degenerate optimum that gets within about 1e-4
+     * of the solution, and the dual values are then accurate to about 1e-6.
      */
     @Override
     protected NumberContext getAccuracy() {

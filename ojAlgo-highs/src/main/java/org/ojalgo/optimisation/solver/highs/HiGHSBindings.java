@@ -113,8 +113,8 @@ final class HiGHSBindings {
     static final int HESSIAN_FORMAT_SQUARE = 2;
 
     /**
-     * {@code HighsCallbackType} values, of which only the ones that can stop a solve are of interest here. One
-     * per algorithm, because which of them runs depends on the model.
+     * {@code HighsCallbackType} values, of which only the ones that can stop a solve are of interest here.
+     * One per algorithm, because which of them runs depends on the model.
      */
     static final int CALLBACK_SIMPLEX_INTERRUPT = 1;
     static final int CALLBACK_IPM_INTERRUPT = 2;
@@ -167,9 +167,8 @@ final class HiGHSBindings {
         LOOKUP = NativeLoader.load();
 
         try {
-            CALLBACK_TARGET = MethodHandles.lookup().findStatic(HiGHSBindings.class, "onCallback",
-                    MethodType.methodType(void.class, BooleanSupplier.class, int.class, MemorySegment.class, MemorySegment.class, MemorySegment.class,
-                            MemorySegment.class));
+            CALLBACK_TARGET = MethodHandles.lookup().findStatic(HiGHSBindings.class, "onCallback", MethodType.methodType(void.class, BooleanSupplier.class,
+                    int.class, MemorySegment.class, MemorySegment.class, MemorySegment.class, MemorySegment.class));
         } catch (NoSuchMethodException | IllegalAccessException cause) {
             throw new ExceptionInInitializerError(cause);
         }
@@ -269,10 +268,9 @@ final class HiGHSBindings {
                         ValueLayout.ADDRESS)); // value (const char*)
 
         // HighsInt Highs_setCallback(void* highs, HighsCCallbackType user_callback, void* user_callback_data)
-        HIGHS_SET_CALLBACK = HiGHSBindings.downcallHandleOptional("Highs_setCallback",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
-                        ValueLayout.ADDRESS, // user_callback
-                        ValueLayout.ADDRESS)); // user_callback_data
+        HIGHS_SET_CALLBACK = HiGHSBindings.downcallHandleOptional("Highs_setCallback", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
+                ValueLayout.ADDRESS, // user_callback
+                ValueLayout.ADDRESS)); // user_callback_data
 
         // HighsInt Highs_startCallback(void* highs, const HighsInt callback_type)
         HIGHS_START_CALLBACK = HiGHSBindings.downcallHandleOptional("Highs_startCallback",
@@ -311,8 +309,8 @@ final class HiGHSBindings {
     }
 
     /**
-     * As {@link #downcallHandle(String, FunctionDescriptor)}, but null rather than an error when the symbol is
-     * missing – for functions that older HiGHS builds do not have.
+     * As {@link #downcallHandle(String, FunctionDescriptor)}, but null rather than an error when the symbol
+     * is missing – for functions that older HiGHS builds do not have.
      */
     private static MethodHandle downcallHandleOptional(final String name, final FunctionDescriptor descriptor) {
 
@@ -350,8 +348,8 @@ final class HiGHSBindings {
      * {@code user_interrupt}, whenever {@code stopWanted} says so.
      * <p>
      * The stub is allocated in an automatic arena, so it stays valid as long as the caller keeps the returned
-     * segment reachable – and no longer. HiGHS may call it from a thread of its own, which is why the arena is
-     * not a confined one.
+     * segment reachable – and no longer. HiGHS may call it from a thread of its own, which is why the arena
+     * is not a confined one.
      */
     static MemorySegment newInterruptCallback(final BooleanSupplier stopWanted) {
         return LINKER.upcallStub(CALLBACK_TARGET.bindTo(stopWanted), CALLBACK_DESCRIPTOR, Arena.ofAuto());
@@ -620,9 +618,9 @@ final class HiGHSBindings {
     }
 
     /**
-     * HiGHS's own word on whether it holds a primal feasible solution: {@link #SOLUTION_STATUS_FEASIBLE} when it
-     * does. The model status alone does not say – a solve stopped by a time, iteration or solution limit, or
-     * by an interrupt, reports the limit whether or not an incumbent was found before it.
+     * HiGHS's own word on whether it holds a primal feasible solution: {@link #SOLUTION_STATUS_FEASIBLE} when
+     * it does. The model status alone does not say – a solve stopped by a time, iteration or solution limit,
+     * or by an interrupt, reports the limit whether or not an incumbent was found before it.
      * <p>
      * Returns {@link #SOLUTION_STATUS_NONE} if HiGHS cannot answer.
      */

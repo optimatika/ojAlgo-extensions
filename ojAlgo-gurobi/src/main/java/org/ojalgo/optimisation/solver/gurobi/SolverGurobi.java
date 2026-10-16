@@ -56,8 +56,9 @@ import com.gurobi.gurobi.GRBQuadExpr;
 import com.gurobi.gurobi.GRBVar;
 
 /**
- * https://docs.gurobi.com/projects/optimizer/en/current/reference/java/env.html#java-method-GRBEnv-start
+ * Integration with Gurobi. Handles LP, QP, QCQP and their mixed-integer variants.
  *
+ * @see "https://www.gurobi.com"
  * @author apete
  */
 public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver {
@@ -66,9 +67,9 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
 
         /**
          * Configure the environment. It is cached, and shared by all models built with the same
-         * {@link Integration}, so this is only for settings that are the same for all of them. Each model gets
-         * its own copy of the environment's parameters when it is created – settings specific to a model go in
-         * {@link #configure(GRBModel, Optimisation.Options)}.
+         * {@link Integration}, so this is only for settings that are the same for all of them. Each model
+         * gets its own copy of the environment's parameters when it is created – settings specific to a model
+         * go in {@link #configure(GRBModel, Optimisation.Options)}.
          */
         protected void configure(final GRBEnv environment, final Optimisation.Options options) {
             try {
@@ -663,12 +664,12 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
     }
 
     /**
-     * Should Gurobi only conclude that the model is infeasible or unbounded, it is optimised again without dual
-     * reductions to find out which.
+     * Should Gurobi only conclude that the model is infeasible or unbounded, it is optimised again without
+     * dual reductions to find out which.
      * <p>
-     * Asked for dual values with quadratic constraints (QCPDual), Gurobi refuses to solve a non-convex model. It
-     * is then optimised again without them - Gurobi solves non-convex models to global optimality, but has no
-     * dual values for them anyway.
+     * Asked for dual values with quadratic constraints (QCPDual), Gurobi refuses to solve a non-convex model.
+     * It is then optimised again without them - Gurobi solves non-convex models to global optimality, but has
+     * no dual values for them anyway.
      * <p>
      * Interrupting the solving thread reaches Gurobi through {@link GRBModel#terminate()}.
      */
@@ -716,9 +717,9 @@ public final class SolverGurobi implements Optimisation.Solver, UpdatableSolver 
     }
 
     /**
-     * A feasible solution to start from is Gurobi's MIP start. Anything else, such as what ojAlgo derives from
-     * the variables' values when no solution is supplied, is not passed on - Gurobi would spend time trying to
-     * repair it. Ignored for continuous models.
+     * A feasible solution to start from is Gurobi's MIP start. Anything else, such as what ojAlgo derives
+     * from the variables' values when no solution is supplied, is not passed on - Gurobi would spend time
+     * trying to repair it. Ignored for continuous models.
      */
     private void setStart(final Result kickStarter, final GRBVar[] variables) throws GRBException {
 

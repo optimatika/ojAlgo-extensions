@@ -55,14 +55,10 @@ import org.ojalgo.type.FloatingPointReceptacle;
 import org.ojalgo.type.keyvalue.EntryPair;
 
 /**
- * Clarabel solver integration for ojAlgo using Panama FFI.
- * <p>
- * Clarabel is an interior-point solver for convex conic programs. This integration calls the Clarabel C
- * library directly via the Foreign Function & Memory API, and covers LP, QP and (convex) QCQP - the
- * latter by translating quadratic constraints into second-order cones. Clarabel's semidefinite cones are not
- * used.
+ * Integration with the Clarabel interior-point solver, calling its C library via Java's FFM API. Handles
+ * convex LP, QP and QCQP.
  *
- * @see <a href="https://github.com/oxfordcontrol/Clarabel.rs">Clarabel.rs</a>
+ * @see "https://clarabel.org"
  */
 public final class SolverClarabel implements Optimisation.Solver {
 
@@ -116,7 +112,8 @@ public final class SolverClarabel implements Optimisation.Solver {
     static final class Integration extends ExpressionsBasedModel.Integration<SolverClarabel> {
 
         /**
-         * Variable bounds are rows of A, with coefficient 1 (or the variable's adjustment factor if adjusted).
+         * Variable bounds are rows of A, with coefficient 1 (or the variable's adjustment factor if
+         * adjusted).
          */
         private static final boolean ADJUSTED_BOUNDS = false;
         /**
@@ -420,8 +417,8 @@ public final class SolverClarabel implements Optimisation.Solver {
      * Model a quadratic constraint x'Qx + c'x <= bound as a second-order cone.
      * <p>
      * With Q factorised as M'M (so x'Qx = ||Mx||²) and t = bound - c'x, the constraint ||Mx||² <= t is
-     * equivalent to ||(2Mx, t-1)||₂ <= t+1. Clarabel expects s = b - Ax in the cone, with s₁ >=
-     * ||s₂..||, which gives these rows:
+     * equivalent to ||(2Mx, t-1)||₂ <= t+1. Clarabel expects s = b - Ax in the cone, with s₁ >= ||s₂..||,
+     * which gives these rows:
      * <ol>
      * <li>s₁ = (bound + 1) - c'x
      * <li>s₂ = (bound - 1) - c'x
@@ -671,39 +668,44 @@ public final class SolverClarabel implements Optimisation.Solver {
     static boolean isIterate(final int status) {
         return switch (status) {
             case ClarabelBindings.STATUS_SOLVED, ClarabelBindings.STATUS_ALMOST_SOLVED, ClarabelBindings.STATUS_MAX_ITERATIONS,
-                    ClarabelBindings.STATUS_MAX_TIME, ClarabelBindings.STATUS_CALLBACK_TERMINATED -> true;
-            default -> false;
+                    ClarabelBindings.STATUS_MAX_TIME,
+                    ClarabelBindings.STATUS_CALLBACK_TERMINATED                                                                                                                                               ->
+                true;
+            default                                                                                                                                                                                           ->
+                false;
         };
     }
 
     static Optimisation.State translate(final int status) {
         return switch (status) {
-            case ClarabelBindings.STATUS_SOLVED                                                                                                                                                       ->
+            case ClarabelBindings.STATUS_SOLVED                                                                                                                               ->
                 Optimisation.State.OPTIMAL;
             case ClarabelBindings.STATUS_ALMOST_SOLVED, ClarabelBindings.STATUS_MAX_ITERATIONS, ClarabelBindings.STATUS_MAX_TIME,
-                    ClarabelBindings.STATUS_CALLBACK_TERMINATED                                                                                                                                       ->
+                    ClarabelBindings.STATUS_CALLBACK_TERMINATED                                                                                                               ->
                 Optimisation.State.APPROXIMATE;
-            case ClarabelBindings.STATUS_PRIMAL_INFEASIBLE, ClarabelBindings.STATUS_ALMOST_PRIMAL_INFEASIBLE                                                                                          ->
+            case ClarabelBindings.STATUS_PRIMAL_INFEASIBLE,
+                    ClarabelBindings.STATUS_ALMOST_PRIMAL_INFEASIBLE                                                                                                          ->
                 Optimisation.State.INFEASIBLE;
-            case ClarabelBindings.STATUS_DUAL_INFEASIBLE, ClarabelBindings.STATUS_ALMOST_DUAL_INFEASIBLE                                                                                              ->
+            case ClarabelBindings.STATUS_DUAL_INFEASIBLE,
+                    ClarabelBindings.STATUS_ALMOST_DUAL_INFEASIBLE                                                                                                            ->
                 Optimisation.State.UNBOUNDED;
-            case ClarabelBindings.STATUS_UNSOLVED                                                                                                                                                     ->
+            case ClarabelBindings.STATUS_UNSOLVED                                                                                                                             ->
                 Optimisation.State.UNEXPLORED;
-            default                                                                                                                                                                                   ->
+            default                                                                                                                                                           ->
                 Optimisation.State.FAILED;
         };
     }
 
     private final Arena myArena;
     /**
-     * For each variable, the coefficient of its bound rows: the variable's adjustment factor if the bounds are
-     * adjusted, or else 1.
+     * For each variable, the coefficient of its bound rows: the variable's adjustment factor if the bounds
+     * are adjusted, or else 1.
      */
     private final double[] myBoundScales;
     private final ConstraintsMetaData myConstraintsMetaData;
     /**
-     * For each dual value (entry in {@link #myConstraintsMetaData}): the first of Clarabel's dual variables, and
-     * the number of them to sum.
+     * For each dual value (entry in {@link #myConstraintsMetaData}): the first of Clarabel's dual variables,
+     * and the number of them to sum.
      */
     private final int[][] myDualRows;
     /**
@@ -799,8 +801,7 @@ public final class SolverClarabel implements Optimisation.Solver {
 
             double[] certificate = this.computeDuals(SolverClarabel.getZ(solution));
 
-            return Optimisation.Result.of(state, new double[myNumberOfVariables]).withDualValues(myConstraintsMetaData,
-                    () -> ArrayR064.wrap(certificate));
+            return Optimisation.Result.of(state, new double[myNumberOfVariables]).withDualValues(myConstraintsMetaData, () -> ArrayR064.wrap(certificate));
         }
 
         if (state == Optimisation.State.UNBOUNDED) {

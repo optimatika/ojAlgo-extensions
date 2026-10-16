@@ -15,8 +15,8 @@ import org.ojalgo.optimisation.integer.TestBasicMIP;
 public class TestBasicMIPWithCPSAT extends TestBasicMIP {
 
     /**
-     * CP-SAT only works with integer coefficients/bounds internally, so non-integer constraint and
-     * objective coefficients must be scaled up to integers before being handed to the native solver (see
+     * CP-SAT only works with integer coefficients/bounds internally, so non-integer constraint and objective
+     * coefficients must be scaled up to integers before being handed to the native solver (see
      * {@link SolverCPSAT#buildModelProtoBytes}), and the objective value scaled back down again on the way
      * out. None of the shared {@link TestBasicMIP} cases exercise that path (all their coefficients are
      * already integers), so this covers it directly.
@@ -50,8 +50,8 @@ public class TestBasicMIPWithCPSAT extends TestBasicMIP {
 
     /**
      * A trivially infeasible model (x + y must be both >= 1 and <= 0 with x, y binary) - checks that
-     * {@link CPSATBindings#STATUS_INFEASIBLE} is correctly translated to {@link State#INFEASIBLE} rather
-     * than being mistaken for some other terminal state.
+     * {@link CPSATBindings#STATUS_INFEASIBLE} is correctly translated to {@link State#INFEASIBLE} rather than
+     * being mistaken for some other terminal state.
      */
     @Test
     public void testInfeasible() {

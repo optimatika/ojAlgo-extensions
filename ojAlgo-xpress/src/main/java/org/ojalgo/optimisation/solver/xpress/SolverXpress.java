@@ -51,9 +51,10 @@ import com.dashoptimization.XPRSconstants;
 import com.dashoptimization.XPRSprob;
 
 /**
- * FICO Xpress Optimizer integration, built on the {@link XPRSprob} matrix API ({@code com.dashoptimization}
- * package).
+ * Integration with FICO Xpress, via its {@link XPRSprob} API. Handles LP, QP and their mixed-integer variants
+ * (no quadratic constraints).
  *
+ * @see "https://www.fico.com/en/products/fico-xpress-optimization"
  * @author apete
  */
 public final class SolverXpress implements Optimisation.Solver, UpdatableSolver {
@@ -111,8 +112,8 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
          */
         private static final double CERTIFICATE_NOISE = 1E-9;
         /**
-         * Must be false. Xpress handles variable bounds natively, not as constraint rows, so adjusting them would
-         * mean rescaling the variables themselves.
+         * Must be false. Xpress handles variable bounds natively, not as constraint rows, so adjusting them
+         * would mean rescaling the variables themselves.
          */
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = false;
@@ -308,7 +309,8 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
         }
 
         /**
-         * An INFEASIBLE result with a dual ray gets the reduced gradient of the infeasibility certificate, see
+         * An INFEASIBLE result with a dual ray gets the reduced gradient of the infeasibility certificate,
+         * see
          * {@link ExpressionsBasedModel.Integration#toInfeasibilityCertificate(Optimisation.Result, ExpressionsBasedModel, double)}.
          */
         @Override
@@ -609,8 +611,9 @@ public final class SolverXpress implements Optimisation.Solver, UpdatableSolver 
                         reducedGradient[j] /= myObjectiveScale;
                     }
 
-                    return new Result(retState, retValue, ArrayR064.wrap(retSolution)).withDualValues(myEntityMap.getConstraintsMetaData(),
-                            () -> ArrayR064.wrap(duals)).withReducedGradient(() -> ArrayR064.wrap(reducedGradient));
+                    return new Result(retState, retValue, ArrayR064.wrap(retSolution))
+                            .withDualValues(myEntityMap.getConstraintsMetaData(), () -> ArrayR064.wrap(duals))
+                            .withReducedGradient(() -> ArrayR064.wrap(reducedGradient));
                 }
             }
 

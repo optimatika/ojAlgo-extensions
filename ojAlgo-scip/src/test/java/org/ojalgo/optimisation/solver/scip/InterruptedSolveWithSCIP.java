@@ -22,8 +22,8 @@ import org.ojalgo.optimisation.Variable;
 public class InterruptedSolveWithSCIP {
 
     /**
-     * How long the solver gets to react to the interrupt. Generous - what is being tested is that it reacts at
-     * all. Should it not, the test fails here rather than running until the solver's own time limit.
+     * How long the solver gets to react to the interrupt. Generous - what is being tested is that it reacts
+     * at all. Should it not, the test fails here rather than running until the solver's own time limit.
      */
     private static final long TIMEOUT_MILLIS = 30_000L;
 

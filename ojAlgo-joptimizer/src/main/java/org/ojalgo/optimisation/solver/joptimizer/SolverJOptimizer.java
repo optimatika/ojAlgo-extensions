@@ -68,6 +68,9 @@ import com.joptimizer.optimizers.OptimizationResponse;
 import cern.colt.matrix.impl.DenseDoubleMatrix1D;
 import cern.colt.matrix.impl.DenseDoubleMatrix2D;
 
+/**
+ * Integration with JOptimizer, a pure Java interior-point solver. Handles convex LP, QP and QCQP.
+ */
 public final class SolverJOptimizer implements Optimisation.Solver {
 
     public static class Configurator {
@@ -321,8 +324,8 @@ public final class SolverJOptimizer implements Optimisation.Solver {
 
                 /*
                  * The initial point is strictly inside the variable bounds. (Without one JOptimizer starts
-                 * its phase I, finding a strictly feasible point, at the origin.) If it is strictly
-                 * feasible, phase I is skipped.
+                 * its phase I, finding a strictly feasible point, at the origin.) If it is strictly feasible,
+                 * phase I is skipped.
                  */
                 double[] initial = new double[nbVars];
 

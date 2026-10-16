@@ -48,13 +48,10 @@ import org.ojalgo.type.context.NumberContext;
 import org.ojalgo.type.keyvalue.EntryPair;
 
 /**
- * HiGHS solver integration for ojAlgo.
- * <p>
- * HiGHS is a high-performance open-source solver for linear programming (LP), mixed-integer programming
- * (MIP), and quadratic programming (QP). This integration uses Java's Foreign Function & Memory API (FFM)
- * to directly call the HiGHS C library.
+ * Integration with the HiGHS solver, calling its C library via Java's FFM API. Handles LP, MIP and QP (no
+ * quadratic constraints and no MIQP).
  *
- * @see <a href="https://highs.dev">HiGHS</a>
+ * @see "https://highs.dev"
  */
 public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
@@ -327,7 +324,8 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
                 Optional<NumberContext> gap = model.options.getConfiguredGapTolerance();
                 if (gap.isPresent()) {
                     HiGHSBindings.setDoubleOptionValue(highs, HiGHSBindings.allocateString(arena, "mip_rel_gap"), gap.get().getRelativeError());
-                    HiGHSBindings.setDoubleOptionValue(highs, HiGHSBindings.allocateString(arena, "mip_abs_gap"), gap.get().getAbsoluteError() * objectiveScale);
+                    HiGHSBindings.setDoubleOptionValue(highs, HiGHSBindings.allocateString(arena, "mip_abs_gap"),
+                            gap.get().getAbsoluteError() * objectiveScale);
                 }
 
                 MemorySegment colCostSeg = HiGHSBindings.allocateDoubleArray(arena, colCost);
@@ -399,7 +397,8 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         }
 
         /**
-         * An INFEASIBLE result with a dual ray gets the reduced gradient of the infeasibility certificate, see
+         * An INFEASIBLE result with a dual ray gets the reduced gradient of the infeasibility certificate,
+         * see
          * {@link ExpressionsBasedModel.Integration#toInfeasibilityCertificate(Optimisation.Result, ExpressionsBasedModel, double)}.
          */
         @Override
@@ -614,8 +613,8 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
             double[] rowDualSnapshot = myRowDual;
 
-            return Optimisation.Result.of(objectiveValue, state, solution).withReducedGradient(reducedGradient)
-                    .withDualValues(myConstraintsMetaData, () -> ArrayR064.wrap(rowDualSnapshot));
+            return Optimisation.Result.of(objectiveValue, state, solution).withReducedGradient(reducedGradient).withDualValues(myConstraintsMetaData,
+                    () -> ArrayR064.wrap(rowDualSnapshot));
 
         } else {
 

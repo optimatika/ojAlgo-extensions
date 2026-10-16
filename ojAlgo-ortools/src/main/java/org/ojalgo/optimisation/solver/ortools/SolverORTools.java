@@ -46,11 +46,9 @@ import com.google.ortools.modelbuilder.ModelSolverHelper;
 import com.google.ortools.modelbuilder.SolveStatus;
 
 /**
- * OR-Tools is a suite of operations research tools developed by Google. It includes solvers for linear
- * programming (LP), mixed-integer programming (MIP), and other operations research problems.
- * <p>
- * This solver integration is based on the {@link ModelBuilder} API. More specifically the
- * {@link ModelBuilderHelper} and {@link ModelSolverHelper} classes are used.
+ * Integration with Google OR-Tools, via its {@link ModelBuilder} API. Handles LP and MIP.
+ *
+ * @see "https://developers.google.com/optimization"
  */
 public final class SolverORTools implements Optimisation.Solver, UpdatableSolver {
 

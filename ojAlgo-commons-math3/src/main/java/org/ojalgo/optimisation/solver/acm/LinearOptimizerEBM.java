@@ -57,17 +57,17 @@ public final class LinearOptimizerEBM extends LinearOptimizer {
         if (Math.abs(limit) < LIMIT_CUT_OFF) {
             BigDecimal convertedLimit = LinearOptimizerEBM.convert(limit);
             switch (constrType) {
-            case GEQ:
-                entity.lower(convertedLimit);
-                break;
-            case LEQ:
-                entity.upper(convertedLimit);
-                break;
-            case EQ:
-                entity.level(convertedLimit);
-                break;
-            default:
-                break;
+                case GEQ:
+                    entity.lower(convertedLimit);
+                    break;
+                case LEQ:
+                    entity.upper(convertedLimit);
+                    break;
+                case EQ:
+                    entity.level(convertedLimit);
+                    break;
+                default:
+                    break;
             }
         }
     }

@@ -48,24 +48,10 @@ import org.ojalgo.type.context.NumberContext;
 import org.ojalgo.type.keyvalue.EntryPair;
 
 /**
- * OSQP solver integration for ojAlgo.
- * <p>
- * OSQP (Operator Splitting Quadratic Program solver) is an ADMM-based solver for convex QPs of the form
+ * Integration with the OSQP (ADMM-based) solver, calling its C library via Java's FFM API. Handles convex QP
+ * with linear constraints.
  *
- * <pre>{@code
- * minimize    0.5 x'Px + q'x
- * subject to  l <= Ax <= u
- * }</pre>
- *
- * There are no integer variables, and - since {@code P} only appears in the objective - no quadratic
- * constraints (QCQP) either. This integration uses Java's Foreign Function & Memory API (FFM) to call the
- * OSQP (v1.0) C library directly.
- * <p>
- * OSQP has no notion of variable bounds; every row of {@code A} is either a translated model constraint or a
- * variable bound (a single-coefficient row, one per variable with limits), appended after the model
- * constraints.
- *
- * @see <a href="https://osqp.org">OSQP</a>
+ * @see "https://osqp.org"
  */
 public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
 
@@ -278,8 +264,8 @@ public final class SolverOSQP implements Optimisation.Solver, UpdatableSolver {
         }
 
         /**
-         * OSQP's dual solution is that of a minimisation, signed as for two-sided rows, converted to the model's
-         * dual values with
+         * OSQP's dual solution is that of a minimisation, signed as for two-sided rows, converted to the
+         * model's dual values with
          * {@link ExpressionsBasedModel.Integration#toModelDuals(Optimisation.Result, ExpressionsBasedModel, Optimisation.Sense)}.
          * A primal infeasible problem has a certificate, see
          * {@link ExpressionsBasedModel.Integration#toInfeasibilityCertificate(Optimisation.Result, ExpressionsBasedModel, double)}.

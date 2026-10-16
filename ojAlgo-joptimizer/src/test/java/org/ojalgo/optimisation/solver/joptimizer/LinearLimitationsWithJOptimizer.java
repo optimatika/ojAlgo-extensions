@@ -70,8 +70,8 @@ public class LinearLimitationsWithJOptimizer {
     }
 
     /**
-     * Feasible, but only beyond the box: min x, x >= 200000 (as a constraint). Within the box it's
-     * infeasible - that must not be reported as INFEASIBLE.
+     * Feasible, but only beyond the box: min x, x >= 200000 (as a constraint). Within the box it's infeasible
+     * - that must not be reported as INFEASIBLE.
      */
     @Test
     public void testInfeasibleWithinBoxIsNotInfeasible() {
@@ -101,8 +101,8 @@ public class LinearLimitationsWithJOptimizer {
     }
 
     /**
-     * Without any artificial box limits, infeasible is still reported as such: x + y >= 10 and
-     * x + y <= 5 with 0 <= x, y <= 100.
+     * Without any artificial box limits, infeasible is still reported as such: x + y >= 10 and x + y <= 5
+     * with 0 <= x, y <= 100.
      */
     @Test
     public void testInfeasible() {

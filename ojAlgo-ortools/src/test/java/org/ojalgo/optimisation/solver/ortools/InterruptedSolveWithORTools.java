@@ -17,17 +17,18 @@ import org.ojalgo.optimisation.Variable;
  * has already given up on.
  * <p>
  * How far that gets is not up to this integration. OR-Tools takes the request – a watch turns the interrupt
- * into {@code InterruptSolve} – and passes it to whichever backend is solving, which may or may not act on it.
- * Measured with OR-Tools 9.15 on the model below: {@link SolverORTools.InternalSolver#SAT} stops within
- * milliseconds, while {@link SolverORTools.InternalSolver#SCIP} and {@link SolverORTools.InternalSolver#HIGHS}
- * were still solving twenty seconds later. So this asserts the mechanism on the backend that honours it, and
- * ojAlgo's own SCIP and HiGHS integrations – which do stop – are the ones to reach for when that matters.
+ * into {@code InterruptSolve} – and passes it to whichever backend is solving, which may or may not act on
+ * it. Measured with OR-Tools 9.15 on the model below: {@link SolverORTools.InternalSolver#SAT} stops within
+ * milliseconds, while {@link SolverORTools.InternalSolver#SCIP} and
+ * {@link SolverORTools.InternalSolver#HIGHS} were still solving twenty seconds later. So this asserts the
+ * mechanism on the backend that honours it, and ojAlgo's own SCIP and HiGHS integrations – which do stop –
+ * are the ones to reach for when that matters.
  */
 public class InterruptedSolveWithORTools {
 
     /**
-     * How long the solver gets to react to the interrupt. Generous - what is being tested is that it reacts at
-     * all. Should it not, the test fails here rather than running until the solver's own time limit.
+     * How long the solver gets to react to the interrupt. Generous - what is being tested is that it reacts
+     * at all. Should it not, the test fails here rather than running until the solver's own time limit.
      */
     private static final long TIMEOUT_MILLIS = 30_000L;
 

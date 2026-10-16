@@ -47,10 +47,7 @@ import org.ojalgo.structure.Access1D;
 import org.ojalgo.structure.Structure1D.IntIndex;
 
 /**
- * Use Apache's {@link SimplexSolver} from ojAlgo's {@link ExpressionsBasedModel}.
- * <P>
- * Just call {@link ExpressionsBasedModel#addIntegration(ExpressionsBasedModel.Integration)} with
- * {@link SolverACM#INTEGRATION} as the argument.
+ * Integration with the Apache Commons Math {@link SimplexSolver}. Handles LP.
  *
  * @author apete
  */
@@ -67,7 +64,8 @@ public final class SolverACM implements Optimisation.Solver {
     static final class Integration extends ExpressionsBasedModel.Integration<SolverACM> {
 
         /**
-         * Variable bounds are constraints, with coefficient 1 (or the variable's adjustment factor if adjusted).
+         * Variable bounds are constraints, with coefficient 1 (or the variable's adjustment factor if
+         * adjusted).
          */
         private static final boolean ADJUSTED_BOUNDS = false;
         private static final boolean ADJUSTED_CONSTRAINTS = true;

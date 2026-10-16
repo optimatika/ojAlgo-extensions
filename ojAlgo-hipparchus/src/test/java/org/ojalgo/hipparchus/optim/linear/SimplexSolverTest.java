@@ -59,25 +59,25 @@ public class SimplexSolverTest {
             }
 
             switch (c.getRelationship()) {
-            case EQ:
-                if (!Precision.equals(result, c.getValue(), epsilon)) {
-                    return false;
-                }
-                break;
+                case EQ:
+                    if (!Precision.equals(result, c.getValue(), epsilon)) {
+                        return false;
+                    }
+                    break;
 
-            case GEQ:
-                if (Precision.compareTo(result, c.getValue(), epsilon) < 0) {
-                    return false;
-                }
-                break;
+                case GEQ:
+                    if (Precision.compareTo(result, c.getValue(), epsilon) < 0) {
+                        return false;
+                    }
+                    break;
 
-            case LEQ:
-                if (Precision.compareTo(result, c.getValue(), epsilon) > 0) {
-                    return false;
-                }
-                break;
-            default:
-                TestUtils.fail();
+                case LEQ:
+                    if (Precision.compareTo(result, c.getValue(), epsilon) > 0) {
+                        return false;
+                    }
+                    break;
+                default:
+                    TestUtils.fail();
             }
         }
 

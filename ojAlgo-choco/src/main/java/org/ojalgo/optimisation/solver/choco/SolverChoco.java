@@ -45,18 +45,10 @@ import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.structure.Structure1D.IntIndex;
 
 /**
- * Choco-solver is a constraint programming (CP) solver. Integer variables are modelled as {@link IntVar} and
- * continuous variables as {@link RealVar}. Constraints use {@code double} coefficients via the mixed
- * {@link org.chocosolver.solver.constraints.real.PropScalarMixed} propagator.
- * <p>
- * The objective is modelled as an {@link IntVar} (since
- * {@link org.chocosolver.solver.search.IResolutionHelper#findOptimalSolution(IntVar, boolean, org.chocosolver.util.criteria.Criterion...)}
- * requires discrete search), bounded by the min/max the weighted sum of the decision variables' domains can
- * attain, constrained to equal that weighted sum (scaled so that it is integral when possible), and then
- * optimized. This means the objective is optimized to that integer resolution &ndash; a limitation of Choco's
- * optimization API. The objective function value reported is that of the solution found.
- * <p>
- * Quadratic expressions are not supported.
+ * Integration with the Choco constraint programming solver. Handles linear models with integer variables. The
+ * objective is optimised at integer resolution.
+ *
+ * @see "https://choco-solver.org"
  */
 public final class SolverChoco implements Optimisation.Solver {
 
@@ -303,8 +295,7 @@ public final class SolverChoco implements Optimisation.Solver {
 
     static final double REAL_ARTIFICIAL_BOUND = 1.0E15;
 
-    static void addConstraint(final org.chocosolver.solver.Model delegate, final Expression mConstr, final Variable[] delegateVars,
-            final boolean[] isIntVar) {
+    static void addConstraint(final org.chocosolver.solver.Model delegate, final Expression mConstr, final Variable[] delegateVars, final boolean[] isIntVar) {
 
         Set<IntIndex> keys = mConstr.getLinearKeySet();
         int nbTerms = keys.size();

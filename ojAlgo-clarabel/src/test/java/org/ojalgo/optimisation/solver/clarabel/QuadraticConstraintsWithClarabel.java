@@ -8,8 +8,8 @@ import org.ojalgo.optimisation.Variable;
 
 /**
  * Quadratic constraints are modelled as second-order cones. The convex shapes are covered by the shared
- * {@link org.ojalgo.optimisation.convex.TestBasicQCQP}. These cases cover the non-convex shapes that have to be
- * rejected rather than quietly dropped.
+ * {@link org.ojalgo.optimisation.convex.TestBasicQCQP}. These cases cover the non-convex shapes that have to
+ * be rejected rather than quietly dropped.
  */
 public class QuadraticConstraintsWithClarabel {
 

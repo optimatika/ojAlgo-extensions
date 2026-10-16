@@ -59,25 +59,16 @@ final class NativeLoader {
 
             String brewPrefix = "aarch64".equals(osArch) || "arm64".equals(osArch) ? "/opt/homebrew" : "/usr/local";
 
-            searchPaths = new String[]{
-                    brewPrefix + "/lib/libosqp.dylib",
-                    "/usr/local/lib/libosqp.dylib"
-            };
+            searchPaths = new String[] { brewPrefix + "/lib/libosqp.dylib", "/usr/local/lib/libosqp.dylib" };
 
         } else if (osName.contains("linux")) {
 
-            searchPaths = new String[]{
-                    "/usr/lib/libosqp.so",
-                    "/usr/local/lib/libosqp.so",
-                    "/usr/lib/x86_64-linux-gnu/libosqp.so",
-                    "/usr/lib/aarch64-linux-gnu/libosqp.so"
-            };
+            searchPaths = new String[] { "/usr/lib/libosqp.so", "/usr/local/lib/libosqp.so", "/usr/lib/x86_64-linux-gnu/libosqp.so",
+                    "/usr/lib/aarch64-linux-gnu/libosqp.so" };
 
         } else if (osName.contains("windows")) {
 
-            searchPaths = new String[]{
-                    "C:\\Program Files\\osqp\\bin\\osqp.dll"
-            };
+            searchPaths = new String[] { "C:\\Program Files\\osqp\\bin\\osqp.dll" };
 
         } else {
             throw new UnsatisfiedLinkError("Unsupported operating system: " + osName);

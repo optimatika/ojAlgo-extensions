@@ -37,11 +37,11 @@ import java.lang.invoke.VarHandle;
  * FFM bindings for the OSQP (v1.0) C API.
  * <p>
  * OSQP's struct layouts are not opaque (unlike e.g. HiGHS's {@code void*} handle), so this class defines
- * {@link MemoryLayout}s that mirror {@code osqp_api_types.h} exactly. Those layouts were verified against
- * the compiled library on this machine with a small {@code offsetof}/{@code sizeof} probe (OSQP built with
- * its default configuration: {@code OSQP_USE_LONG} on - so {@code OSQPInt} is a 64-bit {@code long long} -
- * {@code OSQP_USE_FLOAT} off - so {@code OSQPFloat} is a {@code double} - and {@code OSQP_PACK_SETTINGS}
- * off, i.e. the settings struct uses ordinary, padded, C alignment).
+ * {@link MemoryLayout}s that mirror {@code osqp_api_types.h} exactly. Those layouts were verified against the
+ * compiled library on this machine with a small {@code offsetof}/{@code sizeof} probe (OSQP built with its
+ * default configuration: {@code OSQP_USE_LONG} on - so {@code OSQPInt} is a 64-bit {@code long long} -
+ * {@code OSQP_USE_FLOAT} off - so {@code OSQPFloat} is a {@code double} - and {@code OSQP_PACK_SETTINGS} off,
+ * i.e. the settings struct uses ordinary, padded, C alignment).
  * <p>
  * The {@code OSQPCscMatrix} and {@code OSQPSettings} structs are allocated directly out of a caller-supplied
  * {@link Arena} and populated from Java (rather than via the {@code OSQPCscMatrix_new}/
@@ -66,96 +66,53 @@ final class OSQPBindings {
     static final long OSQP_UNSOLVED = 11L;
 
     /**
-     * OSQP's own sentinel for "unbounded" ({@code OSQP_INFTY} in osqp_api_constants.h). Every unbounded
-     * bound entry (constraint or variable) must be clamped to +/- this value before being handed to OSQP -
-     * passing real IEEE-754 infinities instead was confirmed (empirically, against the real library) to
-     * break the internal scaling badly enough that the solver stalls at the iteration limit instead of
-     * converging.
+     * OSQP's own sentinel for "unbounded" ({@code OSQP_INFTY} in osqp_api_constants.h). Every unbounded bound
+     * entry (constraint or variable) must be clamped to +/- this value before being handed to OSQP - passing
+     * real IEEE-754 infinities instead was confirmed (empirically, against the real library) to break the
+     * internal scaling badly enough that the solver stalls at the iteration limit instead of converging.
      */
     static final double OSQP_INFTY = 1.0e30;
 
     // Struct: OSQPCscMatrix { OSQPInt m, n; OSQPInt* p; OSQPInt* i; OSQPFloat* x; OSQPInt nzmax, nz, owned; }
     // (osqp_api_types.h) - 8 naturally-aligned 8-byte members, so no padding is needed.
-    private static final GroupLayout CSC_MATRIX_LAYOUT = MemoryLayout.structLayout(
-            ValueLayout.JAVA_LONG.withName("m"),
-            ValueLayout.JAVA_LONG.withName("n"),
-            ValueLayout.ADDRESS.withName("p"),
-            ValueLayout.ADDRESS.withName("i"),
-            ValueLayout.ADDRESS.withName("x"),
-            ValueLayout.JAVA_LONG.withName("nzmax"),
-            ValueLayout.JAVA_LONG.withName("nz"),
-            ValueLayout.JAVA_LONG.withName("owned"));
+    private static final GroupLayout CSC_MATRIX_LAYOUT = MemoryLayout.structLayout(ValueLayout.JAVA_LONG.withName("m"), ValueLayout.JAVA_LONG.withName("n"),
+            ValueLayout.ADDRESS.withName("p"), ValueLayout.ADDRESS.withName("i"), ValueLayout.ADDRESS.withName("x"), ValueLayout.JAVA_LONG.withName("nzmax"),
+            ValueLayout.JAVA_LONG.withName("nz"), ValueLayout.JAVA_LONG.withName("owned"));
 
     // Struct: OSQPSettings (osqp_api_types.h). OSQP_PACK_SETTINGS is off in a standard build, so this is
     // the natural (padded) C layout: the two enum members (4 bytes each) are each followed by 4 bytes of
     // padding to keep the following OSQPInt/OSQPFloat (8 bytes) aligned.
-    private static final GroupLayout SETTINGS_LAYOUT = MemoryLayout.structLayout(
-            ValueLayout.JAVA_LONG.withName("device"),
-            ValueLayout.JAVA_INT.withName("linsys_solver"), MemoryLayout.paddingLayout(4),
-            ValueLayout.JAVA_LONG.withName("allocate_solution"),
-            ValueLayout.JAVA_LONG.withName("verbose"),
-            ValueLayout.JAVA_LONG.withName("profiler_level"),
-            ValueLayout.JAVA_LONG.withName("warm_starting"),
-            ValueLayout.JAVA_LONG.withName("scaling"),
-            ValueLayout.JAVA_LONG.withName("polishing"),
-            ValueLayout.JAVA_DOUBLE.withName("rho"),
-            ValueLayout.JAVA_LONG.withName("rho_is_vec"),
-            ValueLayout.JAVA_DOUBLE.withName("sigma"),
-            ValueLayout.JAVA_DOUBLE.withName("alpha"),
-            ValueLayout.JAVA_LONG.withName("cg_max_iter"),
-            ValueLayout.JAVA_LONG.withName("cg_tol_reduction"),
-            ValueLayout.JAVA_DOUBLE.withName("cg_tol_fraction"),
-            ValueLayout.JAVA_INT.withName("cg_precond"), MemoryLayout.paddingLayout(4),
-            ValueLayout.JAVA_LONG.withName("adaptive_rho"),
-            ValueLayout.JAVA_LONG.withName("adaptive_rho_interval"),
-            ValueLayout.JAVA_DOUBLE.withName("adaptive_rho_fraction"),
-            ValueLayout.JAVA_DOUBLE.withName("adaptive_rho_tolerance"),
-            ValueLayout.JAVA_LONG.withName("max_iter"),
-            ValueLayout.JAVA_DOUBLE.withName("eps_abs"),
-            ValueLayout.JAVA_DOUBLE.withName("eps_rel"),
-            ValueLayout.JAVA_DOUBLE.withName("eps_prim_inf"),
-            ValueLayout.JAVA_DOUBLE.withName("eps_dual_inf"),
-            ValueLayout.JAVA_LONG.withName("scaled_termination"),
-            ValueLayout.JAVA_LONG.withName("check_termination"),
-            ValueLayout.JAVA_LONG.withName("check_dualgap"),
-            ValueLayout.JAVA_DOUBLE.withName("time_limit"),
-            ValueLayout.JAVA_DOUBLE.withName("delta"),
+    private static final GroupLayout SETTINGS_LAYOUT = MemoryLayout.structLayout(ValueLayout.JAVA_LONG.withName("device"),
+            ValueLayout.JAVA_INT.withName("linsys_solver"), MemoryLayout.paddingLayout(4), ValueLayout.JAVA_LONG.withName("allocate_solution"),
+            ValueLayout.JAVA_LONG.withName("verbose"), ValueLayout.JAVA_LONG.withName("profiler_level"), ValueLayout.JAVA_LONG.withName("warm_starting"),
+            ValueLayout.JAVA_LONG.withName("scaling"), ValueLayout.JAVA_LONG.withName("polishing"), ValueLayout.JAVA_DOUBLE.withName("rho"),
+            ValueLayout.JAVA_LONG.withName("rho_is_vec"), ValueLayout.JAVA_DOUBLE.withName("sigma"), ValueLayout.JAVA_DOUBLE.withName("alpha"),
+            ValueLayout.JAVA_LONG.withName("cg_max_iter"), ValueLayout.JAVA_LONG.withName("cg_tol_reduction"),
+            ValueLayout.JAVA_DOUBLE.withName("cg_tol_fraction"), ValueLayout.JAVA_INT.withName("cg_precond"), MemoryLayout.paddingLayout(4),
+            ValueLayout.JAVA_LONG.withName("adaptive_rho"), ValueLayout.JAVA_LONG.withName("adaptive_rho_interval"),
+            ValueLayout.JAVA_DOUBLE.withName("adaptive_rho_fraction"), ValueLayout.JAVA_DOUBLE.withName("adaptive_rho_tolerance"),
+            ValueLayout.JAVA_LONG.withName("max_iter"), ValueLayout.JAVA_DOUBLE.withName("eps_abs"), ValueLayout.JAVA_DOUBLE.withName("eps_rel"),
+            ValueLayout.JAVA_DOUBLE.withName("eps_prim_inf"), ValueLayout.JAVA_DOUBLE.withName("eps_dual_inf"),
+            ValueLayout.JAVA_LONG.withName("scaled_termination"), ValueLayout.JAVA_LONG.withName("check_termination"),
+            ValueLayout.JAVA_LONG.withName("check_dualgap"), ValueLayout.JAVA_DOUBLE.withName("time_limit"), ValueLayout.JAVA_DOUBLE.withName("delta"),
             ValueLayout.JAVA_LONG.withName("polish_refine_iter"));
 
     // Struct: OSQPInfo (osqp_api_types.h)
-    private static final GroupLayout INFO_LAYOUT = MemoryLayout.structLayout(
-            MemoryLayout.sequenceLayout(32, ValueLayout.JAVA_BYTE).withName("status"),
-            ValueLayout.JAVA_LONG.withName("status_val"),
-            ValueLayout.JAVA_LONG.withName("status_polish"),
-            ValueLayout.JAVA_DOUBLE.withName("obj_val"),
-            ValueLayout.JAVA_DOUBLE.withName("dual_obj_val"),
-            ValueLayout.JAVA_DOUBLE.withName("prim_res"),
-            ValueLayout.JAVA_DOUBLE.withName("dual_res"),
-            ValueLayout.JAVA_DOUBLE.withName("duality_gap"),
-            ValueLayout.JAVA_LONG.withName("iter"),
-            ValueLayout.JAVA_LONG.withName("rho_updates"),
-            ValueLayout.JAVA_DOUBLE.withName("rho_estimate"),
-            ValueLayout.JAVA_DOUBLE.withName("setup_time"),
-            ValueLayout.JAVA_DOUBLE.withName("solve_time"),
-            ValueLayout.JAVA_DOUBLE.withName("update_time"),
-            ValueLayout.JAVA_DOUBLE.withName("polish_time"),
-            ValueLayout.JAVA_DOUBLE.withName("run_time"),
-            ValueLayout.JAVA_DOUBLE.withName("primdual_int"),
-            ValueLayout.JAVA_DOUBLE.withName("rel_kkt_error"));
+    private static final GroupLayout INFO_LAYOUT = MemoryLayout.structLayout(MemoryLayout.sequenceLayout(32, ValueLayout.JAVA_BYTE).withName("status"),
+            ValueLayout.JAVA_LONG.withName("status_val"), ValueLayout.JAVA_LONG.withName("status_polish"), ValueLayout.JAVA_DOUBLE.withName("obj_val"),
+            ValueLayout.JAVA_DOUBLE.withName("dual_obj_val"), ValueLayout.JAVA_DOUBLE.withName("prim_res"), ValueLayout.JAVA_DOUBLE.withName("dual_res"),
+            ValueLayout.JAVA_DOUBLE.withName("duality_gap"), ValueLayout.JAVA_LONG.withName("iter"), ValueLayout.JAVA_LONG.withName("rho_updates"),
+            ValueLayout.JAVA_DOUBLE.withName("rho_estimate"), ValueLayout.JAVA_DOUBLE.withName("setup_time"), ValueLayout.JAVA_DOUBLE.withName("solve_time"),
+            ValueLayout.JAVA_DOUBLE.withName("update_time"), ValueLayout.JAVA_DOUBLE.withName("polish_time"), ValueLayout.JAVA_DOUBLE.withName("run_time"),
+            ValueLayout.JAVA_DOUBLE.withName("primdual_int"), ValueLayout.JAVA_DOUBLE.withName("rel_kkt_error"));
 
     // Struct: OSQPSolution (osqp_api_types.h)
-    private static final GroupLayout SOLUTION_LAYOUT = MemoryLayout.structLayout(
-            ValueLayout.ADDRESS.withName("x"),
-            ValueLayout.ADDRESS.withName("y"),
-            ValueLayout.ADDRESS.withName("prim_inf_cert"),
-            ValueLayout.ADDRESS.withName("dual_inf_cert"));
+    private static final GroupLayout SOLUTION_LAYOUT = MemoryLayout.structLayout(ValueLayout.ADDRESS.withName("x"), ValueLayout.ADDRESS.withName("y"),
+            ValueLayout.ADDRESS.withName("prim_inf_cert"), ValueLayout.ADDRESS.withName("dual_inf_cert"));
 
     // Struct: OSQPSolver (osqp_api_types.h) - the four public pointer members; "work" is opaque and unused.
-    private static final GroupLayout SOLVER_LAYOUT = MemoryLayout.structLayout(
-            ValueLayout.ADDRESS.withName("settings"),
-            ValueLayout.ADDRESS.withName("solution"),
-            ValueLayout.ADDRESS.withName("info"),
-            ValueLayout.ADDRESS.withName("work"));
+    private static final GroupLayout SOLVER_LAYOUT = MemoryLayout.structLayout(ValueLayout.ADDRESS.withName("settings"),
+            ValueLayout.ADDRESS.withName("solution"), ValueLayout.ADDRESS.withName("info"), ValueLayout.ADDRESS.withName("work"));
 
     private static final VarHandle CSC_I = CSC_MATRIX_LAYOUT.varHandle(PathElement.groupElement("i"));
     private static final VarHandle CSC_M = CSC_MATRIX_LAYOUT.varHandle(PathElement.groupElement("m"));
@@ -207,16 +164,15 @@ final class OSQPBindings {
         // OSQPInt osqp_setup(OSQPSolver** solverp, const OSQPCscMatrix* P, const OSQPFloat* q,
         //                    const OSQPCscMatrix* A, const OSQPFloat* l, const OSQPFloat* u,
         //                    OSQPInt m, OSQPInt n, const OSQPSettings* settings)
-        OSQP_SETUP = OSQPBindings.downcallHandle("osqp_setup",
-                FunctionDescriptor.of(ValueLayout.JAVA_LONG, ValueLayout.ADDRESS, // solverp
-                        ValueLayout.ADDRESS, // P
-                        ValueLayout.ADDRESS, // q
-                        ValueLayout.ADDRESS, // A
-                        ValueLayout.ADDRESS, // l
-                        ValueLayout.ADDRESS, // u
-                        ValueLayout.JAVA_LONG, // m
-                        ValueLayout.JAVA_LONG, // n
-                        ValueLayout.ADDRESS)); // settings
+        OSQP_SETUP = OSQPBindings.downcallHandle("osqp_setup", FunctionDescriptor.of(ValueLayout.JAVA_LONG, ValueLayout.ADDRESS, // solverp
+                ValueLayout.ADDRESS, // P
+                ValueLayout.ADDRESS, // q
+                ValueLayout.ADDRESS, // A
+                ValueLayout.ADDRESS, // l
+                ValueLayout.ADDRESS, // u
+                ValueLayout.JAVA_LONG, // m
+                ValueLayout.JAVA_LONG, // n
+                ValueLayout.ADDRESS)); // settings
 
         OSQP_SOLVE = OSQPBindings.downcallHandle("osqp_solve", FunctionDescriptor.of(ValueLayout.JAVA_LONG, ValueLayout.ADDRESS));
 
@@ -237,8 +193,7 @@ final class OSQPBindings {
         OSQP_WARM_START = OSQPBindings.downcallHandle("osqp_warm_start",
                 FunctionDescriptor.of(ValueLayout.JAVA_LONG, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
 
-        OSQP_ERROR_MESSAGE = OSQPBindings.downcallHandle("osqp_error_message",
-                FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.JAVA_LONG));
+        OSQP_ERROR_MESSAGE = OSQPBindings.downcallHandle("osqp_error_message", FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.JAVA_LONG));
     }
 
     /**
@@ -287,8 +242,8 @@ final class OSQPBindings {
     }
 
     /**
-     * The certificate of primal infeasibility, signed as the dual solution y: positive where an upper limit is
-     * used.
+     * The certificate of primal infeasibility, signed as the dual solution y: positive where an upper limit
+     * is used.
      */
     static MemorySegment getSolutionPrimInfCert(final MemorySegment solution, final long m) {
         return ((MemorySegment) SOLUTION_PRIM_INF_CERT.get(solution, 0L)).reinterpret(m * ValueLayout.JAVA_DOUBLE.byteSize());
@@ -314,8 +269,8 @@ final class OSQPBindings {
     }
 
     /**
-     * Wraps existing (arena-owned) arrays as an {@code OSQPCscMatrix} - no copying and no separate
-     * allocation on the C side, so there is nothing to free afterwards. {@code i} and {@code x} may be
+     * Wraps existing (arena-owned) arrays as an {@code OSQPCscMatrix} - no copying and no separate allocation
+     * on the C side, so there is nothing to free afterwards. {@code i} and {@code x} may be
      * {@link MemorySegment#NULL} when {@code nzmax} is zero.
      *
      * @param p column pointers, {@code long[n + 1]}
@@ -340,8 +295,8 @@ final class OSQPBindings {
     }
 
     /**
-     * Allocates an {@code OSQPSettings} struct out of {@code arena} and fills it in with OSQP's own
-     * defaults (via {@code osqp_set_default_settings}).
+     * Allocates an {@code OSQPSettings} struct out of {@code arena} and fills it in with OSQP's own defaults
+     * (via {@code osqp_set_default_settings}).
      */
     static MemorySegment newDefaultSettings(final Arena arena) {
 

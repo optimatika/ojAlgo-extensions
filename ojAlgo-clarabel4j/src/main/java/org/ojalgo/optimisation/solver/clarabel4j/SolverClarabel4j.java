@@ -29,11 +29,10 @@ import org.ojalgo.type.keyvalue.EntryPair;
 import com.ustermetrics.clarabel4j.*;
 
 /**
- * Integration wrapper around the Clarabel native solver (clarabel4j).
- * <p>
- * This class converts an ojAlgo {@link ExpressionsBasedModel} into the sparse CSC representations expected by
- * Clarabel and exposes the clarabel4j {@link com.ustermetrics.clarabel4j.Model} as an ojAlgo
- * {@link Optimisation.Solver}.
+ * Integration with the Clarabel interior-point solver, via the clarabel4j library. Handles convex LP, QP and
+ * QCQP.
+ *
+ * @see "https://clarabel.org"
  */
 public final class SolverClarabel4j implements Optimisation.Solver {
 
@@ -123,7 +122,8 @@ public final class SolverClarabel4j implements Optimisation.Solver {
     static final class Integration extends ExpressionsBasedModel.Integration<SolverClarabel4j> {
 
         /**
-         * Variable bounds are rows of A, with coefficient 1 (or the variable's adjustment factor if adjusted).
+         * Variable bounds are rows of A, with coefficient 1 (or the variable's adjustment factor if
+         * adjusted).
          */
         private static final boolean ADJUSTED_BOUNDS = false;
         /**
@@ -363,8 +363,8 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
             ToDoubleFunction<double[]> objective = x -> SolverClarabel4j.evaluate(mtrxP, q, x);
 
-            return new SolverClarabel4j(clarabelModel, max, nbProbVars, constraintsMetaData, dualRows.toArray(new int[dualRows.size()][]), upperRows,
-                    lowerRows, boundScales, objectiveScale, objectiveConstant, feasibilityModel, objective);
+            return new SolverClarabel4j(clarabelModel, max, nbProbVars, constraintsMetaData, dualRows.toArray(new int[dualRows.size()][]), upperRows, lowerRows,
+                    boundScales, objectiveScale, objectiveConstant, feasibilityModel, objective);
         }
 
         @Override
@@ -409,8 +409,8 @@ public final class SolverClarabel4j implements Optimisation.Solver {
      * Model a quadratic constraint x'Qx + c'x <= bound as a second-order cone.
      * <p>
      * With Q factorised as M'M (so x'Qx = ||Mx||²) and t = bound - c'x, the constraint ||Mx||² <= t is
-     * equivalent to ||(2Mx, t-1)||₂ <= t+1. Clarabel expects s = b - Ax in the cone, with s₁ >=
-     * ||s₂..||, which gives these rows:
+     * equivalent to ||(2Mx, t-1)||₂ <= t+1. Clarabel expects s = b - Ax in the cone, with s₁ >= ||s₂..||,
+     * which gives these rows:
      * <ol>
      * <li>s₁ = (bound + 1) - c'x
      * <li>s₂ = (bound - 1) - c'x
@@ -590,7 +590,7 @@ public final class SolverClarabel4j implements Optimisation.Solver {
         }
         return switch (status) {
             case SOLVED, ALMOST_SOLVED, MAX_ITERATIONS, MAX_TIME, CLARABEL_CALL_BACK_TERMINATED -> true;
-            default -> false;
+            default                                                                             -> false;
         };
     }
 
@@ -623,14 +623,14 @@ public final class SolverClarabel4j implements Optimisation.Solver {
     }
 
     /**
-     * For each variable, the coefficient of its bound rows: the variable's adjustment factor if the bounds are
-     * adjusted, or else 1.
+     * For each variable, the coefficient of its bound rows: the variable's adjustment factor if the bounds
+     * are adjusted, or else 1.
      */
     private final double[] myBoundScales;
     private final ConstraintsMetaData myConstraintsMetaData;
     /**
-     * For each dual value (entry in {@link #myConstraintsMetaData}): the first of Clarabel's dual variables, and
-     * the number of them to sum.
+     * For each dual value (entry in {@link #myConstraintsMetaData}): the first of Clarabel's dual variables,
+     * and the number of them to sum.
      */
     private final int[][] myDualRows;
     /**
@@ -709,8 +709,7 @@ public final class SolverClarabel4j implements Optimisation.Solver {
 
             double[] certificate = this.computeDuals(myModel.z());
 
-            return Optimisation.Result.of(state, new double[myNumberOfVariables]).withDualValues(myConstraintsMetaData,
-                    () -> ArrayR064.wrap(certificate));
+            return Optimisation.Result.of(state, new double[myNumberOfVariables]).withDualValues(myConstraintsMetaData, () -> ArrayR064.wrap(certificate));
         }
 
         if (state == Optimisation.State.UNBOUNDED) {

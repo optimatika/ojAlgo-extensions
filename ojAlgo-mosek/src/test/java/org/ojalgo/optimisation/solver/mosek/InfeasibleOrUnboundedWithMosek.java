@@ -8,10 +8,10 @@ import org.ojalgo.optimisation.Variable;
 import org.ojalgo.type.context.NumberContext;
 
 /**
- * The solver may only conclude that a model is infeasible or unbounded, and its unbounded status does not come
- * with a solution. The integration should find out which, and for an unbounded model return a feasible
- * solution. The models are solved directly with the solver, as ojAlgo's own presolve would
- * otherwise catch some of them first.
+ * The solver may only conclude that a model is infeasible or unbounded, and its unbounded status does not
+ * come with a solution. The integration should find out which, and for an unbounded model return a feasible
+ * solution. The models are solved directly with the solver, as ojAlgo's own presolve would otherwise catch
+ * some of them first.
  */
 public class InfeasibleOrUnboundedWithMosek {
 

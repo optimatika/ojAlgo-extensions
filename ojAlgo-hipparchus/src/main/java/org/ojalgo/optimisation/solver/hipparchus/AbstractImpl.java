@@ -100,7 +100,8 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
     static abstract class Integration<S extends Optimisation.Solver> extends ExpressionsBasedModel.Integration<S> {
 
         /**
-         * Variable bounds are constraints, with coefficient 1 (or the variable's adjustment factor if adjusted).
+         * Variable bounds are constraints, with coefficient 1 (or the variable's adjustment factor if
+         * adjusted).
          */
         static final boolean ADJUSTED_BOUNDS = false;
         static final boolean ADJUSTED_CONSTRAINTS = true;
@@ -189,9 +190,9 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
         }
 
         /**
-         * The solvers minimise (a maximisation's objective is negated), and their multipliers are converted to
-         * the signed rows convention, see {@link Translation#dualSigns}. Those are then converted to the model's
-         * dual values with
+         * The solvers minimise (a maximisation's objective is negated), and their multipliers are converted
+         * to the signed rows convention, see {@link Translation#dualSigns}. Those are then converted to the
+         * model's dual values with
          * {@link ExpressionsBasedModel.Integration#toModelDuals(Optimisation.Result, ExpressionsBasedModel, Optimisation.Sense)}.
          */
         @Override
@@ -224,14 +225,14 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
         double[] boundCoefficients = null;
         int[] boundVariables = null;
         /**
-         * Only set for solvers that provide multipliers – matches them, converted by {@link #dualSigns}, to the
-         * model entities.
+         * Only set for solvers that provide multipliers – matches them, converted by {@link #dualSigns}, to
+         * the model entities.
          */
         ConstraintsMetaData constraints = null;
         final Set<OptimizationData> data = new HashSet<>();
         /**
-         * For each of the solver's multipliers, the factor (1 or -1) that converts it to the signed convention
-         * of {@link ConstraintsMetaData#setSignedRows(boolean)}.
+         * For each of the solver's multipliers, the factor (1 or -1) that converts it to the signed
+         * convention of {@link ConstraintsMetaData#setSignedRows(boolean)}.
          */
         double[] dualSigns = null;
         /**

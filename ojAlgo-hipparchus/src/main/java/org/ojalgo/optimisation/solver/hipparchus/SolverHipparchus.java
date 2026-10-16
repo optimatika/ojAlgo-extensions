@@ -26,10 +26,8 @@ import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 
 /**
- * Use Hipparchus' {@link SimplexSolver} from ojAlgo's {@link ExpressionsBasedModel}.
- * <P>
- * Just call {@link ExpressionsBasedModel#addIntegration(ExpressionsBasedModel.Integration)} with
- * {@link SolverHipparchus#INTEGRATION} as the argument.
+ * Integration with Hipparchus. LP is solved with its {@link SimplexSolver} and convex QP with its
+ * {@code ADMMQPOptimizer}.
  *
  * @author apete
  */
