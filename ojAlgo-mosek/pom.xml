@@ -9,6 +9,7 @@
     <artifactId>ojalgo-mosek</artifactId>
     <name>ojAlgo-mosek</name>
     <description>ojAlgo and Mosek integration</description>
+    <url>https://www.ojalgo.org/mathematical-optimisation/mosek/</url>
     <version>4.1.0-SNAPSHOT</version>
     <properties>
         <java.version>17</java.version>

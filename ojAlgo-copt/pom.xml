@@ -9,6 +9,7 @@
     <artifactId>ojalgo-copt</artifactId>
     <name>ojAlgo-copt</name>
     <description>ojAlgo and COPT integration</description>
+    <url>https://www.ojalgo.org/mathematical-optimisation/copt/</url>
     <version>1.3.0-SNAPSHOT</version>
     <properties>
         <!-- You have to change this! -->

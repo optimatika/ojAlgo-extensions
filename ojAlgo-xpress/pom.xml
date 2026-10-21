@@ -9,6 +9,7 @@
     <artifactId>ojalgo-xpress</artifactId>
     <name>ojAlgo-xpress</name>
     <description>ojAlgo and FICO Xpress integration</description>
+    <url>https://www.ojalgo.org/mathematical-optimisation/xpress/</url>
     <version>1.3.0-SNAPSHOT</version>
     <properties>
         <!-- You have to change this! -->
