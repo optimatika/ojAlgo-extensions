@@ -76,7 +76,7 @@
         <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss'Z'</maven.build.timestamp.format>
         <project.build.outputTimestamp>${maven.build.timestamp}</project.build.outputTimestamp>
         <java.version>11</java.version>
-        <version.org.ojalgo>57.5.0</version.org.ojalgo>
+        <version.org.ojalgo>57.6.0</version.org.ojalgo>
         <version.org.junit.jupiter>5.14.4</version.org.junit.jupiter>
         <version.org.openjdk.jmh>1.35</version.org.openjdk.jmh>
     </properties>
