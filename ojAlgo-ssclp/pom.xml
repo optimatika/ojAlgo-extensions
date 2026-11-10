@@ -12,10 +12,13 @@
     <description>ojAlgo and SSC-LP integration</description>
     <version>1.0.0-SNAPSHOT</version>
     <properties>
-        <!-- This module must never be published. SSC-LP is GPLv3 with no linking exception, and this
-             module is MIT like the rest of ojAlgo - see README.md. Building and installing locally is
+        <!-- This module must never be published. SSC-LP is GPLv3 with no
+        linking exception, and this
+             module is MIT like the rest of ojAlgo - see README.md. Building and installing
+        locally is
              fine; deploying is not. Both switches are set: 'maven.deploy.skip' disables
-             maven-deploy-plugin, 'skipPublishing' disables central-publishing-maven-plugin (which is
+             maven-deploy-plugin, 'skipPublishing' disables central-publishing-maven-plugin
+        (which is
              what the parent actually deploys with). -->
         <maven.deploy.skip>true</maven.deploy.skip>
         <skipPublishing>true</skipPublishing>
