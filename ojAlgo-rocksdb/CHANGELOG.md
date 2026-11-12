@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 > Corresponds to changes in the `develop` branch since the last release
 
+### Changed
+
+- Updated RocksDB to 11.8.1 (was 10.2.1).
+
 ## [1.1.1] – 2026-10-16
 
 Built with ojAlgo 57.5.0 and RocksDB 10.2.1.
