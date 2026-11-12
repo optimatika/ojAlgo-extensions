@@ -33,11 +33,11 @@ Each release is built against one specific version of its third-party library. [
 
 ## Support
 
-Bug reports and issues with existing code: https://github.com/optimatika/ojAlgo-extensions/issues
+- Bugs: [issues](https://github.com/optimatika/ojAlgo-extensions/issues) – open to everyone, and every credible report is looked into.
+- Questions: [Discussions](https://github.com/optimatika/ojAlgo/discussions) – answered for those who contribute something.
+- Are the integrations part of your business? Then pay for support: [Optimatika subscribers](https://www.optimatika.se/subscription/) get private answers, and can request new releases.
 
-General discussion: https://github.com/optimatika/ojAlgo-extensions/discussions or https://github.com/optimatika/ojAlgo/discussions
-
-Both are answered on a best-effort basis. Private support by email, answered within two business days, comes with the [Optimatika Subscription](https://www.optimatika.se/subscription/).
+More in [SUPPORT.md](https://github.com/optimatika/.github/blob/master/SUPPORT.md).
 
 ## Licence
 

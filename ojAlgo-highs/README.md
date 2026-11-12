@@ -16,7 +16,7 @@ HiGHS is a high-performance solver for LP, QP, and MILP problems.
 
 ## Requirements
 
-**Java 25 or later.** The Foreign Function & Memory API is used to call the HiGHS C library directly, and the module is compiled for release 25 — unlike ojAlgo itself, which targets Java 11.
+**Java 25 or later.** The Foreign Function & Memory API is used to call the HiGHS C library directly, and the module is compiled for release 25.
 
 Calling native code requires the access to be enabled, otherwise the JVM warns (and, in later releases, refuses):
 
