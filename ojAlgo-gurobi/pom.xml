@@ -17,7 +17,7 @@
         <dependency>
             <groupId>com.gurobi</groupId>
             <artifactId>gurobi</artifactId>
-            <version>13.0.3</version>
+            <version>14.0.0</version>
         </dependency>
     </dependencies>
 </project>
