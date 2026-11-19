@@ -85,7 +85,10 @@ public final class SolverClarabel implements Optimisation.Solver {
                 ClarabelBindings.setMaxIter(settings, Math.min(Integer.MAX_VALUE, options.iterations_abort));
             }
 
-            long effectiveTimeMillis = Math.min(options.time_suffice, options.time_abort);
+            // The abort limit, not the suffice one. An interior-point iterate is no solution – a solve stopped
+            // early is reported APPROXIMATE – so there is never a solution for time_suffice to settle for, and
+            // stopping there would only give up on a solve that time_abort still allows.
+            long effectiveTimeMillis = options.time_abort;
             if (effectiveTimeMillis > 0L && effectiveTimeMillis < Long.MAX_VALUE) {
                 ClarabelBindings.setTimeLimit(settings, effectiveTimeMillis / 1_000.0);
             }

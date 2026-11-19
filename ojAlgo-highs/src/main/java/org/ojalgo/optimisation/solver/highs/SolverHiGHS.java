@@ -98,11 +98,15 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
                 HiGHSBindings.setIntOptionValue(highs, ipmIterLimit, limit);
             }
 
-            int parallelism = options.getParallelism();
-            if (parallelism >= 4 && nbVars > 1_000) {
-
+            int parallelism = SolverHiGHS.threads(options);
+            if (parallelism > 0) {
+                // Whether or not the solve is to be parallel: left to itself, HiGHS sizes its scheduler at one
+                // thread per physical core, and since HiGHS 1.16 its MIP solver uses them by default.
                 MemorySegment threads = HiGHSBindings.allocateString(arena, "threads");
-                HiGHSBindings.setIntOptionValue(highs, threads, Math.min(8, parallelism));
+                HiGHSBindings.setIntOptionValue(highs, threads, parallelism);
+            }
+
+            if (parallelism >= 4 && nbVars > 1_000) {
 
                 MemorySegment parallel = HiGHSBindings.allocateString(arena, "parallel");
                 MemorySegment on = HiGHSBindings.allocateString(arena, "on");
@@ -448,6 +452,20 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         };
     }
 
+    /**
+     * The number of threads the scheduler of each thread that has run a solve was started with, 0 for HiGHS's
+     * own default. HiGHS keeps one scheduler per calling thread, sized by the first solve on it, and refuses
+     * to run a later one asking for another number.
+     */
+    private static final ThreadLocal<Integer> SCHEDULER_THREADS = new ThreadLocal<>();
+
+    /**
+     * The {@code threads} option for a solve with these options, 0 to leave HiGHS's default.
+     */
+    static int threads(final Optimisation.Options options) {
+        return Math.max(0, options.getParallelism());
+    }
+
     private double[] myColDual;
     private final ConstraintsMetaData myConstraintsMetaData;
     private final HiGHSEntityMap myEntityMap;
@@ -476,6 +494,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
      * its own, so it is that thread's interrupt flag – not the calling one's – that has to be asked about.
      */
     private volatile Thread mySolving = null;
+    private final int myThreads;
     private final long myTimeAbortMillis;
     private final long myTimeSufficeMillis;
 
@@ -494,6 +513,7 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         myIterationsSuffice = options.iterations_suffice;
         myTimeAbortMillis = options.time_abort;
         myTimeSufficeMillis = options.time_suffice;
+        myThreads = SolverHiGHS.threads(options);
     }
 
     @Override
@@ -542,6 +562,8 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
         long startMillis = System.currentTimeMillis();
 
+        this.prepareScheduler();
+
         mySolving = Thread.currentThread();
         this.enableInterrupt();
 
@@ -554,7 +576,8 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
 
         Optimisation.State state = this.currentState();
 
-        if (!state.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis) {
+        // Not after an interrupt: that is the caller stopping the solve, not the suffice limit running out.
+        if (!state.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis && !Thread.currentThread().isInterrupted()) {
             long elapsed = System.currentTimeMillis() - startMillis;
             long remaining = myTimeAbortMillis - elapsed;
             if (remaining > 1000L) {
@@ -802,6 +825,21 @@ public final class SolverHiGHS implements Optimisation.Solver, UpdatableSolver {
         }
 
         return state;
+    }
+
+    /**
+     * Gives this thread a HiGHS scheduler with the number of threads this solve asks for, replacing one an
+     * earlier solve on the thread started with another number.
+     */
+    private void prepareScheduler() {
+
+        Integer current = SCHEDULER_THREADS.get();
+
+        if (current != null && current.intValue() != myThreads) {
+            HiGHSBindings.resetGlobalScheduler();
+        }
+
+        SCHEDULER_THREADS.set(myThreads);
     }
 
     /**

@@ -80,8 +80,9 @@ public final class SolverCPSAT implements Optimisation.Solver {
                 parameters.setMaxNumberOfConflicts(effectiveConflicts);
             }
 
+            // Including 1: CP-SAT's own default, 0, is one worker per core – whatever the caller asked for.
             int parallelism = options.getParallelism();
-            if (parallelism > 1) {
+            if (parallelism >= 1) {
                 parameters.setNumWorkers(parallelism);
             }
 
@@ -1010,7 +1011,9 @@ public final class SolverCPSAT implements Optimisation.Solver {
         ResponseData response = SolverCPSAT.parseResponse(responseBytes);
         Optimisation.State state = SolverCPSAT.translate(response.status);
 
-        if (!state.isFeasible() && response.status != CPSATBindings.STATUS_MODEL_INVALID && myTimeSufficeMillis < myTimeAbortMillis) {
+        // Not after an interrupt: that is the caller stopping the solve, not the suffice limit running out.
+        if (!state.isFeasible() && response.status != CPSATBindings.STATUS_MODEL_INVALID && myTimeSufficeMillis < myTimeAbortMillis
+                && !Thread.currentThread().isInterrupted()) {
             long elapsed = System.currentTimeMillis() - startMillis;
             long remaining = myTimeAbortMillis - elapsed;
             if (remaining > 1000L) {

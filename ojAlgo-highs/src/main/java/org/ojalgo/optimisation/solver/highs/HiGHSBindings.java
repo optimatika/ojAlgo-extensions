@@ -156,6 +156,7 @@ final class HiGHSBindings {
 
     private static final MethodHandle HIGHS_SET_CALLBACK;
     private static final MethodHandle HIGHS_START_CALLBACK;
+    private static final MethodHandle HIGHS_RESET_GLOBAL_SCHEDULER;
 
     private static final MethodHandle HIGHS_CHANGE_COL_BOUNDS;
     private static final MethodHandle HIGHS_CHANGE_COLS_BOUNDS_BY_RANGE;
@@ -275,6 +276,9 @@ final class HiGHSBindings {
         // HighsInt Highs_startCallback(void* highs, const HighsInt callback_type)
         HIGHS_START_CALLBACK = HiGHSBindings.downcallHandleOptional("Highs_startCallback",
                 FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+
+        // void Highs_resetGlobalScheduler(const HighsInt blocking)
+        HIGHS_RESET_GLOBAL_SCHEDULER = HiGHSBindings.downcallHandleOptional("Highs_resetGlobalScheduler", FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT));
 
         HIGHS_CHANGE_COL_BOUNDS = HiGHSBindings.downcallHandle("Highs_changeColBounds", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, // highs
                 ValueLayout.JAVA_INT, // col
@@ -746,6 +750,23 @@ final class HiGHSBindings {
                     aStart, aIndex, aValue, integrality);
         } catch (Throwable t) {
             throw new RuntimeException("Failed to pass MIP to HiGHS", t);
+        }
+    }
+
+    /**
+     * Releases the calling thread's scheduler, so that the next solve on this thread starts one with the
+     * number of threads it asks for. Must not be called while a solve is running on this thread. Does
+     * nothing with a HiGHS build that lacks the function.
+     */
+    static void resetGlobalScheduler() {
+
+        if (HIGHS_RESET_GLOBAL_SCHEDULER == null) {
+            return;
+        }
+        try {
+            HIGHS_RESET_GLOBAL_SCHEDULER.invokeExact(1);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to reset the HiGHS scheduler", t);
         }
     }
 

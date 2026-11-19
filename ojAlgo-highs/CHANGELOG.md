@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - A solve stopped at a limit, or interrupted, while HiGHS has a feasible solution (e.g. a MIP incumbent) now returns that solution as `FEASIBLE`. Previously the state was `APPROXIMATE` and no solution was returned.
 - The reduced gradient is in model units. It was off by ojAlgo's internal scaling of the objective.
 - The objective function value returned by the solver includes the objective's constant, and undoes ojAlgo's internal scaling of the objective.
+- HiGHS is always given `threads` from `Options.getParallelism()`. It was given only for large models with 4 or more threads, otherwise HiGHS sized its scheduler at one thread per physical core – which, since HiGHS 1.16 runs the MIP solver in parallel by default, it then uses. A thread whose HiGHS scheduler was started with a different number of threads has it reset first, rather than HiGHS refusing the solve.
+- A solve interrupted before it found a solution is no longer restarted for the time left until `time_abort`.
 
 ## [2.1.0] – 2026-09-14
 

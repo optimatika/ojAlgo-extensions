@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 > Corresponds to changes in the `develop` branch since the last release
 
+### Fixed
+
+- Clarabel's time limit is `time_abort`, no longer the smaller of `time_suffice` and `time_abort`. A solve stopped early has no solution to return – it is `APPROXIMATE` – so stopping at `time_suffice` only gave up on a solve that `time_abort` still allowed.
+
 ## [1.1.0] – 2026-10-16
 
 Built with ojAlgo 57.5.0 and Clarabel 0.11.1 (built from source and installed separately).

@@ -504,7 +504,8 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
 
         Optimisation.State state = this.currentState();
 
-        if (!state.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis) {
+        // Not after an interrupt: that is the caller stopping the solve, not the suffice limit running out.
+        if (!state.isFeasible() && myTimeSufficeMillis < myTimeAbortMillis && !Thread.currentThread().isInterrupted()) {
             long elapsed = System.currentTimeMillis() - startMillis;
             long remaining = myTimeAbortMillis - elapsed;
             if (remaining > 1000L) {

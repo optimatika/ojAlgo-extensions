@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 
 - The reported objective function value includes the objective's constant term.
+- CP-SAT is given `num_workers` from `Options.getParallelism()` also when that is 1. CP-SAT's own default is one worker per core.
+- A solve interrupted before it found a solution is no longer restarted for the time left until `time_abort`.
 
 ## [1.1.0] – 2026-09-21
 

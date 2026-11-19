@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - A solve stopped at a limit, or interrupted, while SCIP has a solution (e.g. a MIP incumbent) now returns that solution as `FEASIBLE`. Previously the state was `APPROXIMATE` and no solution was returned.
 - The objective function value returned by the solver includes the objective's constant, and undoes ojAlgo's internal scaling of the objective.
+- A solve interrupted before it found a solution is no longer restarted for the time left until `time_abort`.
 
 ## [1.1.0] – 2026-09-14
 
