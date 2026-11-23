@@ -13,7 +13,7 @@
     <description>ojAlgo and Hipparchus integration</description>
     <version>2.3.0-SNAPSHOT</version>
     <properties>
-        <version.org.hipparchus>4.0.3</version.org.hipparchus>
+        <version.org.hipparchus>4.1</version.org.hipparchus>
     </properties>
     <dependencies>
         <!-- https://mvnrepository.com/artifact/org.hipparchus/hipparchus-core -->
