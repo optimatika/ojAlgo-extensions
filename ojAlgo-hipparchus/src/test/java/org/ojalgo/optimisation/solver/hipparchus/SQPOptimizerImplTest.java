@@ -1,5 +1,8 @@
 package org.ojalgo.optimisation.solver.hipparchus;
 
+import java.util.List;
+import java.util.function.Supplier;
+
 import org.junit.jupiter.api.Test;
 import org.ojalgo.TestUtils;
 import org.ojalgo.optimisation.Expression;
@@ -8,6 +11,8 @@ import org.ojalgo.optimisation.ModelEntity;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Optimisation.ConstraintType;
 import org.ojalgo.optimisation.Variable;
+import org.ojalgo.optimisation.convex.CuteMarosMeszarosCase;
+import org.ojalgo.structure.Access1D;
 import org.ojalgo.type.context.NumberContext;
 import org.ojalgo.type.keyvalue.EntryPair;
 import org.ojalgo.type.keyvalue.EntryPair.KeyedPrimitive;
@@ -24,7 +29,8 @@ import org.ojalgo.type.keyvalue.EntryPair.KeyedPrimitive;
  * <p>
  * By default the SQP optimisers use a quasi-Newton approximation of the Hessian. The deprecated GM and S
  * optimisers solve their QP sub-problems with the ADMM optimiser (tolerance 1e-5) – the results are accurate
- * to about 1e-3. The S2 optimiser solves them with the dual active-set solver, and provides no dual values.
+ * to about 1e-3. The S2 optimiser solves them with the dual active-set solver, and provides dual values only
+ * when its multipliers satisfy the optimality conditions – see {@link #testSQPOptimizerS2DualValues()}.
  */
 public class SQPOptimizerImplTest {
 
@@ -76,6 +82,48 @@ public class SQPOptimizerImplTest {
     @Test
     public void testSQPOptimizerS2() {
         SQPOptimizerImplTest.doTest(SQPOptimizerImplS2.INTEGRATION);
+    }
+
+    /**
+     * The S2 optimiser's multipliers are only used if they satisfy the optimality conditions – then the dual
+     * values and the reduced gradient are those of the dual active-set solver. Of these models, S2 returned
+     * valid multipliers for HS53, ZECEVIC2 and QPTEST, but not for HS21 or HS118.
+     */
+    @Test
+    public void testSQPOptimizerS2DualValues() {
+
+        NumberContext accuracy = NumberContext.of(6);
+        int withDuals = 0;
+
+        for (String name : new String[] { "HS21.SIF", "HS53.SIF", "HS118.SIF", "QPTEST.SIF", "ZECEVIC2.SIF" }) {
+
+            ExpressionsBasedModel model = CuteMarosMeszarosCase.makeModel(name);
+            Optimisation.Result actual = model.minimise(SQPOptimizerImplS2.INTEGRATION);
+            TestUtils.assertStateNotLessThanOptimal(actual);
+
+            if (actual.getReducedGradient().isPresent()) {
+                withDuals++;
+
+                Optimisation.Result expected = model.minimise(QPDualActiveSolverImpl.INTEGRATION);
+
+                Access1D<?> expectedGradient = expected.getReducedGradient().map(Supplier::get).get();
+                Access1D<?> actualGradient = actual.getReducedGradient().map(Supplier::get).get();
+                TestUtils.assertEquals(name, expectedGradient, actualGradient, accuracy);
+
+                List<KeyedPrimitive<EntryPair<ModelEntity<?>, ConstraintType>>> expectedDuals = expected.getDualValues();
+                List<KeyedPrimitive<EntryPair<ModelEntity<?>, ConstraintType>>> actualDuals = actual.getDualValues();
+                TestUtils.assertEquals(name, expectedDuals.size(), actualDuals.size());
+                for (int i = 0; i < expectedDuals.size(); i++) {
+                    TestUtils.assertEquals(name, expectedDuals.get(i).getKey(), actualDuals.get(i).getKey());
+                    TestUtils.assertEquals(name, expectedDuals.get(i).doubleValue(), actualDuals.get(i).doubleValue(), accuracy);
+                }
+
+            } else {
+                TestUtils.assertTrue(name, actual.getDualValues().isEmpty());
+            }
+        }
+
+        TestUtils.assertTrue(withDuals > 0);
     }
 
 }

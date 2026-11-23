@@ -13,7 +13,7 @@
 ojAlgo integration with [Hipparchus](https://hipparchus.org).
 
 - Classes to convert between ojAlgo and Hipparchus matrix implementations. In particular Hipparchus' matrix instances can have their elements supplied directly to ojAlgo's matrix decomposition internal storage without allocating intermediate memory.
-- Use Hipparchus' optimisers with ojAlgo's `ExpressionsBasedModel`. `SolverHipparchus.INTEGRATION` solves LP with `SimplexSolver`, and convex QP with `QPDualActiveSolver`. Each optimiser also has its own integration: `SimplexSolverImpl`, `QPDualActiveSolverImpl`, `ADMMQPOptimizerImpl` and `SQPOptimizerImplS2` (and the deprecated `SQPOptimizerImplGM` and `SQPOptimizerImplS`).
+- Use Hipparchus' optimisers with ojAlgo's `ExpressionsBasedModel`. `SolverHipparchus.INTEGRATION` solves LP with `SimplexSolver`, convex QP with `QPDualActiveSolver`, and models with convex quadratic constraints (QCQP) with `SQPOptimizerS2`. Each optimiser also has its own integration: `SimplexSolverImpl`, `QPDualActiveSolverImpl`, `ADMMQPOptimizerImpl` and `SQPOptimizerImplS2` (and the deprecated `SQPOptimizerImplGM` and `SQPOptimizerImplS`).
 
 ## Usage
 

@@ -26,8 +26,10 @@ import org.ojalgo.optimisation.ExpressionsBasedModel;
 
 /**
  * Hipparchus' {@link SQPOptimizerS}. It is not reliable – with the Maros-Meszaros test set it often fails, or
- * stops at a point that is not optimal. With an infeasible model it may never return. It solves its QP
- * sub-problems with an ADMM optimiser of its own, that has no iteration limit (and none can be set).
+ * stops at a point that is not optimal.
+ * <p>
+ * With an infeasible model it may never return. It solves its QP sub-problems with an ADMM optimiser of its
+ * own, that has no iteration limit (and none can be set).
  *
  * @deprecated Hipparchus deprecated {@link SQPOptimizerS}, and will remove it in 5.0. Use
  *             {@link QPDualActiveSolverImpl} or {@link SQPOptimizerImplS2} instead.
@@ -35,6 +37,7 @@ import org.ojalgo.optimisation.ExpressionsBasedModel;
 @Deprecated
 public final class SQPOptimizerImplS extends ConvexImpl<SQPOptimizerS> {
 
+    @Deprecated
     public static class Configurator extends AbstractImpl.Configurator<SQPOptimizerS> {
 
         @Override
@@ -44,6 +47,7 @@ public final class SQPOptimizerImplS extends ConvexImpl<SQPOptimizerS> {
 
     }
 
+    @Deprecated
     static final class Integration extends ConvexImpl.Integration<SQPOptimizerImplS> {
 
         @Override
@@ -58,10 +62,13 @@ public final class SQPOptimizerImplS extends ConvexImpl<SQPOptimizerS> {
 
     }
 
+    @Deprecated
     public static final Integration INTEGRATION = new Integration();
 
+    @Deprecated
     static final Configurator DEFAULT = new Configurator();
 
+    @Deprecated
     SQPOptimizerImplS(final Translation translation, final Options options,
             final org.ojalgo.optimisation.solver.hipparchus.AbstractImpl.Configurator<SQPOptimizerS> configurator) {
         super(translation, options, configurator);

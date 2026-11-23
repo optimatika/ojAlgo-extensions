@@ -68,6 +68,10 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
          */
         final ModelEntity<?> entity;
         double lower = Double.NEGATIVE_INFINITY;
+        /**
+         * The quadratic part of the body, or null if it is linear.
+         */
+        QuadraticPart quadratic = null;
         double upper = Double.POSITIVE_INFINITY;
         /**
          * For a variable's bound: its index, else -1.
@@ -144,6 +148,8 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
                     coeffs[key.index] = expr.doubleValue(key, ADJUSTED_CONSTRAINTS);
                 }
 
+                template.quadratic = QuadraticPart.of(expr, ADJUSTED_CONSTRAINTS);
+
                 template.lower = expr.getLowerLimit(ADJUSTED_CONSTRAINTS, Double.NEGATIVE_INFINITY);
                 template.upper = expr.getUpperLimit(ADJUSTED_CONSTRAINTS, Double.POSITIVE_INFINITY);
 
@@ -210,6 +216,82 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
 
         abstract void translate(Translation translation, Expression objective, int dim, boolean maximise, List<ConstraintTemplate> equalities,
                 List<ConstraintTemplate> ranges, boolean negative);
+
+    }
+
+    /**
+     * The quadratic part of a constraint, Σ v x(r) x(c) over the expression's quadratic factors – the
+     * factor of a row/column pair, and that of its transpose, are separate terms.
+     */
+    static final class QuadraticPart {
+
+        /**
+         * @return The expression's (nonzero) quadratic factors, or null if there are none.
+         */
+        static QuadraticPart of(final Expression expression, final boolean adjusted) {
+
+            List<IntRowColumn> keys = new ArrayList<>();
+            List<Double> values = new ArrayList<>();
+            for (IntRowColumn key : expression.getQuadraticKeySet()) {
+                double value = expression.doubleValue(key, adjusted);
+                if (value != 0.0) {
+                    keys.add(key);
+                    values.add(value);
+                }
+            }
+
+            int nbTerms = keys.size();
+            if (nbTerms == 0) {
+                return null;
+            }
+
+            int[] rows = new int[nbTerms];
+            int[] columns = new int[nbTerms];
+            double[] factors = new double[nbTerms];
+            for (int i = 0; i < nbTerms; i++) {
+                rows[i] = keys.get(i).row;
+                columns[i] = keys.get(i).column;
+                factors[i] = values.get(i).doubleValue();
+            }
+            return new QuadraticPart(rows, columns, factors);
+        }
+
+        final int[] columns;
+        final double[] factors;
+        final int[] rows;
+
+        private QuadraticPart(final int[] rows, final int[] columns, final double[] factors) {
+            super();
+            this.rows = rows;
+            this.columns = columns;
+            this.factors = factors;
+        }
+
+        /**
+         * Adds the gradient, at x, to the array.
+         */
+        void addGradient(final double[] x, final double[] gradient) {
+            for (int i = 0; i < factors.length; i++) {
+                gradient[rows[i]] += factors[i] * x[columns[i]];
+                gradient[columns[i]] += factors[i] * x[rows[i]];
+            }
+        }
+
+        QuadraticPart negate() {
+            double[] negated = new double[factors.length];
+            for (int i = 0; i < factors.length; i++) {
+                negated[i] = -factors[i];
+            }
+            return new QuadraticPart(rows, columns, negated);
+        }
+
+        double value(final double[] x) {
+            double retVal = 0.0;
+            for (int i = 0; i < factors.length; i++) {
+                retVal += factors[i] * x[rows[i]] * x[columns[i]];
+            }
+            return retVal;
+        }
 
     }
 
@@ -328,14 +410,6 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
     abstract Access1D<?> extractSolution(R solutionAndValue);
 
     /**
-     * The iteration limit passed to the Hipparchus optimiser, or {@link Integer#MAX_VALUE} to pass none and
-     * leave it to the optimiser.
-     */
-    int getIterationLimit(final Optimisation.Options options) {
-        return Integer.MAX_VALUE;
-    }
-
-    /**
      * The state when the optimiser failed with an exception.
      */
     abstract Optimisation.State extractState(Localizable exceptionSpecifier);
@@ -350,5 +424,13 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
     }
 
     abstract double extractValue(R solutionAndValue);
+
+    /**
+     * The iteration limit passed to the Hipparchus optimiser, or {@link Integer#MAX_VALUE} to pass none and
+     * leave it to the optimiser.
+     */
+    int getIterationLimit(final Optimisation.Options options) {
+        return Integer.MAX_VALUE;
+    }
 
 }

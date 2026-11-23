@@ -26,8 +26,10 @@ import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 
 /**
- * Integration with Hipparchus. LP is solved with its {@link SimplexSolver} and convex QP with its
- * {@code QPDualActiveSolver}, see {@link QPDualActiveSolverImpl}.
+ * Integration with Hipparchus. LP is solved with its {@link SimplexSolver}, convex QP with its
+ * {@code QPDualActiveSolver}, see {@link QPDualActiveSolverImpl}, and models with convex quadratic constraints
+ * (QCQP) with its {@code SQPOptimizerS2}, see {@link SQPOptimizerImplS2}. For QCQP the result has dual values
+ * only if that optimiser's multipliers satisfy the optimality conditions.
  *
  * @author apete
  */
@@ -43,10 +45,14 @@ public final class SolverHipparchus implements Optimisation.Solver {
         public SolverHipparchus build(final ExpressionsBasedModel model) {
 
             boolean qp = model.isAnyExpressionQuadratic();
+            boolean qc = model.isAnyConstraintQuadratic();
 
             ExpressionsBasedModel.Integration.setSwitch(model, ExpressionsBasedModel.IntegrationProperty.LP_OR_QP, qp);
+            ExpressionsBasedModel.Integration.setSwitch(model, ExpressionsBasedModel.IntegrationProperty.LC_OR_QC, qc);
 
-            if (qp) {
+            if (qc) {
+                return new SolverHipparchus(SQPOptimizerImplS2.INTEGRATION.build(model));
+            } else if (qp) {
                 return new SolverHipparchus(QPDualActiveSolverImpl.INTEGRATION.build(model));
             } else {
                 return new SolverHipparchus(SimplexSolverImpl.INTEGRATION.build(model));
@@ -55,12 +61,18 @@ public final class SolverHipparchus implements Optimisation.Solver {
 
         @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
-            return SimplexSolverImpl.INTEGRATION.isCapable(model) || QPDualActiveSolverImpl.INTEGRATION.isCapable(model);
+            if (model.isAnyConstraintQuadratic()) {
+                return SQPOptimizerImplS2.INTEGRATION.isCapable(model);
+            } else {
+                return SimplexSolverImpl.INTEGRATION.isCapable(model) || QPDualActiveSolverImpl.INTEGRATION.isCapable(model);
+            }
         }
 
         @Override
         public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
-            if (ExpressionsBasedModel.Integration.isSwitch(model, ExpressionsBasedModel.IntegrationProperty.LP_OR_QP)) {
+            if (ExpressionsBasedModel.Integration.isSwitch(model, ExpressionsBasedModel.IntegrationProperty.LC_OR_QC)) {
+                return SQPOptimizerImplS2.INTEGRATION.toModelState(solverState, model);
+            } else if (ExpressionsBasedModel.Integration.isSwitch(model, ExpressionsBasedModel.IntegrationProperty.LP_OR_QP)) {
                 return QPDualActiveSolverImpl.INTEGRATION.toModelState(solverState, model);
             } else {
                 return SimplexSolverImpl.INTEGRATION.toModelState(solverState, model);

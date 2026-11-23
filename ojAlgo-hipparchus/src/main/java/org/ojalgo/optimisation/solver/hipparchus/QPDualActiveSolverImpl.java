@@ -33,11 +33,14 @@ import org.ojalgo.optimisation.Optimisation;
 
 /**
  * Hipparchus' {@link QPDualActiveSolver}, the dual active-set method of Goldfarb and Idnani, for convex QP.
- * Being an active-set method it solves accurately, with dual values, and it detects infeasibility. The
- * Hessian is factorised with a {@link RegularizedCholeskyDecomposition}, that shifts the diagonal until the
- * factorisation succeeds. A positive semidefinite Hessian is fine (the shift is tiny), but the model must be
- * convex – a non-convex model is not detected. The solver returns, rather than throws, when it fails. Its
- * error codes are translated to {@link Optimisation.State#INFEASIBLE} or {@link Optimisation.State#FAILED}.
+ * Being an active-set method it solves accurately, with dual values, and it detects infeasibility.
+ * <p>
+ * The Hessian is factorised with a {@link RegularizedCholeskyDecomposition}, that shifts the diagonal until
+ * the factorisation succeeds. A positive semidefinite Hessian is fine (the shift is tiny), but the model must
+ * be convex – a non-convex model is not detected.
+ * <p>
+ * The solver returns, rather than throws, when it fails. Its error codes are translated to
+ * {@link Optimisation.State#INFEASIBLE} or {@link Optimisation.State#FAILED}.
  *
  * @see "https://doi.org/10.1007/BF02591962"
  */
