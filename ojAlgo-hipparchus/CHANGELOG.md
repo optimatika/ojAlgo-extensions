@@ -8,6 +8,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 > Corresponds to changes in the `develop` branch since the last release
 
+### Added
+
+- `QPDualActiveSolverImpl`, for convex QP with Hipparchus' new `QPDualActiveSolver` – the dual active-set method of Goldfarb and Idnani. It solves accurately, provides dual values, and detects infeasibility. The model must be convex – Hipparchus regularises the Hessian until it can be factorised, so a non-convex model is not detected.
+- `SQPOptimizerImplS2`, for convex QP with Hipparchus' new `SQPOptimizerS2`, the replacement for `SQPOptimizerS` and `SQPOptimizerGM`. Its results have no dual values – the optimiser may return the multipliers of the previous iterate rather than those of the solution. It has no infeasibility detection: a solution that does not satisfy the constraints gives a `FAILED` result.
+
+### Changed
+
+- Requires Java 22 (was Java 11). Development has moved to target the latest version of ojAlgo, which requires at least Java 22.
+- Updated Hipparchus to 4.1 (was 4.0.3).
+- `SolverHipparchus` solves convex QP with `QPDualActiveSolverImpl` (was `ADMMQPOptimizerImpl`). It is much more accurate (ADMM's tolerance is 1e-5) and faster, and an infeasible problem gives an `INFEASIBLE` result (rather than `FAILED` when the iteration limit is reached). With the Maros-Meszaros test set it solved 42 of 48 models – the other 6, each with 10 000 variables, did not finish within 5 minutes (the solver works with dense matrices).
+- Hipparchus 4.1 fixed the scaling (equilibration) in its ADMM optimiser, so `ADMMQPOptimizerImpl` results can differ slightly.
+- `LinearOptimizerEBM` solves with ojAlgo's `LinearSolver`, that since ojAlgo 57.6.0 can return values that differ in the last digit (0.9999999999999999 rather than 1.0). `SimplexSolverTest.testEpsilon`, that compared with zero tolerance, now allows 1e-7.
+- `RelaxedMIPCaseWithHipparchus.testNeos3421095cinca`, inherited from ojAlgo's `RelaxedMIPCase` since 57.6.0, is disabled. The model has big-M rows with 1E+17 coefficients, and Hipparchus' `SimplexSolver` leaves the binaries at 0 (rather than about 1E-13), violating those rows by up to 67 000. The objective function value is correct.
+
+### Deprecated
+
+- `SQPOptimizerImplGM` and `SQPOptimizerImplS` – Hipparchus deprecated `SQPOptimizerGM` and `SQPOptimizerS`, and will remove them in 5.0. Use `QPDualActiveSolverImpl` or `SQPOptimizerImplS2` instead. They are also unreliable, and with an infeasible problem they may never return: they solve their QP sub-problems with an ADMM optimiser of their own, that has no iteration limit (and none can be set).
+
 ## [2.2.0] – 2026-10-16
 
 Built with ojAlgo 57.5.0 and Hipparchus 4.0.3.

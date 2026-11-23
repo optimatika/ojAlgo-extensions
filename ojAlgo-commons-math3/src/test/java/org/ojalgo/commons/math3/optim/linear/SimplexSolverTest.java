@@ -129,10 +129,10 @@ public class SimplexSolverTest {
         LinearOptimizerEBM solver = new LinearOptimizerEBM();
         PointValuePair solution = solver.optimize(DEFAULT_MAX_ITER, f, new LinearConstraintSet(constraints), GoalType.MAXIMIZE,
                 new NonNegativeConstraint(false));
-        TestUtils.assertEquals(1.0, solution.getPoint()[0], 0.0);
-        TestUtils.assertEquals(1.0, solution.getPoint()[1], 0.0);
-        TestUtils.assertEquals(0.0, solution.getPoint()[2], 0.0);
-        TestUtils.assertEquals(15.0, solution.getValue(), 0.0);
+        TestUtils.assertEquals(1.0, solution.getPoint()[0], .0000001);
+        TestUtils.assertEquals(1.0, solution.getPoint()[1], .0000001);
+        TestUtils.assertEquals(0.0, solution.getPoint()[2], .0000001);
+        TestUtils.assertEquals(15.0, solution.getValue(), .0000001);
     }
 
     @Test

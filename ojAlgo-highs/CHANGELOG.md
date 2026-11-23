@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Infeasibility certificates: an `INFEASIBLE` result for a continuous model has HiGHS' dual ray as its dual values, plus the certificate's reduced gradient.
 - A configured MIP gap (`Options.getConfiguredGapTolerance()`) is passed on to HiGHS (`mip_rel_gap` and `mip_abs_gap`).
 
+### Changed
+
+- Development has moved to target the latest version of ojAlgo, which requires at least Java 22. This module still requires Java 25.
+
 ### Fixed
 
 - A solve stopped at a limit, or interrupted, while HiGHS has a feasible solution (e.g. a MIP incumbent) now returns that solution as `FEASIBLE`. Previously the state was `APPROXIMATE` and no solution was returned.

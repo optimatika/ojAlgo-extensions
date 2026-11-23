@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 > Corresponds to changes in the `develop` branch since the last release
 
+### Changed
+
+- Requires Java 22 (was Java 11). Development has moved to target the latest version of ojAlgo, which requires at least Java 22.
+
 ## [1.2.0] – 2026-10-16
 
 Built with ojAlgo 57.5.0 and FICO Xpress 47.01.

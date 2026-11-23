@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - A configured MIP gap (`Options.getConfiguredGapTolerance()`) is passed on to SCIP (`limits/gap` and `limits/absgap`).
 
+### Changed
+
+- Development has moved to target the latest version of ojAlgo, which requires at least Java 22. This module still requires Java 25.
+
 ### Fixed
 
 - A solve stopped at a limit, or interrupted, while SCIP has a solution (e.g. a MIP incumbent) now returns that solution as `FEASIBLE`. Previously the state was `APPROXIMATE` and no solution was returned.

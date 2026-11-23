@@ -282,7 +282,13 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
             if (iterationLimit < Integer.MAX_VALUE) {
                 data.add(new MaxIter(iterationLimit));
             }
+            this.addSettings(data, myOptions);
             R solutionAndValue = solver.optimize(data.toArray(new OptimizationData[data.size()]));
+
+            Optimisation.State state = this.extractState(solutionAndValue, myTranslation);
+            if (!state.isFeasible()) {
+                return new Optimisation.Result(state, Double.NaN, kickStarter);
+            }
 
             double value = this.extractValue(solutionAndValue) / myTranslation.objectiveScale;
             if (myTranslation.negated) {
@@ -290,7 +296,7 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
             }
             value += myTranslation.objectiveConstant;
 
-            Optimisation.Result result = new Optimisation.Result(Optimisation.State.OPTIMAL, value, this.extractSolution(solutionAndValue));
+            Optimisation.Result result = new Optimisation.Result(state, value, this.extractSolution(solutionAndValue));
 
             return this.complete(result, solutionAndValue, myTranslation);
 
@@ -304,6 +310,14 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
             // or MathIllegalArgumentException on some problems)
             return new Optimisation.Result(Optimisation.State.FAILED, Double.NaN, kickStarter);
         }
+    }
+
+    /**
+     * Settings, as {@link OptimizationData}, to pass to the Hipparchus optimiser together with the problem.
+     * None by default.
+     */
+    void addSettings(final List<OptimizationData> data, final Optimisation.Options options) {
+        // None by default
     }
 
     /**
@@ -321,7 +335,19 @@ abstract class AbstractImpl<S extends BaseMultivariateOptimizer<R>, R> implement
         return Integer.MAX_VALUE;
     }
 
+    /**
+     * The state when the optimiser failed with an exception.
+     */
     abstract Optimisation.State extractState(Localizable exceptionSpecifier);
+
+    /**
+     * The state of a solution the optimiser returned. Some optimisers return, rather than throw, when they
+     * fail. If the state is not feasible the solution is discarded. {@link Optimisation.State#OPTIMAL} by
+     * default.
+     */
+    Optimisation.State extractState(final R solutionAndValue, final Translation translation) {
+        return Optimisation.State.OPTIMAL;
+    }
 
     abstract double extractValue(R solutionAndValue);
 

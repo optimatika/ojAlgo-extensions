@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - A configured MIP gap (`Options.getConfiguredGapTolerance()`) is passed on to CP-SAT as relative and absolute gap limits. `SolverCPSAT.Parameters` has the corresponding `setRelativeGapLimit(...)` and `setAbsoluteGapLimit(...)`.
 
+### Changed
+
+- Development has moved to target the latest version of ojAlgo, which requires at least Java 22. This module still requires Java 25.
+
 ### Fixed
 
 - The reported objective function value includes the objective's constant term.

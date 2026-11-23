@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Interrupting the solving thread asks OR-Tools to stop. Whether, and how soon, it does depends on the backend – CP-SAT stops promptly, while SCIP and HiGHS may keep running. If the backend refuses, an error is logged once.
 - `Options.time_suffice` is used as the time limit, and if no feasible solution has been found by then, solving continues until `Options.time_abort`.
 
+### Changed
+
+- Requires Java 22 (was Java 11). Development has moved to target the latest version of ojAlgo, which requires at least Java 22.
+
 ### Fixed
 
 - The reported objective function value includes the objective's constant term.

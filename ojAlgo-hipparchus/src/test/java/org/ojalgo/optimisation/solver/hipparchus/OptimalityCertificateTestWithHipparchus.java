@@ -8,7 +8,9 @@ import org.ojalgo.type.context.NumberContext;
 import org.ojalgo.type.keyvalue.KeyValue;
 
 /**
- * The ADMM optimiser, for quadratic problems. See also {@link OptimalityCertificateTestWithHipparchusSimplex}
+ * The ADMM optimiser, for quadratic problems. See also
+ * {@link OptimalityCertificateTestWithHipparchusDualActive},
+ * {@link OptimalityCertificateTestWithHipparchusS2}, {@link OptimalityCertificateTestWithHipparchusSimplex}
  * and {@link SQPOptimizerImplTest}.
  */
 public class OptimalityCertificateTestWithHipparchus extends OptimalityCertificateTest {
@@ -41,7 +43,7 @@ public class OptimalityCertificateTestWithHipparchus extends OptimalityCertifica
 
     @Override
     protected List<KeyValue<String, ExpressionsBasedModel.Integration<?>>> getQuadraticIntegrations() {
-        return List.of(KeyValue.of("ADMM", ADMMQPOptimizerImpl.INTEGRATION), KeyValue.of("SolverHipparchus", SolverHipparchus.INTEGRATION));
+        return List.of(KeyValue.of("ADMM", ADMMQPOptimizerImpl.INTEGRATION));
     }
 
 }

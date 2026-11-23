@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
+- Requires Java 22 (was Java 11). Development has moved to target the latest version of ojAlgo, which requires at least Java 22.
 - Tighter tolerances than JOptimizer's defaults, for more accurate solutions.
 - JOptimizer's LP solver confines every variable to [-99999, 99999]. A solution at such an artificial limit is reported as `FEASIBLE` rather than `OPTIMAL`, and an LP that is infeasible within those limits as `FAILED` rather than `INFEASIBLE` (unless all variables are bounded within them).
 

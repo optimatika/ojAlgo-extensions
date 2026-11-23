@@ -24,6 +24,15 @@ package org.ojalgo.optimisation.solver.hipparchus;
 import org.hipparchus.optim.nonlinear.vector.constrained.SQPOptimizerGM;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 
+/**
+ * Hipparchus' {@link SQPOptimizerGM}. It is not reliable – with the Maros-Meszaros test set it often fails,
+ * or stops at a point that is not optimal. With an infeasible model it may never return. It solves its QP
+ * sub-problems with an ADMM optimiser of its own, that has no iteration limit (and none can be set).
+ *
+ * @deprecated Hipparchus deprecated {@link SQPOptimizerGM}, and will remove it in 5.0. Use
+ *             {@link QPDualActiveSolverImpl} or {@link SQPOptimizerImplS2} instead.
+ */
+@Deprecated
 public final class SQPOptimizerImplGM extends ConvexImpl<SQPOptimizerGM> {
 
     public static class Configurator extends AbstractImpl.Configurator<SQPOptimizerGM> {

@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 > Corresponds to changes in the `develop` branch since the last release
 
+### Changed
+
+- Development has moved to target the latest version of ojAlgo, which requires at least Java 22. This module still requires Java 25.
+
 ### Fixed
 
 - Clarabel's time limit is `time_abort`, no longer the smaller of `time_suffice` and `time_abort`. A solve stopped early has no solution to return – it is `APPROXIMATE` – so stopping at `time_suffice` only gave up on a solve that `time_abort` still allowed.

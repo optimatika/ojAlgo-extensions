@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
-- Requires Java 11 (was Java 8).
+- Requires Java 22 (was Java 8). Development has moved to target the latest version of ojAlgo, which requires at least Java 22.
 - Updated JFreeChart to 1.5.6.
 
 ## [1.0.0] – 2022-07-06

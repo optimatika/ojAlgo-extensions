@@ -23,6 +23,8 @@ package org.ojalgo.hipparchus.optim.linear;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.integer.RelaxedMIPCase;
 import org.ojalgo.optimisation.solver.hipparchus.SimplexSolverImpl;
@@ -33,6 +35,13 @@ public class RelaxedMIPCaseWithHipparchus extends RelaxedMIPCase {
     void configure() {
         // ExpressionsBasedModel.addIntegration(SolverHipparchus.INTEGRATION);
         ExpressionsBasedModel.addIntegration(SimplexSolverImpl.INTEGRATION);
+    }
+
+    @Override
+    @Test
+    @Disabled("Big-M rows with 1E+17 coefficients - SimplexSolver leaves the binaries at 0 (rather than about 1E-13), violating those rows by up to 67 000")
+    public void testNeos3421095cinca() {
+        super.testNeos3421095cinca();
     }
 
     @AfterEach

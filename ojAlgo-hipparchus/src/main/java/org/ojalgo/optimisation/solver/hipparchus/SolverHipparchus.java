@@ -27,7 +27,7 @@ import org.ojalgo.optimisation.Optimisation;
 
 /**
  * Integration with Hipparchus. LP is solved with its {@link SimplexSolver} and convex QP with its
- * {@code ADMMQPOptimizer}.
+ * {@code QPDualActiveSolver}, see {@link QPDualActiveSolverImpl}.
  *
  * @author apete
  */
@@ -47,7 +47,7 @@ public final class SolverHipparchus implements Optimisation.Solver {
             ExpressionsBasedModel.Integration.setSwitch(model, ExpressionsBasedModel.IntegrationProperty.LP_OR_QP, qp);
 
             if (qp) {
-                return new SolverHipparchus(ADMMQPOptimizerImpl.INTEGRATION.build(model));
+                return new SolverHipparchus(QPDualActiveSolverImpl.INTEGRATION.build(model));
             } else {
                 return new SolverHipparchus(SimplexSolverImpl.INTEGRATION.build(model));
             }
@@ -55,13 +55,13 @@ public final class SolverHipparchus implements Optimisation.Solver {
 
         @Override
         public boolean isCapable(final ExpressionsBasedModel model) {
-            return SimplexSolverImpl.INTEGRATION.isCapable(model) || ADMMQPOptimizerImpl.INTEGRATION.isCapable(model);
+            return SimplexSolverImpl.INTEGRATION.isCapable(model) || QPDualActiveSolverImpl.INTEGRATION.isCapable(model);
         }
 
         @Override
         public Result toModelState(final Result solverState, final ExpressionsBasedModel model) {
             if (ExpressionsBasedModel.Integration.isSwitch(model, ExpressionsBasedModel.IntegrationProperty.LP_OR_QP)) {
-                return ADMMQPOptimizerImpl.INTEGRATION.toModelState(solverState, model);
+                return QPDualActiveSolverImpl.INTEGRATION.toModelState(solverState, model);
             } else {
                 return SimplexSolverImpl.INTEGRATION.toModelState(solverState, model);
             }

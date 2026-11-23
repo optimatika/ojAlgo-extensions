@@ -14,15 +14,17 @@ import org.ojalgo.type.keyvalue.EntryPair.KeyedPrimitive;
 
 /**
  * The SQP optimisers only accept one-sided inequality constraints (not the two-sided ones the ADMM optimiser
- * gets), and they fail on some of the {@link org.ojalgo.optimisation.OptimalityCertificateTest} problems – so
- * only this one.
+ * gets), and the deprecated GM and S optimisers fail on some of the
+ * {@link org.ojalgo.optimisation.OptimalityCertificateTest} problems – so only this one. (S2 is also tested
+ * with those, see {@link OptimalityCertificateTestWithHipparchusS2}.)
  * <p>
  * Minimising 3x + 6y + (x² + y²) / 4 subject to x + y >= 1 and x, y in [-10, 10] gives x = 3.5 and y = -2.5,
  * with dual value 4.75 for the constraint (-4.75 when maximising the negated objective). (Without the
  * constraint it would be x = -6 and y = -10.)
  * <p>
- * By default the SQP optimisers use a quasi-Newton approximation of the Hessian, and solve their QP
- * sub-problems with the ADMM optimiser (tolerance 1e-5) – the results are accurate to about 1e-3.
+ * By default the SQP optimisers use a quasi-Newton approximation of the Hessian. The deprecated GM and S
+ * optimisers solve their QP sub-problems with the ADMM optimiser (tolerance 1e-5) – the results are accurate
+ * to about 1e-3. The S2 optimiser solves them with the dual active-set solver, and provides no dual values.
  */
 public class SQPOptimizerImplTest {
 
@@ -60,13 +62,20 @@ public class SQPOptimizerImplTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void testSQPOptimizerGM() {
         SQPOptimizerImplTest.doTest(SQPOptimizerImplGM.INTEGRATION);
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void testSQPOptimizerS() {
         SQPOptimizerImplTest.doTest(SQPOptimizerImplS.INTEGRATION);
+    }
+
+    @Test
+    public void testSQPOptimizerS2() {
+        SQPOptimizerImplTest.doTest(SQPOptimizerImplS2.INTEGRATION);
     }
 
 }

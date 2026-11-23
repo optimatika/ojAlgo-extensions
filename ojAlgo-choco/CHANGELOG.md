@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
+- Requires Java 22 (was Java 17). Development has moved to target the latest version of ojAlgo, which requires at least Java 22.
 - Updated Choco Solver to 6.0.2.
 
 ### Fixed

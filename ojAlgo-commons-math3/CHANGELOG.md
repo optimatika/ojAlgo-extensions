@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 > Corresponds to changes in the `develop` branch since the last release
 
+### Changed
+
+- Requires Java 22 (was Java 11). Development has moved to target the latest version of ojAlgo, which requires at least Java 22.
+- `LinearOptimizerEBM` solves with ojAlgo's `LinearSolver`, that since ojAlgo 57.6.0 can return values that differ in the last digit (0.9999999999999999 rather than 1.0). `SimplexSolverTest.testEpsilon`, that compared with zero tolerance, now allows 1e-7.
+- `RelaxedMIPCaseWithACM.testNeos3421095cinca`, inherited from ojAlgo's `RelaxedMIPCase` since 57.6.0, is disabled. The model has big-M rows with 1E+17 coefficients, and Commons Math's `SimplexSolver` leaves the binaries at 0 (rather than about 1E-13), violating those rows by up to 55 000. The objective function value is correct.
+
 ## [4.1.0] – 2026-10-16
 
 Built with ojAlgo 57.5.0 and Apache Commons Math 3.6.1.

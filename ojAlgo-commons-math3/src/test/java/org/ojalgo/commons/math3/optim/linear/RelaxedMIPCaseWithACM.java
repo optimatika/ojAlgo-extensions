@@ -22,6 +22,8 @@
 package org.ojalgo.commons.math3.optim.linear;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.integer.RelaxedMIPCase;
 import org.ojalgo.optimisation.solver.acm.SolverACM;
@@ -31,6 +33,13 @@ public class RelaxedMIPCaseWithACM extends RelaxedMIPCase {
     @BeforeAll
     public static void configure() {
         ExpressionsBasedModel.addIntegration(SolverACM.INTEGRATION);
+    }
+
+    @Override
+    @Test
+    @Disabled("Big-M rows with 1E+17 coefficients - SimplexSolver leaves the binaries at 0 (rather than about 1E-13), violating those rows by up to 55 000")
+    public void testNeos3421095cinca() {
+        super.testNeos3421095cinca();
     }
 
 }

@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
+- Development has moved to target the latest version of ojAlgo, which requires at least Java 22. This module still requires Java 25.
 - Only models with a quadratic objective are handled – `isCapable(..)` no longer accepts LP models.
 - Termination tolerances are OSQP's defaults, except a relative tolerance of 2E-4. A configured feasibility tolerance (`Options.getConfiguredFeasibilityTolerance()`) sets the absolute and relative tolerances. Previously `options.feasibility` was always used, also for infeasibility detection.
 - Only variables with limits get a bound row, and `updateRange(..)` returns `false` for a variable that had no limits when the solver was built.
