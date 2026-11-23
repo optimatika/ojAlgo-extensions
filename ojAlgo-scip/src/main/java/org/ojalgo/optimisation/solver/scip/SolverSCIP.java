@@ -29,6 +29,7 @@ import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.ojalgo.concurrent.InterruptForwarder;
 import org.ojalgo.optimisation.Expression;
@@ -287,7 +288,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
         MemorySegment[] linVars = { auxVar };
         double[] linCoefs = { -ONE };
 
-        var quadKeys = objective.getQuadraticKeySet();
+        Set<IntRowColumn> quadKeys = objective.getQuadraticKeySet();
         List<MemorySegment> qv1 = new ArrayList<>();
         List<MemorySegment> qv2 = new ArrayList<>();
         List<Double> qc = new ArrayList<>();
@@ -325,7 +326,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
     private static void createLinearConstraint(final MemorySegment scip, final Arena arena, final MemorySegment consPtr, final MemorySegment consName,
             final Expression constraint, final MemorySegment[] varPtrs, final double lhs, final double rhs, final boolean adjusted) {
 
-        var linearKeys = constraint.getLinearKeySet();
+        Set<IntIndex> linearKeys = constraint.getLinearKeySet();
         int nvars = linearKeys.size();
 
         MemorySegment[] consVarPtrs = new MemorySegment[nvars];
@@ -347,7 +348,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
     private static void createQuadraticConstraint(final MemorySegment scip, final Arena arena, final MemorySegment consPtr, final MemorySegment consName,
             final Expression constraint, final MemorySegment[] varPtrs, final double lhs, final double rhs, final boolean adjusted) {
 
-        var linearKeys = constraint.getLinearKeySet();
+        Set<IntIndex> linearKeys = constraint.getLinearKeySet();
         int nlin = linearKeys.size();
 
         MemorySegment[] linVars = new MemorySegment[nlin];
@@ -360,7 +361,7 @@ public final class SolverSCIP implements Optimisation.Solver, UpdatableSolver {
             idx++;
         }
 
-        var quadKeys = constraint.getQuadraticKeySet();
+        Set<IntRowColumn> quadKeys = constraint.getQuadraticKeySet();
         List<MemorySegment> qv1 = new ArrayList<>();
         List<MemorySegment> qv2 = new ArrayList<>();
         List<Double> qc = new ArrayList<>();
