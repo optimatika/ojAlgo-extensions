@@ -18,7 +18,7 @@
         <dependency>
             <groupId>com.mosek</groupId>
             <artifactId>mosek</artifactId>
-            <version>11.2.8</version>
+            <version>11.2.9</version>
         </dependency>
     </dependencies>
 </project>
