@@ -28,3 +28,9 @@ or
 ```java
 model.minimise(SolverHipparchus.INTEGRATION);
 ```
+
+## Model size and time limits
+
+Hipparchus' QP optimisers work with dense matrices, and each variable bound is a (dense) constraint row. `QPDualActiveSolver` is fast for small models – with the Maros-Meszaros test set comparable to ojAlgo's own solver up to about 600 variables. Beyond that it is much slower, and none of the models with 10 000 variables were solved within 5 minutes.
+
+The time limits, `Options.time_abort` and `Options.time_suffice`, are ignored – Hipparchus' optimisers have no time limits, and do not react to the thread being interrupted. `Options.iterations_abort` is used by `ADMMQPOptimizerImpl` and `SQPOptimizerImplS2` only (not for LP, and not for QP with `SolverHipparchus`).
